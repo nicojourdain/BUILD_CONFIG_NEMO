@@ -1,0 +1,106 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! N. Jourdain, IGE-CNRS, Feb. 2017
+!
+! namelist for pre-processing NEMO simulations
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!-------------------------------------------------------------------------------------------------------------------------------
+&general
+config                = 'WED12'                                      ! configuration name, e.g. 'WED12', 'AMU12', etc
+config_dir            = '/scratch/shared/egige60/input/nemo_WED12'   ! Directory where all the new netcdf files will be stored
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&griddata
+file_in_bathy_extract = '/store/njourd/eORCA12/eORCA12_bathymetry_v2.4.nc'  ! Bathy on the grid in which to extract 
+                                                                            !       the regional domain (e.g. eORCA12)
+file_in_coord_extract = '/store/njourd/eORCA12/eORCA12_coordinates.nc'      ! Coordinates of the grid in which to extract
+                                                                            !       the regional domain (e.g. eORCA12)
+ln_coarse_bdy         = .true.                                              ! true if coarser simulation is applied along 
+                                                                            !       the boundaries (then fill file_in_bathy_bdy)
+file_in_bathy_bdy     = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025_bathy.nc'  ! Optional (fill only if ln_coarse_bdy = true)
+ln_isfcav             = .true.                                              ! true if the domain includes ice shelves.
+! Choose the domain bounds on eORCA12 grid (WARNING: will be rounded to closest point of the coarse grid if ln_coarse_bdy = true) :
+nn_imin_extract       = 2466
+nn_imax_extract       = 3582
+nn_jmin_extract       =  154
+nn_jmax_extract       = 1120
+! Choose latitude and longitude near which you know that the two grids match
+rn_latref             = -44.0
+rn_lonref             =  10.0
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&init
+nn_init               =    2   !  1 -> initial state is an extraction from the corresponding global/large-scale grid [ if ln_coarse_bdy = false ]
+                               !  2 -> initial state from coarser resolution [ if ln_coarse_bdy = true ]     
+file_in_mask_extract  = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025.L75-MJM91_byte_mask.nc' ! Global/large-scale file, according to nn_init 
+                                                                                         ! (contains tmask, nav_lat, nav_lon, nav_lev)
+file_in_T             = '/store/njourd/ORCA025/SOUTHG2V3_199301_gridT.nc'         ! Temperature
+file_in_S             = '/store/njourd/ORCA025/SOUTHG2V3_199301_gridS.nc'         ! Salinity
+nn_eosmatch           =   1    ! match between model equ. of state and istate equ. of state :
+                               !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
+                               !    = 1, same equation of state everywhere
+nn_iter               =  100   ! [optional] nb of iteration for closest neighbour (default=5)
+nn_rsmax              =    5   ! [optional] nb of points to look for horizontally closest neighbour (in one iteration) 
+nn_rzmax              =    1   ! [optional] nb of points to look for vertically closest neighbour (in one iteration, after horizontal search)
+rn_temp               = -1.9   ! default temperature (if no close neighbour after nn_iter iterations)
+rn_sal                = 34.5   ! default salinity    (if no close neighbour after nn_iter iterations)
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&bdy
+nn_bdy_east           =    1    ! number of along-Y segments constituting the EASTERN boundary
+nn_bdy_west           =    1    ! number of along-Y segments constituting the WESTERN boundary
+nn_bdy_north          =    2    ! number of along-X segments constituting the NORTHERN boundary
+nn_bdy_south          =    0    ! number of along-X segments constituting the SOUTHERN boundary
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&bdy_east
+ii_bdy_east(1)        = 1119    ! i-index for eastern boundary (ocean T-pt, standard = mx-1)
+j1_bdy_east(1)        =  660    ! lowest  j-index for eastern boundary (ocean T-pt, standard = 2)
+j2_bdy_east(1)        =  969    ! highest j-index for eastern boundary (ocean T-pt, standard = my-1)
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&bdy_west
+ii_bdy_west(1)        =  325    ! i-index for western boundary (ocean T-pt, standard = 2)
+j1_bdy_west(1)        =  901    ! lowest  j-index for western boundary (ocean T-pt, standard = 2)
+j2_bdy_west(1)        =  969    ! highest j-index for western boundary (ocean T-pt, standard = my-1)
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&bdy_north
+i1_bdy_north(1)       =  290    ! lowest  i-index for northern boundary (ocean T-pt, standard = 2, or = 3 if full bdy_west)
+i2_bdy_north(1)       =  325    ! highest i-index for northern boundary (ocean T-pt, standard = mx-1, or = mx-2 if full bdy_east)
+jj_bdy_north(1)       =  898    ! j-index for northern boundary (ocean T-pt, standard = my-1)
+!---
+i1_bdy_north(2)       =  326
+i2_bdy_north(2)       =  968
+jj_bdy_north(2)       =  969
+!-------------------------------------------------------------------------------------------------------------------------------
+&bdy_south
+i1_bdy_south(1)       =    0    ! lowest  i-index for southern boundary (ocean T-pt, standard = 2, or = 3 if full bdy_west)
+i2_bdy_south(1)       =    0    ! highest i-index for southern boundary (ocean T-pt, standard = mx-1, or = mx-2 if full bdy_east)
+jj_bdy_south(1)       =    0    ! j-index for southern boundary (ocean T-pt, standard = 2)
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&bdy_data
+! The dataset is assumed to be in files of one of the following types (YYYY is 4-digit year, MM 2-digit month and DD 2-digit day):
+!         <data_dir>/YYYY/<data_prefix>_YYYY_MM_DD_<data_suffix>.nc
+!         <data_dir>/YYYY/<data_prefix>_YYYY_MM_<data_suffix>.nc
+!         <data_dir>/YYYY/<data_prefix>_YYYY_MM_DD.nc
+!         <data_dir>/YYYY/<data_prefix>_YYYY_MM.nc
+!         <data_dir>/<data_prefix>_YYYY_MM_DD_<data_suffix>.nc
+!         <data_dir>/<data_prefix>_YYYY_MM_<data_suffix>.nc
+!         <data_dir>/<data_prefix>_YYYY_MM_DD.nc
+!         <data_dir>/<data_prefix>_YYYY_MM.nc
+data_dir              = '/store/njourd/SOUTHG2V3' 
+data_prefix           = 'SOUTHG2V3'
+data_suffix_T         = 'gridT' ! suffix for temperature
+data_suffix_S         = 'gridS' ! suffix for salinity
+data_suffix_U         = 'gridU' ! suffix for zonal velocity
+data_suffix_V         = 'gridV' ! suffix for meridional velocity
+data_suffix_ssh       = 'grid2D'! suffix for SSH
+data_suffix_ice       = 'icemod'! suffix for sea ice variables
+nn_yeari              =  1994   ! initial year for BDYs
+nn_yearf              =  1995   ! final year for BDYs
+nn_bdy_eosmatch       =   1    ! match between model equ. of state and BDY equ. of state :
+                               !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
+                               !    = 1, same equation of state everywhere
