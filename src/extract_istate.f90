@@ -27,8 +27,8 @@ IMPLICIT NONE
 !-- namelist parameters :
 namelist /general/ config, config_dir
 namelist /init/ nn_init, file_in_mask_extract, file_in_T, file_in_S, nn_eosmatch, nn_iter, nn_rsmax, nn_rzmax, &
-&               rn_temp, rn_sal
-INTEGER                               :: nn_init, nn_iter, nn_rsmax, nn_rzmax, nn_eosmatch
+&               rn_temp, rn_sal, nn_smooth
+INTEGER                               :: nn_init, nn_iter, nn_rsmax, nn_rzmax, nn_eosmatch, nn_smooth
 CHARACTER(LEN=50)                     :: config
 CHARACTER(LEN=150)                    :: file_in_mask_extract, config_dir, file_in_T, file_in_S
 REAL(KIND=4)                          :: rn_temp, rn_sal
@@ -36,8 +36,8 @@ REAL(KIND=4)                          :: rn_temp, rn_sal
 INTEGER :: fidMSKIN, fidMSKREG, status, dimID_z, dimID_y, dimID_x, mz_GLO, my_GLO, mx_GLO, tmask_GLO_ID, &
 &          mx_REG, my_REG, mz_REG, tmask_REG_ID, fidSAL, fidTEMP, votemper_ID, vosaline_ID,              &
 &          dimID_time_counter, ai, bi, aj, bj, iii, jjj, kkk, kk, iGLO, jGLO, iREG, jREG, fidTin, fidSin,&
-&          kiter, rs, rz, sg, time_counter_ID, fidCOORD, imin_ORCA12, jmin_ORCA12, lon_ID, lat_ID,       &
-&          dep_ID, kGLO, ntest
+&          kiter, rs, rz, sg, time_counter_ID, fidCOORD, imin_ORCA12, jmin_ORCA12, lon_ID, lat_ID, dij,  &
+&          dep_ID, kGLO, ntest, im1, ip1, jm1, jp1
 
 CHARACTER(LEN=180) :: file_in_mask_REG, file_in_coord_REG, file_out_temp, file_out_sal 
 
@@ -47,7 +47,7 @@ REAL(KIND=4),ALLOCATABLE,DIMENSION(:) ::  dep_GLO
 
 REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:) :: lon_GLO, lat_GLO
 
-REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:,:) :: votemper_GLO, vosaline_GLO, votemper_REG, vosaline_REG, &
+REAL(KIND=8),ALLOCATABLE,DIMENSION(:,:,:) :: votemper_GLO, vosaline_GLO, votemper_REG, vosaline_REG, &
 &                                            tmp_votemper_REG, tmp_vosaline_REG
 
 LOGICAL :: iout
@@ -56,12 +56,15 @@ LOGICAL :: iout
 ! 0- Initializations 
 !=================================================================================
 
+call gsw_saar_init (.true.)
+
 ! Default values (replaced with namelist values if specified):
 config_dir        = '.'
 nn_iter           = 100
 nn_rsmax          =   5
 nn_rzmax          =   1
 nn_eosmatch       =   1
+nn_smooth         =   1
 
 !- read namelist values :
 OPEN (UNIT=1, FILE='namelist_pre' )
@@ -165,6 +168,9 @@ if ( nn_eosmatch .eq. 0 ) then
     if ( tmask_GLO(iGLO,jGLO,kGLO) .eq. 1 ) then
       vosaline_GLO(iGLO,jGLO,kGLO) = gsw_sa_from_sp( DBLE(vosaline_GLO(iGLO,jGLO,kGLO)), DBLE(dep_GLO(kGLO)), DBLE(lon_GLO(iGLO,jGLO)), DBLE(lat_GLO(iGLO,jGLO)) )
       votemper_GLO(iGLO,jGLO,kGLO) = gsw_ct_from_pt( DBLE(vosaline_GLO(iGLO,jGLO,kGLO)), DBLE(votemper_GLO(iGLO,jGLO,kGLO)) )
+    else
+      vosaline_GLO(iGLO,jGLO,kGLO) = 0.d0
+      votemper_GLO(iGLO,jGLO,kGLO) = 0.d0
     endif
   enddo
   enddo
@@ -211,8 +217,8 @@ ELSEIF ( nn_init == 2 ) THEN
   ALLOCATE( tmp_votemper_REG(mx_REG,my_REG,mz_REG) )
   ALLOCATE( tmp_vosaline_REG(mx_REG,my_REG,mz_REG) )
   missing(:,:,:)=0
-  votemper_REG(:,:,:)=0.0
-  vosaline_REG(:,:,:)=0.0
+  votemper_REG(:,:,:)=0.d0
+  vosaline_REG(:,:,:)=0.d0
   do iREG=1,mx_REG
   do jREG=1,my_REG
      iGLO=NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai)
@@ -251,29 +257,26 @@ ELSEIF ( nn_init == 2 ) THEN
         do rz=0,nn_rzmax,1
         do sg=-1,1,2 ! to look above first, then below
           do rs=1,nn_rsmax,1
-            iii=MIN(iREG+rs,mx_REG); jjj=jREG               ; kkk= MAX(kk+rz*sg, 1)
+            iii=iREG               ; jjj=jREG               ; kkk= MIN(MAX(kk+rz*sg,1),mz_REG) ! to look right above/below
             if ( tmask_REG(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-            iii=MAX(iREG-rs,1)     ; jjj=jREG               ; kkk= MAX(kk+rz*sg, 1)
+            iii=MIN(iREG+rs,mx_REG); jjj=jREG               ; kkk= MIN(MAX(kk+rz*sg,1),mz_REG)
             if ( tmask_REG(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-            iii=iREG               ; jjj=MIN(jREG+rs,my_REG); kkk= MAX(kk+rz*sg, 1)
+            iii=MAX(iREG-rs,1)     ; jjj=jREG               ; kkk= MIN(MAX(kk+rz*sg,1),mz_REG)
             if ( tmask_REG(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-            iii=iREG               ; jjj=MAX(jREG-rs,1)     ; kkk= MAX(kk+rz*sg, 1)
+            iii=iREG               ; jjj=MIN(jREG+rs,my_REG); kkk= MIN(MAX(kk+rz*sg,1),mz_REG)
             if ( tmask_REG(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-            iii=MIN(iREG+rs,mx_REG); jjj=MIN(jREG+rs,my_REG); kkk= MAX(kk+rz*sg, 1)
+            iii=iREG               ; jjj=MAX(jREG-rs,1)     ; kkk= MIN(MAX(kk+rz*sg,1),mz_REG)
             if ( tmask_REG(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-            iii=MIN(iREG+rs,mx_REG); jjj=MAX(jREG-rs,1)     ; kkk= MAX(kk+rz*sg, 1)
+            iii=MIN(iREG+rs,mx_REG); jjj=MIN(jREG+rs,my_REG); kkk= MIN(MAX(kk+rz*sg,1),mz_REG)
             if ( tmask_REG(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-            iii=MAX(iREG-rs,1)     ; jjj=MIN(jREG+rs,my_REG); kkk= MAX(kk+rz*sg, 1) 
+            iii=MIN(iREG+rs,mx_REG); jjj=MAX(jREG-rs,1)     ; kkk= MIN(MAX(kk+rz*sg,1),mz_REG)
             if ( tmask_REG(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-            iii=MAX(iREG-rs,1)     ; jjj=MAX(jREG-rs,1)     ; kkk= MAX(kk+rz*sg, 1) 
-            !if ( tmask_REG(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+            iii=MAX(iREG-rs,1)     ; jjj=MIN(jREG+rs,my_REG); kkk= MIN(MAX(kk+rz*sg,1),mz_REG) 
+            if ( tmask_REG(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+            iii=MAX(iREG-rs,1)     ; jjj=MAX(jREG-rs,1)     ; kkk= MIN(MAX(kk+rz*sg,1),mz_REG) 
             if ( tmask_REG(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then
               iout=.TRUE.
               exit
-            !elseif ( rs .eq. nn_rsmax .and. rz .eq. nn_rzmax .and. kiter .eq. nn_iter ) then
-            !  write(*,953) iREG, jREG, kk
-            !  953 FORMAT(' >>> WARNING for point (',3I5,') --> filled with rn_temp and rn_sal (to avoid this, increase nn_rsmax and/or nn_rzmax and/or nn_iter)')
-            !   
             endif
           enddo !- rs
           if (iout) exit
@@ -292,8 +295,6 @@ ELSEIF ( nn_init == 2 ) THEN
           exit
         endif
         enddo !-rz
-        !tmp_votemper_REG(iREG,jREG,kk) = votemper_REG(iii,jjj,kkk)
-        !tmp_vosaline_REG(iREG,jREG,kk) = vosaline_REG(iii,jjj,kkk)
       endif !-if ( missing(iREG,jREG,kk) .eq. 1 )
     enddo !- kk
     enddo !- jREG
@@ -303,12 +304,104 @@ ELSEIF ( nn_init == 2 ) THEN
     vosaline_REG(:,:,:)=tmp_vosaline_REG(:,:,:)
   enddo !- kiter
 
-  DEALLOCATE( tmp_votemper_REG, tmp_vosaline_REG, missing )
+  !- Smoothing :
+  if ( nn_smooth .gt. 1 ) then
+    write(*,*) 'Smoothing window width = ', nn_smooth
+    dij=INT(nn_smooth*0.5)
+    tmp_votemper_REG(:,:,:)=votemper_REG(:,:,:)
+    tmp_vosaline_REG(:,:,:)=vosaline_REG(:,:,:)
+    do iREG=1,mx_REG
+    do jREG=1,my_REG
+    do kk=1,mz_REG
+      im1=MAX(iREG-dij,1) ; ip1=MIN(iREG+dij,mx_REG) 
+      jm1=MAX(jREG-dij,1) ; jp1=MIN(jREG+dij,my_REG)
+      if ( tmask_REG(iREG,jREG,kk) .eq. 1 ) then 
+        tmp_votemper_REG(iREG,jREG,kk) =   SUM( SUM( votemper_REG(im1:ip1,jm1:jp1,kk) * tmask_REG(im1:ip1,jm1:jp1,kk), 2), 1) &
+        &                                / SUM( SUM(                             1.0  * tmask_REG(im1:ip1,jm1:jp1,kk), 2), 1)
+        tmp_vosaline_REG(iREG,jREG,kk) =   SUM( SUM( vosaline_REG(im1:ip1,jm1:jp1,kk) * tmask_REG(im1:ip1,jm1:jp1,kk), 2), 1) &
+        &                                / SUM( SUM(                             1.0  * tmask_REG(im1:ip1,jm1:jp1,kk), 2), 1)
+      else
+        tmp_votemper_REG(iREG,jREG,kk) = 0.d0
+        tmp_vosaline_REG(iREG,jREG,kk) = 0.d0
+      endif
+    enddo
+    enddo
+    enddo
+    votemper_REG(:,:,:)=tmp_votemper_REG(:,:,:)
+    vosaline_REG(:,:,:)=tmp_vosaline_REG(:,:,:)
+  else
+    write(*,*) 'No Smoothing'
+  endif
 
+  !- "Drowning", i.e. put closest value everywhere on the mask file to avoid issue if namdom is slightly changed :
+  !  We just repeat the previous methodology, but for masked points
+  write(*,*) 'Drowning, i.e. fill all masked points with closest neighbour'
+  missing(:,:,:)=NINT(1-FLOAT(tmask_REG(:,:,:)))
+  ! Look for closest neighbours where we have missing values:
+  do kiter=1,nn_iter
+    ntest = NINT(sum(sum(sum(FLOAT(missing),3),2),1))
+    write(*,*) '  kiter = ', kiter
+    write(*,*) '     remaining nb of masked points to fill: ', ntest
+    if ( ntest .eq. 0 ) exit
+    tmp_votemper_REG(:,:,:)=votemper_REG(:,:,:)
+    tmp_vosaline_REG(:,:,:)=vosaline_REG(:,:,:)
+    tmp_missing(:,:,:)=missing(:,:,:)
+    do iREG=1,mx_REG
+    do jREG=1,my_REG
+    do kk=1,mz_REG
+      if ( missing(iREG,jREG,kk) .eq. 1 ) then
+        iout=.FALSE.
+        do rz=0,nn_rzmax,1
+        do sg=-1,1,2 ! to look above first, then below
+          do rs=1,nn_rsmax,1
+            iii=iREG               ; jjj=jREG               ; kkk= MIN(MAX(kk+rz*sg,1),mz_REG) ! to look right above/below
+            if ( missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+            iii=MIN(iREG+rs,mx_REG); jjj=jREG               ; kkk= MIN(MAX(kk+rz*sg,1),mz_REG)
+            if ( missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+            iii=MAX(iREG-rs,1)     ; jjj=jREG               ; kkk= MIN(MAX(kk+rz*sg,1),mz_REG)
+            if ( missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+            iii=iREG               ; jjj=MIN(jREG+rs,my_REG); kkk= MIN(MAX(kk+rz*sg,1),mz_REG)
+            if ( missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+            iii=iREG               ; jjj=MAX(jREG-rs,1)     ; kkk= MIN(MAX(kk+rz*sg,1),mz_REG)
+            if ( missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+            iii=MIN(iREG+rs,mx_REG); jjj=MIN(jREG+rs,my_REG); kkk= MIN(MAX(kk+rz*sg,1),mz_REG)
+            if ( missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+            iii=MIN(iREG+rs,mx_REG); jjj=MAX(jREG-rs,1)     ; kkk= MIN(MAX(kk+rz*sg,1),mz_REG)
+            if ( missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+            iii=MAX(iREG-rs,1)     ; jjj=MIN(jREG+rs,my_REG); kkk= MIN(MAX(kk+rz*sg,1),mz_REG) 
+            if ( missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+            iii=MAX(iREG-rs,1)     ; jjj=MAX(jREG-rs,1)     ; kkk= MIN(MAX(kk+rz*sg,1),mz_REG) 
+            if ( missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+          enddo !- rs
+          if (iout) exit
+        enddo !-sg
+        if (iout) then
+          tmp_missing(iREG,jREG,kk) = 0
+          tmp_votemper_REG(iREG,jREG,kk) = votemper_REG(iii,jjj,kkk)
+          tmp_vosaline_REG(iREG,jREG,kk) = vosaline_REG(iii,jjj,kkk)
+          exit
+        elseif ( rz .eq. nn_rzmax .and. kiter .eq. nn_iter ) then
+          tmp_missing(iREG,jREG,kk) = 0
+          tmp_votemper_REG(iREG,jREG,kk) = rn_temp
+          tmp_vosaline_REG(iREG,jREG,kk) = rn_sal
+          exit
+        endif
+        enddo !-rz
+      endif !-if ( missing(iREG,jREG,kk) .eq. 1 )
+    enddo !- kk
+    enddo !- jREG
+    enddo !- iREG
+    missing(:,:,:)=tmp_missing(:,:,:)
+    votemper_REG(:,:,:)=tmp_votemper_REG(:,:,:)
+    vosaline_REG(:,:,:)=tmp_vosaline_REG(:,:,:)
+  enddo !- kiter
+
+  !--  
+  DEALLOCATE( tmp_votemper_REG, tmp_vosaline_REG, missing )
 
 ELSE
 
-  write(*,*) ' THIS VALUE OF nn_init DOES NOT CORRESPOND TO SOMETHING KNOWN  >>>>> STOP'
+  write(*,*) ' THIS nn_init VALUE DOES NOT CORRESPOND TO SOMETHING KNOWN  >>>>> STOP'
   stop
 
 ENDIF
@@ -345,7 +438,9 @@ status = NF90_PUT_ATT(fidTEMP,time_counter_ID,"long_name","Time axis")         ;
 status = NF90_PUT_ATT(fidTEMP,time_counter_ID,"standard_name","time")          ; call erreur(status,.TRUE.,"put_att_time_counter_ID")
 status = NF90_PUT_ATT(fidTEMP,time_counter_ID,"axis","T")                      ; call erreur(status,.TRUE.,"put_att_time_counter_ID")
 
-status = NF90_PUT_ATT(fidTEMP,NF90_GLOBAL,"history","Created using extract_istate.f90") ; call erreur(status,.TRUE.,"put_att_GLOBAL")
+status = NF90_PUT_ATT(fidTEMP,NF90_GLOBAL,"history","Created using extract_istate.f90")
+status = NF90_PUT_ATT(fidTEMP,NF90_GLOBAL,"tools","https://github.com/nicojourdain/BUILD_CONFIG_NEMO")
+call erreur(status,.TRUE.,"put_att_GLOBAL")
 
 status = NF90_ENDDEF(fidTEMP) ; call erreur(status,.TRUE.,"end_definition") 
 

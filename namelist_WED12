@@ -35,16 +35,17 @@ nn_init               =    2   !  1 -> initial state is an extraction from the c
                                !  2 -> initial state from coarser resolution [ if ln_coarse_bdy = true ]     
 file_in_mask_extract  = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025.L75-MJM91_byte_mask.nc' ! Global/large-scale file, according to nn_init 
                                                                                          ! (contains tmask, nav_lat, nav_lon, nav_lev)
-file_in_T             = '/store/njourd/ORCA025/SOUTHG2V3_199301_gridT.nc'         ! Temperature
-file_in_S             = '/store/njourd/ORCA025/SOUTHG2V3_199301_gridS.nc'         ! Salinity
-nn_eosmatch           =   1    ! match between model equ. of state and istate equ. of state :
+file_in_T             = '/store/njourd/ORCA025/SOUTHG2V3_199301_gridT.nc'         ! Temperature (same grid as file_in_mask_extract)
+file_in_S             = '/store/njourd/ORCA025/SOUTHG2V3_199301_gridS.nc'         ! Salinity    (same grid as file_in_mask_extract)
+nn_eosmatch           =   0    ! match between model equ. of state and istate equ. of state :
                                !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
                                !    = 1, same equation of state everywhere
-nn_iter               =  100   ! [optional] nb of iteration for closest neighbour (default=5)
+nn_iter               =   80   ! [optional] nb of iteration for closest neighbour (default=5)
 nn_rsmax              =    5   ! [optional] nb of points to look for horizontally closest neighbour (in one iteration) 
 nn_rzmax              =    1   ! [optional] nb of points to look for vertically closest neighbour (in one iteration, after horizontal search)
 rn_temp               = -1.9   ! default temperature (if no close neighbour after nn_iter iterations)
 rn_sal                = 34.5   ! default salinity    (if no close neighbour after nn_iter iterations)
+nn_smooth             =    7   ! size of the box for running mean (=1 for no smoothing, 3,5,7,... for more smoothing)
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &bdy
@@ -82,6 +83,7 @@ jj_bdy_south(1)       =    0    ! j-index for southern boundary (ocean T-pt, sta
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &bdy_data
+! Dataset used as lateral boundary conditions (same grid as file_in_mask_extract and as file_in_bathy_bdy if it is used)
 ! The dataset is assumed to be in files of one of the following types (YYYY is 4-digit year, MM 2-digit month and DD 2-digit day):
 !         <data_dir>/YYYY/<data_prefix>_YYYY_MM_DD_<data_suffix>.nc
 !         <data_dir>/YYYY/<data_prefix>_YYYY_MM_<data_suffix>.nc
@@ -91,6 +93,14 @@ jj_bdy_south(1)       =    0    ! j-index for southern boundary (ocean T-pt, sta
 !         <data_dir>/<data_prefix>_YYYY_MM_<data_suffix>.nc
 !         <data_dir>/<data_prefix>_YYYY_MM_DD.nc
 !         <data_dir>/<data_prefix>_YYYY_MM.nc
+!         <data_dir>/YYYY/<data_prefix>_YYYYMMDD_<data_suffix>.nc
+!         <data_dir>/YYYY/<data_prefix>_YYYYMM_<data_suffix>.nc
+!         <data_dir>/YYYY/<data_prefix>_YYYYMMDD.nc
+!         <data_dir>/YYYY/<data_prefix>_YYYYMM.nc
+!         <data_dir>/<data_prefix>_YYYYMMDD_<data_suffix>.nc
+!         <data_dir>/<data_prefix>_YYYYMM_<data_suffix>.nc
+!         <data_dir>/<data_prefix>_YYYYMMDD.nc
+!         <data_dir>/<data_prefix>_YYYYMM.nc
 data_dir              = '/store/njourd/SOUTHG2V3' 
 data_prefix           = 'SOUTHG2V3'
 data_suffix_T         = 'gridT' ! suffix for temperature
@@ -99,8 +109,13 @@ data_suffix_U         = 'gridU' ! suffix for zonal velocity
 data_suffix_V         = 'gridV' ! suffix for meridional velocity
 data_suffix_ssh       = 'grid2D'! suffix for SSH
 data_suffix_ice       = 'icemod'! suffix for sea ice variables
-nn_yeari              =  1994   ! initial year for BDYs
-nn_yearf              =  1995   ! final year for BDYs
-nn_bdy_eosmatch       =   1    ! match between model equ. of state and BDY equ. of state :
+file_data_mask        = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025.L75-MJM91_byte_mask.nc' ! Mask for global/large-scale file
+                                                                                         ! (contains umask, vmask)
+file_data_zgr         = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025.L75-MJM91_mesh_zgr.nc'  ! Vertical mesh sizes (for btp vel.)
+                                                                                         ! (contains e3u_0 or e3u and e3v_0 or e3v)
+nn_yeari              =  1993   ! initial year for BDYs
+nn_yearf              =  2013   ! final year for BDYs
+nn_bdy_eosmatch       =   0    ! match between model equ. of state and BDY equ. of state :
                                !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
                                !    = 1, same equation of state everywhere
+/

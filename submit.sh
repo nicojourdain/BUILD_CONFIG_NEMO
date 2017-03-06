@@ -33,10 +33,13 @@ elif [ $# -gt 3 ]; then
   exit
 fi
 
+echo "walltime=$walltime"
+echo "mem=${mem}Gb"
 
 #=====
 if [ `hostname | cut -d"." -f2` == "occigen" ]; then
 
+echo "host is occigen"
 cat > tmptxp.sh << EOF
 #!/bin/bash
 #SBATCH -C HSW24
@@ -53,6 +56,7 @@ EOF
 
 elif [ `hostname | cut -c 1-3` == "ada" ]; then
 
+echo "host is ada"
 cat > tmptxp.sh << EOF
 # @ job_name = submit_${1}
 # @ output = submit_${1}.txt
@@ -64,6 +68,7 @@ EOF
 
 else
 
+echo "default host"
 echo '#!/bin/bash' > tmptxp.sh
 echo " "
 echo "WARNING: You may need to add a specific header in submit.sh if `hostname` enables batch jobs"

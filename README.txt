@@ -89,6 +89,12 @@ Last updates:
         # edit makefile (in particular fill the FC and NETCDF_INCDIR variables)
         make
         ./gsw_check  ## to check (some have to work, maybe not all of them)
+        cd ../..
+        # need to modify the netcdf file used for TEOS10 to avoid NaN in some places :
+        ./compile.sh remove_NaN_from_gsw_data_v3_0.f90 
+        ./remove_NaN_from_gsw_data_v3_0
+        ncks -x -v ocean_ref,ndepth_ref,deltaSA_ref,SA_ref,SAAR_ref GSW-Fortran/test/gsw_data_v3_0.nc gsw_data_v3_0.nc
+        ncks -A gsw_data_v3_0_to_be_ncks-A.nc gsw_data_v3_0.nc 
 
         # Edit your own namelist, e.g. namelist_WED12, and link namelist_pre to it:
         vi namelist_${CONFIG}
@@ -132,8 +138,12 @@ Last updates:
 	./submit.sh build_coordinates_bdy 01  ## -> creates the coordinate file for lateral boundaries
                                               ##    e.g. coordinates_bdy_WED12.nc
 
+        ./submit.sh extract_bdy_gridT 01 15   ## -> creates T,S bdy files and store them in a BDY folder
+                                              ##    itself located in directory defined as config_dir
 
+        ./submit.sh extract_bdy_gridU 01 15   ## -> creates U   bdy files and store them in a BDY folder
+        ./submit.sh extract_bdy_gridV 01 15   ## -> creates V   bdy files and store them in a BDY folder
+        ./submit.sh extract_bdy_ice 01        ## -> creates ice bdy files and store them in a BDY folder
+        ./submit.sh extract_bdy_ssh 01        ## -> creates SSH bdy files and store them in a BDY folder
 
-
-
-
+        ./concatenate_yearly_BDY.sh           ## -> concatenate the bdy files into yearly files
