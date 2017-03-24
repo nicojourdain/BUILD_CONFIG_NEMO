@@ -176,7 +176,7 @@ file_sss_mask        = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025.L75-MJM91_byte_m
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &runoff
-nn_band              = 24   ! Thickness of the band along the coast where we don't do SSS restoring (in nb of grid pts)
+nn_band              = 50   ! Thickness of the band along the coast where we don't do SSS restoring (in nb of grid pts)
 file_mask_runoff     = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025_mask_iceberg.nc'      ! mask for global/large-scale file
 file_runoff_in       = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025_climato_Icebergs.nc'  ! runoff for global/large-scale file
 /
