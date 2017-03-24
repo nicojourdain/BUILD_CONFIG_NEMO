@@ -53,6 +53,7 @@ nn_bdy_east           =    1    ! number of along-Y segments constituting the EA
 nn_bdy_west           =    1    ! number of along-Y segments constituting the WESTERN boundary
 nn_bdy_north          =    2    ! number of along-X segments constituting the NORTHERN boundary
 nn_bdy_south          =    0    ! number of along-X segments constituting the SOUTHERN boundary
+nn_harm               =   18    ! number of tidal harmonics to prescribe along the boundaries (0 if no tides in use)
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &bdy_east
@@ -115,7 +116,67 @@ file_data_zgr         = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025.L75-MJM91_mesh_
                                                                                          ! (contains e3u_0 or e3u and e3v_0 or e3v)
 nn_yeari              =  1993   ! initial year for BDYs
 nn_yearf              =  2013   ! final year for BDYs
-nn_bdy_eosmatch       =   0    ! match between model equ. of state and BDY equ. of state :
-                               !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
+nn_bdy_eosmatch       =   0     ! match between model equ. of state and BDY equ. of state :
+                                !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
+                                !    = 1, same equation of state everywhere
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&bdy_tide
+tide_dir              = '/store/CT1/egi6035/njourd/DATA/FES2012'
+! name of the nn_harm tidal constituents :
+harm( 1)              = 'M2  '  ! name of 1st tidal constituent (4 characters)
+harm( 2)              = 'S2  '  ! name of 2nd tidal constituent (4 characters)
+harm( 3)              = 'K1  '  !   "           "         "
+harm( 4)              = 'O1  '  !   "           "         "
+harm( 5)              = 'N2  '  !   "           "         "
+harm( 6)              = 'K2  '
+harm( 7)              = 'P1  '
+harm( 8)              = 'Q1  '
+harm( 9)              = 'S1  '
+harm(10)              = '2N2 '
+harm(11)              = 'Mu2 '
+harm(12)              = 'Nu2 '
+harm(13)              = 'L2  '
+harm(14)              = 'Mtm '
+harm(15)              = 'Mm  '
+harm(16)              = 'Mf  '
+harm(17)              = 'T2  '
+harm(18)              = 'M4  '
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&sss_resto
+! Dataset used as lateral boundary conditions (same grid as file_in_mask_extract and as file_in_bathy_bdy if it is used)
+! The sss dataset is assumed to be in files of one of the following types (YYYY is 4-digit year, MM 2-digit month and DD 2-digit day):
+!         <sss_dir>/YYYY/<sss_prefix>_YYYY_MM_DD_<sss_suffix>.nc
+!         <sss_dir>/YYYY/<sss_prefix>_YYYY_MM_<sss_suffix>.nc
+!         <sss_dir>/YYYY/<sss_prefix>_YYYY_MM_DD.nc
+!         <sss_dir>/YYYY/<sss_prefix>_YYYY_MM.nc
+!         <sss_dir>/<sss_prefix>_YYYY_MM_DD_<sss_suffix>.nc
+!         <sss_dir>/<sss_prefix>_YYYY_MM_<sss_suffix>.nc
+!         <sss_dir>/<sss_prefix>_YYYY_MM_DD.nc
+!         <sss_dir>/<sss_prefix>_YYYY_MM.nc
+!         <sss_dir>/YYYY/<sss_prefix>_YYYYMMDD_<sss_suffix>.nc
+!         <sss_dir>/YYYY/<sss_prefix>_YYYYMM_<sss_suffix>.nc
+!         <sss_dir>/YYYY/<sss_prefix>_YYYYMMDD.nc
+!         <sss_dir>/YYYY/<sss_prefix>_YYYYMM.nc
+!         <sss_dir>/<sss_prefix>_YYYYMMDD_<sss_suffix>.nc
+!         <sss_dir>/<sss_prefix>_YYYYMM_<sss_suffix>.nc
+!         <sss_dir>/<sss_prefix>_YYYYMMDD.nc
+!         <sss_dir>/<sss_prefix>_YYYYMM.nc
+sss_dir              = '/store/njourd/SOUTHG2V3'
+sss_prefix           = 'SOUTHG2V3'
+sss_suffix           = 'gridS'
+nn_sss_yeari         = 1993    ! First year to proceed
+nn_sss_yearf         = 2013    ! Last year to proceed
+nn_sss_eosmatch      = 0       ! match between model equ. of state and SSS restoring file :
+                               !    = 0, regional config in TEOS-10 but SSS file in EOS-80
                                !    = 1, same equation of state everywhere
+file_sss_mask        = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025.L75-MJM91_byte_mask.nc' ! Mask for global/large-scale file
+                                                                                        ! (contains tmask)
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&runoff
+nn_band              = 24   ! Thickness of the band along the coast where we don't do SSS restoring (in nb of grid pts)
+file_mask_runoff     = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025_mask_iceberg.nc'      ! mask for global/large-scale file
+file_runoff_in       = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025_climato_Icebergs.nc'  ! runoff for global/large-scale file
 /

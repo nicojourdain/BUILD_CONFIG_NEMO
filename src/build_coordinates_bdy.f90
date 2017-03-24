@@ -19,7 +19,7 @@ IMPLICIT NONE
 
 !-- namelist parameters :
 namelist /general/ config, config_dir
-namelist /bdy/ nn_bdy_east, nn_bdy_west, nn_bdy_north, nn_bdy_south
+namelist /bdy/ nn_bdy_east, nn_bdy_west, nn_bdy_north, nn_bdy_south, nn_harm
 namelist /bdy_east/  ii_bdy_east,  j1_bdy_east,  j2_bdy_east
 namelist /bdy_west/  ii_bdy_west,  j1_bdy_west,  j2_bdy_west
 namelist /bdy_north/ jj_bdy_north, i1_bdy_north, i2_bdy_north
@@ -27,7 +27,7 @@ namelist /bdy_south/ jj_bdy_south, i1_bdy_south, i2_bdy_south
 
 CHARACTER(LEN=50)                    :: config
 CHARACTER(LEN=150)                   :: config_dir
-INTEGER                              :: nn_bdy_east, nn_bdy_west, nn_bdy_north, nn_bdy_south
+INTEGER                              :: nn_bdy_east, nn_bdy_west, nn_bdy_north, nn_bdy_south, nn_harm
 INTEGER*4,ALLOCATABLE,DIMENSION(:)   :: ii_bdy_east,  j1_bdy_east,  j2_bdy_east,               &
 &                                       ii_bdy_west,  j1_bdy_west,  j2_bdy_west,               &
 &                                       jj_bdy_north, i1_bdy_north, i2_bdy_north,              &
@@ -53,6 +53,7 @@ nn_bdy_east  = 0
 nn_bdy_west  = 0
 nn_bdy_north = 0
 nn_bdy_south = 0
+nn_harm      = 0
 
 !- read namelist values :
 OPEN (UNIT=1, FILE='namelist_pre' )

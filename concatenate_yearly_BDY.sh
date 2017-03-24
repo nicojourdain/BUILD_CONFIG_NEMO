@@ -11,12 +11,12 @@ do
 for YEAR in $(seq $YEARi $YEARf)
 do
 
-  ncrcat ${BDY_DIR}/${BDY}_${YEAR}_??_${CONFIG}.nc ${BDY_DIR}/${BDY}_${YEAR}_${CONFIG}.nc
-  if [ -f ${BDY_DIR}/${BDY}_${YEAR}_${CONFIG}.nc ]; then
+  ncrcat ${BDY_DIR}/${BDY}_${YEAR}_??_${CONFIG}.nc ${BDY_DIR}/${BDY}_y${YEAR}_${CONFIG}.nc
+  if [ -f ${BDY_DIR}/${BDY}_y${YEAR}_${CONFIG}.nc ]; then
     rm -f ${BDY_DIR}/${BDY}_${YEAR}_??_${CONFIG}.nc
-    echo "${BDY_DIR}/${BDY}_${YEAR}_${CONFIG}.nc  [oK]"
+    echo "${BDY_DIR}/${BDY}_y${YEAR}_${CONFIG}.nc  [oK]"
   else
-    echo "~!@#%^&* ERROR: ${BDY_DIR}/${BDY}_${YEAR}_${CONFIG}.nc HAS NOT BEEN CREATED   >>>>> STOP !!"
+    echo "~!@#%^&* ERROR: ${BDY_DIR}/${BDY}_y${YEAR}_${CONFIG}.nc HAS NOT BEEN CREATED   >>>>> STOP !!"
     exit
   fi
 

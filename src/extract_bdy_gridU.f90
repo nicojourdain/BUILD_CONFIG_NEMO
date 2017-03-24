@@ -39,7 +39,7 @@ INTEGER                              :: fidCOORD, status, dimID_yb, dimID_xbt, d
 &                                       depth_ID, ai, aj, bi, bj, kfmt, fidMSKIN, umask_GLO_ID,      &
 &                                       e3u_GLO_ID, fidZGRIN
 CHARACTER(LEN=100)                   :: calendar, time_units
-CHARACTER(LEN=150)                   :: file_coord, file_in_gridU, file_bdy_gridU2d, file_mesh_mask, &
+CHARACTER(LEN=150)                   :: file_coord, file_in_gridU, file_bdy_gridU2d,  &
 &                                       file_in_coord_REG, command_str, file_bdy_gridU3d
 INTEGER*4,ALLOCATABLE,DIMENSION(:)   :: list_fmt
 INTEGER*4,ALLOCATABLE,DIMENSION(:,:) :: nbiu, nbju, nbru
@@ -71,10 +71,6 @@ CLOSE(1)
 !- bdy coordinates :
 write(file_coord,101) TRIM(config_dir), TRIM(config)
 101 FORMAT(a,'/coordinates_bdy_',a,'.nc')
-
-!- mesh/mask of regional configuration :
-write(file_mesh_mask,102) TRIM(config_dir), TRIM(config)
-102 FORMAT(a,'/mesh_mask_',a,'.nc')
 
 !- name of regional coordinates (input) :
 write(file_in_coord_REG,103) TRIM(config_dir), TRIM(config)

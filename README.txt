@@ -146,4 +146,18 @@ Last updates:
         ./submit.sh extract_bdy_ice 01        ## -> creates ice bdy files and store them in a BDY folder
         ./submit.sh extract_bdy_ssh 01        ## -> creates SSH bdy files and store them in a BDY folder
 
-        ./concatenate_yearly_BDY.sh           ## -> concatenate the bdy files into yearly files
+        ./concatenate_yearly_BDY.sh           ## Edit this file first.
+                                              ## -> concatenate the bdy files into yearly files
+
+        ./submit.sh extract_bdy_tides 01      ## if you want to put tidal signals along the BDYs
+
+#########################################################################################################
+#########################################################################################################
+## 6- Other files (SSS for restoring, runoff, chlorophyll)
+
+	./submit.sh extract_SSS_restoring 01 15  ## -> creates SSS files and store them in a SSS folder
+        ./concatenate_yearly_SSS.sh              ## Edit this file first.
+                                                 ## -> concatenate the bdy files into yearly files
+
+	./submit.sh extract_runoff_icebergs 01   ## -> creates iceberg runoff file
+                                                 ##    (stored in config_dir defined in the namelist)

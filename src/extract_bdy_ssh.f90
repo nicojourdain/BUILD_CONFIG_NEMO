@@ -14,12 +14,6 @@ program modif
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 USE netcdf                                            
 
-use gsw_mod_kinds
-use gsw_mod_netcdf
-use gsw_mod_toolbox
-
-use gsw_mod_error_functions, only : gsw_error_code, gsw_error_limit
-
 IMPLICIT NONE                                         
 
 !-- namelist parameters :
@@ -42,7 +36,7 @@ INTEGER                              :: fidCOORD, status, dimID_yb, dimID_xbt, m
 &                                       i, j, k, l, fidC, imin_ORCA12, jmin_ORCA12, iGLO, jGLO,               &
 &                                       ai, aj, bi, bj, kfmt
 CHARACTER(LEN=100)                   :: calendar, time_units
-CHARACTER(LEN=150)                   :: file_coord, file_in_SSH, file_bdy_gridSSH,   &
+CHARACTER(LEN=150)                   :: file_coord, file_in_SSH, file_bdy_gridSSH,  &
 &                                       file_in_coord_REG, file_in_gridS, command_str
 INTEGER*4,ALLOCATABLE,DIMENSION(:)   :: list_fmt
 INTEGER*4,ALLOCATABLE,DIMENSION(:,:) :: nbit, nbjt, nbrt
@@ -54,8 +48,6 @@ LOGICAL                              :: existfile
 !=================================================================================
 !- 0- Initialiartions
 !=================================================================================
-
-call gsw_saar_init (.true.)
 
 write(*,*) 'Reading namelist parameters'
 
@@ -412,7 +404,7 @@ DO kyear=nn_yeari,nn_yearf
         status = NF90_PUT_ATT(fidM,nbit_ID,"long_name","bdy i index")               ; call erreur(status,.TRUE.,"put_att_nbit_ID")
         status = NF90_PUT_ATT(fidM,nbit_ID,"units","unitless")                      ; call erreur(status,.TRUE.,"put_att_nbit_ID")
         
-        status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"history","Created using extract_bdy_gridT.f90")
+        status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"history","Created using extract_bdy_ssh.f90")
         status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"tools","https://github.com/nicojourdain/BUILD_CONFIG_NEMO")
         call erreur(status,.TRUE.,"put_att_GLOBAL")
         

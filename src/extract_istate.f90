@@ -428,11 +428,11 @@ status = NF90_PUT_ATT(fidTEMP,votemper_ID,"associate","time_counter, z, y, x") ;
 status = NF90_PUT_ATT(fidTEMP,votemper_ID,"missing_value",0.)                  ; call erreur(status,.TRUE.,"put_att_votemper_ID")
 status = NF90_PUT_ATT(fidTEMP,votemper_ID,"_FillValue",0.)                     ; call erreur(status,.TRUE.,"put_att_votemper_ID")
 status = NF90_PUT_ATT(fidTEMP,votemper_ID,"units","degC")                      ; call erreur(status,.TRUE.,"put_att_votemper_ID")
-if ( nn_eosmatch .eq. 0 ) then
+!if ( nn_eosmatch .eq. 0 ) then
   status = NF90_PUT_ATT(fidTEMP,votemper_ID,"long_name","conservative temperature") ; call erreur(status,.TRUE.,"put_att_votemper_ID")
-else
-  status = NF90_PUT_ATT(fidTEMP,votemper_ID,"long_name","potential temperature")    ; call erreur(status,.TRUE.,"put_att_votemper_ID") 
-endif
+!else
+!  status = NF90_PUT_ATT(fidTEMP,votemper_ID,"long_name","potential temperature")    ; call erreur(status,.TRUE.,"put_att_votemper_ID") 
+!endif
 status = NF90_PUT_ATT(fidTEMP,time_counter_ID,"title","Time")                  ; call erreur(status,.TRUE.,"put_att_time_counter_ID")
 status = NF90_PUT_ATT(fidTEMP,time_counter_ID,"long_name","Time axis")         ; call erreur(status,.TRUE.,"put_att_time_counter_ID")
 status = NF90_PUT_ATT(fidTEMP,time_counter_ID,"standard_name","time")          ; call erreur(status,.TRUE.,"put_att_time_counter_ID")
@@ -470,13 +470,13 @@ call erreur(status,.TRUE.,"def_var_vosaline_ID")
 status = NF90_PUT_ATT(fidSAL,vosaline_ID,"associate","time_counter, z, y, x") ; call erreur(status,.TRUE.,"put_att_vosaline_ID")
 status = NF90_PUT_ATT(fidSAL,vosaline_ID,"missing_value",0.)                  ; call erreur(status,.TRUE.,"put_att_vosaline_ID")
 status = NF90_PUT_ATT(fidSAL,vosaline_ID,"_FillValue",0.)                     ; call erreur(status,.TRUE.,"put_att_vosaline_ID")
-if ( nn_eosmatch .eq. 0 ) then
-  status = NF90_PUT_ATT(fidSAL,vosaline_ID,"units","psu")                     ; call erreur(status,.TRUE.,"put_att_vosaline_ID")
-  status = NF90_PUT_ATT(fidSAL,vosaline_ID,"long_name","practical salinity")  ; call erreur(status,.TRUE.,"put_att_vosaline_ID")
-else
+!if ( nn_eosmatch .eq. 0 ) then
+!  status = NF90_PUT_ATT(fidSAL,vosaline_ID,"units","psu")                     ; call erreur(status,.TRUE.,"put_att_vosaline_ID")
+!  status = NF90_PUT_ATT(fidSAL,vosaline_ID,"long_name","practical salinity")  ; call erreur(status,.TRUE.,"put_att_vosaline_ID")
+!else
   status = NF90_PUT_ATT(fidSAL,vosaline_ID,"units","g/kg")                    ; call erreur(status,.TRUE.,"put_att_vosaline_ID")
   status = NF90_PUT_ATT(fidSAL,vosaline_ID,"long_name","absolute salinity")   ; call erreur(status,.TRUE.,"put_att_vosaline_ID")
-endif
+!endif
 status = NF90_PUT_ATT(fidSAL,time_counter_ID,"title","Time")                  ; call erreur(status,.TRUE.,"put_att_time_counter_ID")
 status = NF90_PUT_ATT(fidSAL,time_counter_ID,"long_name","Time axis")         ; call erreur(status,.TRUE.,"put_att_time_counter_ID")
 status = NF90_PUT_ATT(fidSAL,time_counter_ID,"standard_name","time")          ; call erreur(status,.TRUE.,"put_att_time_counter_ID")
