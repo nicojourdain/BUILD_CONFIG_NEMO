@@ -240,9 +240,11 @@ mb=nn_band
 ALLOCATE( socoefr(mx_REG,my_REG) )
 socoefr(:,:) = 0.0
 
-!! manual correction for AMU12y (to remove SSS restoring in the TG & PIG Bay)
+!! manual corrections :
 if ( TRIM(config) == 'AMU12' .or. TRIM(config) == 'AMU12y' ) then
-  tmask_REG(240:320,1:80) = 0.0
+  tmask_REG(240:320,1:80) = 0.0 ! to remove SSS restoring in the TG & PIG Bay
+elseif ( TRIM(config) == 'WED12' ) then
+  tmask_REG(:,1:415) = 0.0 ! region where the old ORCA025 grid was masked
 endif
 
 DO i=1,mx_REG
