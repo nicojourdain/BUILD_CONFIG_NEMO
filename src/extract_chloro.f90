@@ -20,9 +20,10 @@ IMPLICIT NONE
 
 !-- namelist parameters :
 namelist /general/ config, config_dir
-namelist /chloro/ file_chloro_in
+namelist /chloro/ file_chloro_in, rn_chla
 CHARACTER(LEN=50)                        :: config
 CHARACTER(LEN=150)                       :: file_chloro_in, config_dir
+REAL*4                                   :: rn_chla
 
 INTEGER                                  :: fidA, status, dimID_x, dimID_y, dimID_time_counter, dimID_z, dimID_t, mx, my, mtime_counter, &
 &                                           mzreg, mtreg, time_counter_ID, nav_lon_ID, nav_lat_ID, CHLA_ID, fidM, fidglo, jmin_ORCA12,   &
@@ -169,6 +170,9 @@ status = NF90_CLOSE(fidMSH) ; call erreur(status,.TRUE.,"fin_lecture")
 ! 4- Projection onto regional grid :
 !=================================================================================
 
+! Default value :
+CHLAreg(:,:,:) = rn_chla
+
 do iREG=1,mx_REG
 do jREG=1,my_REG
   iGLO=NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai)
@@ -177,8 +181,6 @@ do jREG=1,my_REG
     do l=1,mtime_counter
       CHLAreg(iREG,jREG,l) = CHLA(iGLO,jGLO,l) * tmask_REG(iREG,jREG)
     enddo
-  else
-    CHLAreg(iREG,jREG,:) = 0.1
   endif
 enddo
 enddo

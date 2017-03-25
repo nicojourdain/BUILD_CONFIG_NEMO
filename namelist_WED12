@@ -183,4 +183,5 @@ file_runoff_in       = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025_climato_Icebergs
 !-------------------------------------------------------------------------------------------------------------------------------
 &chloro
 file_chloro_in       = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025_chlorophyll.nc'  ! runoff for global/large-scale file
+rn_chla              = 0.30   ! default CHLA (to fill places in the regional domain uncovered in the global file)
 /
