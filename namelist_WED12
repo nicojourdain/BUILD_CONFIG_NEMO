@@ -180,3 +180,7 @@ nn_band              = 50   ! Thickness of the band along the coast where we don
 file_mask_runoff     = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025_mask_iceberg.nc'      ! mask for global/large-scale file
 file_runoff_in       = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025_climato_Icebergs.nc'  ! runoff for global/large-scale file
 /
+!-------------------------------------------------------------------------------------------------------------------------------
+&chloro
+file_chloro_in       = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025_chlorophyll.nc'  ! runoff for global/large-scale file
+/
