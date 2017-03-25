@@ -161,3 +161,12 @@ Last updates:
 
 	./submit.sh extract_runoff_icebergs 01   ## -> creates iceberg runoff file
                                                  ##    (stored in config_dir defined in the namelist)
+
+        ./submit.sh extract_chloro 01            ## -> creates chlorophyll file
+                                                 ##    (stored in config_dir defined in the namelist)
+    
+#########################################################################################################
+#########################################################################################################
+## 7- Weights for the interpolation of atmospheric forcing
+
+
