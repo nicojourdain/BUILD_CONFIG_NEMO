@@ -83,8 +83,10 @@ Last updates:
 #########################################################################################################
 ## 2-- Prepare the pre-processing tools:
 
-        # First you may need the TEOS10 toolbox to convert from EOS80 to TEOS10:
-        git clone https://github.com/TEOS-10/GSW-Fortran.git
+        # First you may need the TEOS10 toolbox to convert from EOS80 to TEOS10.
+        # To avoid issues with updates on the GSW-Fortran tools, I've cloned the 2016 GSW-Fortran
+        # in this repository. In case you want to check for updates (not recommended), you can still do:
+        # git clone https://github.com/TEOS-10/GSW-Fortran.git
         cd GSW-Fortran/test
         # edit makefile (in particular fill the FC and NETCDF_INCDIR variables)
         make
