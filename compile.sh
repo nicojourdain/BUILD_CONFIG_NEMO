@@ -19,8 +19,8 @@ FC='ifort'
 # Netcdf libraries :
 #export NC_INC='-I /usr/local/netcdf/intel/4.1.1/include'
 #export NC_LIB='-L /usr/local/netcdf/intel/4.1.1/lib -lnetcdf -lnetcdff'
-export NC_LIB="-I`nc-config --includedir`"
-export NC_LIB="-L`nc-config --libs` -lnetcdff"
+export NC_INC="-I`nc-config --includedir`"
+export NC_LIB="`nc-config --libs` -lnetcdff"
 
 export GSW_DIR="./GSW-Fortran"
 
