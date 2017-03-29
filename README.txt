@@ -83,6 +83,7 @@ Last updates:
 #########################################################################################################
 ## 2-- Prepare the pre-processing tools:
 
+        ##### GSW TOOLBOX #####
         # First you may need the TEOS10 toolbox to convert from EOS80 to TEOS10.
         # To avoid issues with updates on the GSW-Fortran tools, I've cloned the 2016 GSW-Fortran
         # in this repository. In case you want to check for updates (not recommended), you can still do:
@@ -92,7 +93,9 @@ Last updates:
         make
         ./gsw_check  ## to check (some have to work, maybe not all of them)
         cd ../..
-        # need to modify the netcdf file used for TEOS10 to avoid NaN in some places :
+        # The gsw_data_v3_0.nc file provided in this repository should be fine, but in case you start again 
+        # from the original file (i.e. from github.com/TEOS-10/GSW-Fortran.git), you will need to modify it
+        # to avoid NaN in some places (otherwise, skip the next 4 lines):
         ./compile.sh remove_NaN_from_gsw_data_v3_0.f90 
         ./remove_NaN_from_gsw_data_v3_0
         ncks -x -v ocean_ref,ndepth_ref,deltaSA_ref,SA_ref,SAAR_ref GSW-Fortran/test/gsw_data_v3_0.nc gsw_data_v3_0.nc
