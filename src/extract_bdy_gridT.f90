@@ -26,11 +26,11 @@ IMPLICIT NONE
 namelist /general/ config, config_dir
 namelist /bdy_data/ nn_yeari, nn_yearf, data_dir, data_prefix, nn_bdy_eosmatch, &
 &                   data_suffix_T, data_suffix_S, data_suffix_U, data_suffix_V, &
-&                   data_suffix_ssh, data_suffix_ice, file_data_mask, file_data_zgr
+&                   data_suffix_ssh, data_suffix_ice, file_data_mask, file_data_zgr, file_data_hgr
 CHARACTER(LEN=50)                    :: config
 CHARACTER(LEN=150)                   :: config_dir, data_dir, data_prefix, data_suffix_T, data_suffix_S, &
 &                                       data_suffix_U, data_suffix_V, data_suffix_ssh, data_suffix_ice,  &
-&                                       file_data_mask, file_data_zgr
+&                                       file_data_mask, file_data_zgr, file_data_hgr
 INTEGER                              :: nn_yeari, nn_yearf, nn_bdy_eosmatch
 
 INTEGER                              :: fidCOORD, status, dimID_yb, dimID_xbt, myb, mxbt, glamt_ID, gphit_ID, &
