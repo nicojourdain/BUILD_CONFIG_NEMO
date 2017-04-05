@@ -20,16 +20,16 @@ IMPLICIT NONE
 namelist /general/ config, config_dir
 namelist /bdy_data/ nn_yeari, nn_yearf, data_dir, data_prefix, nn_bdy_eosmatch, &
 &                   data_suffix_T, data_suffix_S, data_suffix_U, data_suffix_V, &
-&                   data_suffix_ssh, data_suffix_ice, file_data_mask, file_data_zgr
+&                   data_suffix_ssh, data_suffix_ice, file_data_mask, file_data_zgr, file_data_hgr
 
 CHARACTER(LEN=50)                    :: config
 CHARACTER(LEN=150)                   :: config_dir, data_dir, data_prefix, data_suffix_T, data_suffix_S, &
 &                                       data_suffix_U, data_suffix_V, data_suffix_ssh, data_suffix_ice,  &
-&                                       file_data_mask, file_data_zgr
+&                                       file_data_mask, file_data_zgr, file_data_hgr
 INTEGER                              :: nn_yeari, nn_yearf, nn_bdy_eosmatch
 
 INTEGER                              :: fidCOORD, status, dimID_yb, dimID_xbt, dimID_xbu, dimID_xbv, &
-&                                       myb, mxbu, glamu_ID, gphiu_ID, e1u_ID, e2u_ID,               &
+&                                       myb, mxbu, glamu_ID, gphiu_ID, e1u_ID, e2u_ID, e2u_GLO_ID,   &
 &                                       nbiu_ID, nbju_ID, nbru_ID, mtime, dimID_x, dimID_y,          &
 &                                       mlon, mlat, mdepthu, kday, kmonth, kyear, kbdy, nfmt, fidN,  &
 &                                       kt, kz,     lon_ID, lat_ID, depthu_ID, vobtcrtx_ID, fidM,    &
@@ -37,14 +37,14 @@ INTEGER                              :: fidCOORD, status, dimID_yb, dimID_xbt, d
 &                                       dimID_time_counter, dimID_depthu, time_ID, dimID_time, fidS, &
 &                                       i, j, k, l, fidC, imin_ORCA12, jmin_ORCA12, iGLO, jGLO,      &
 &                                       depth_ID, ai, aj, bi, bj, kfmt, fidMSKIN, umask_GLO_ID,      &
-&                                       e3u_GLO_ID, fidZGRIN
+&                                       e3u_GLO_ID, fidZGRIN, fidHGRIN
 CHARACTER(LEN=100)                   :: calendar, time_units
 CHARACTER(LEN=150)                   :: file_coord, file_in_gridU, file_bdy_gridU2d,  &
 &                                       file_in_coord_REG, command_str, file_bdy_gridU3d
 INTEGER*4,ALLOCATABLE,DIMENSION(:)   :: list_fmt
 INTEGER*4,ALLOCATABLE,DIMENSION(:,:) :: nbiu, nbju, nbru
 INTEGER*1,ALLOCATABLE,DIMENSION(:,:,:) :: umask_GLO
-REAL*4,ALLOCATABLE,DIMENSION(:,:)    :: glamu, gphiu, e1u, e2u, nav_lon, nav_lat, nav_lon_bdy, nav_lat_bdy
+REAL*4,ALLOCATABLE,DIMENSION(:,:)    :: e2u_GLO, glamu, gphiu, e1u, e2u, nav_lon, nav_lat, nav_lon_bdy, nav_lat_bdy
 REAL*4,ALLOCATABLE,DIMENSION(:,:,:)  :: e3u_GLO, vobtcrtx, vobtcrtx_bdy
 REAL*4,ALLOCATABLE,DIMENSION(:,:,:,:):: vozocrtx, vozocrtx_bdy
 REAL*4,ALLOCATABLE,DIMENSION(:)      :: depthu
@@ -266,7 +266,8 @@ status = NF90_INQ_VARID(fidMSKIN,"umask",umask_GLO_ID); call erreur(status,.TRUE
 status = NF90_GET_VAR(fidMSKIN,umask_GLO_ID,umask_GLO); call erreur(status,.TRUE.,"getvar_umask_GLO")
 status = NF90_CLOSE(fidMSKIN);                          call erreur(status,.TRUE.,"end read mask_GLO")
 
-!- Read e3u and e3u in large-scale/global file:
+
+!- Read e2u and e3u in large-scale/global file:
 status = NF90_OPEN(TRIM(file_data_zgr),0,fidZGRIN);     call erreur(status,.TRUE.,"read mask input")
 ALLOCATE(  e3u_GLO(mlon,mlat,mdepthu)  )
 status = NF90_INQ_VARID(fidZGRIN,"e3u",e3u_GLO_ID) 
@@ -274,6 +275,13 @@ if ( status .ne. 0 ) status = NF90_INQ_VARID(fidZGRIN,"e3u_0",e3u_GLO_ID)
 call erreur(status,.TRUE.,"inq_e3u_GLO_ID")
 status = NF90_GET_VAR(fidZGRIN,e3u_GLO_ID,e3u_GLO);     call erreur(status,.TRUE.,"getvar_e3u_GLO")
 status = NF90_CLOSE(fidZGRIN);                          call erreur(status,.TRUE.,"end read mask_GLO")
+!-
+status = NF90_OPEN(TRIM(file_data_hgr),0,fidHGRIN);     call erreur(status,.TRUE.,"read mask input")
+ALLOCATE(  e2u_GLO(mlon,mlat)  )
+status = NF90_INQ_VARID(fidHGRIN,"e2u",e2u_GLO_ID);     call erreur(status,.TRUE.,"inq_e2u_GLO_ID")
+status = NF90_GET_VAR(fidHGRIN,e2u_GLO_ID,e2u_GLO);     call erreur(status,.TRUE.,"getvar_e2u_GLO")
+status = NF90_CLOSE(fidHGRIN);                          call erreur(status,.TRUE.,"end read mask_GLO")
+
 
 !--
 
@@ -383,8 +391,6 @@ DO kyear=nn_yeari,nn_yearf
         
         status = NF90_CLOSE(fidU)                                     ; call erreur(status,.TRUE.,"fin_lecture")     
 
-        write(*,*) '@@1 ', maxval(vozocrtx)
-
         !---------------------------------------
         ! Remove possible NaNs :
  
@@ -399,8 +405,6 @@ DO kyear=nn_yeari,nn_yearf
         enddo
         enddo
         enddo
-
-        write(*,*) '@@2 ', maxval(vozocrtx)
 
         !---------------------------------------
         ! Calculate the barotropic component :
@@ -430,10 +434,10 @@ DO kyear=nn_yeari,nn_yearf
         enddo
         enddo
 
-        write(*,*) '@@3 ', maxval(vobtcrtx)
-
         !---------------------------------------
         ! Fill values on bdyT :
+        ! (we ensure transport conservation in case grids are 
+        ! slightly stretched with respect to each other)     
       
         ALLOCATE( vozocrtx_bdy(mxbu,1,mdepthu,mtime)  )
         ALLOCATE( vobtcrtx_bdy(mxbu,1,mtime)  )
@@ -444,13 +448,11 @@ DO kyear=nn_yeari,nn_yearf
           write(*,*) kbdy, iGLO, jGLO, nbiu(kbdy,1), nbju(kbdy,1)
           do kt=1,mtime
           do kz=1,mdepthu
-            vozocrtx_bdy(kbdy,1,kz,kt) = vozocrtx( iGLO, jGLO, kz, kt )
-            vobtcrtx_bdy(kbdy,1,   kt) = vobtcrtx( iGLO, jGLO,     kt )
+            vozocrtx_bdy(kbdy,1,kz,kt) = vozocrtx( iGLO, jGLO, kz, kt ) * e2u_GLO( iGLO, jGLO ) / (e2u(kbdy,1)*aj)
+            vobtcrtx_bdy(kbdy,1,   kt) = vobtcrtx( iGLO, jGLO,     kt ) * e2u_GLO( iGLO, jGLO ) / (e2u(kbdy,1)*aj)
           enddo
           enddo
         enddo
-
-        write(*,*) '@@4 ', maxval(vobtcrtx_bdy)
 
         !--------------------------------------
         ! Write BDY netcdf file for barotropic velocity :
