@@ -114,6 +114,7 @@ file_data_mask        = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025.L75-MJM91_byte_
                                                                                          ! (contains umask, vmask)
 file_data_zgr         = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025.L75-MJM91_mesh_zgr.nc'  ! Vertical mesh sizes (for btp vel.)
                                                                                          ! (contains e3u_0 or e3u and e3v_0 or e3v)
+file_data_hgr         = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025.L75-MJM91_mesh_hgr.nc'  ! Horizontal mesh sizes (for btp vel.)
 nn_yeari              =  1993   ! initial year for BDYs
 nn_yearf              =  2013   ! final year for BDYs
 nn_bdy_eosmatch       =   0     ! match between model equ. of state and BDY equ. of state :
