@@ -172,6 +172,12 @@ if ( nn_eosmatch .eq. 0 ) then
       vosaline_GLO(iGLO,jGLO,kGLO) = 0.d0
       votemper_GLO(iGLO,jGLO,kGLO) = 0.d0
     endif
+    if ( votemper_GLO(iGLO,jGLO,kGLO) .lt. -2.5 ) then
+      write(*,*) '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
+      write(*,*) iGLO,jGLO,kGLO
+      write(*,*) lon_GLO(iGLO,jGLO), lat_GLO(iGLO,jGLO), dep_GLO(kGLO)
+      write(*,*) vosaline_GLO(iGLO,jGLO,kGLO), votemper_GLO(iGLO,jGLO,kGLO)
+    endif
   enddo
   enddo
   enddo
