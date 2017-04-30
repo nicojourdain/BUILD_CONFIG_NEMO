@@ -123,7 +123,7 @@ Last updates:
 
         cd xxxxx ## TO BE IMPROVED
         ## NB: set jpni=jpnj=jpnij=0 in the &nammpp section of NEMO's namelist.
-        ##     and use the ame &namdom parameters as in the simulation used as BDYs.
+        ##     and use the same &namdom parameters as in the simulation used as BDYs.
         qsub run_nemo.sh    ## this will create mesh_mask_${CONFIG}.nc before crashing
         ./rebuild_mesh_mask.sh 0
         mv mesh_mask.nc $WORKDIR/input/nemo_${CONFIG}/mesh_mask_${CONFIG}.nc ## directory defined as config_dir
@@ -148,7 +148,7 @@ Last updates:
 
         ./submit.sh extract_bdy_gridU 01 15   ## -> creates U   bdy files and store them in a BDY folder
         ./submit.sh extract_bdy_gridV 01 15   ## -> creates V   bdy files and store them in a BDY folder
-        ./submit.sh extract_bdy_ice 01        ## -> creates ice bdy files and store them in a BDY folder
+        ./submit.sh extract_bdy_icemod 01     ## -> creates ice bdy files and store them in a BDY folder
         ./submit.sh extract_bdy_ssh 01        ## -> creates SSH bdy files and store them in a BDY folder
 
         ./concatenate_yearly_BDY.sh           ## Edit this file first.
@@ -174,4 +174,88 @@ Last updates:
 #########################################################################################################
 ## 7- Weights for the interpolation of atmospheric forcing
 
+	# here it is assumed that you have NEMO downloaded and installed as explained in step #1
 
+	cd $WORKDIR/models/MY_NEMO/NEMOGCM/TOOLS
+	maketools -m X64_ADA -n WEIGHTS           ## Adapt for any machine different from ADA (try makenemo -h)
+        cd WEIGHTS                                ## See nice README file in this directoy.
+	cp -p nocsutil/namelist_example_bilin namelist_WEIGHTS_${CONFIG}_bilin ## Edit this namelist
+	#NB: you may have to increase char_len in src/kinds_mod.f90 if you include long path for file names.
+
+       ## Below is an example for namelist_WEIGHTS_${CONFIG}_bilin :
+       ##      
+       ##      &grid_inputs
+       ##          input_file = 'drowned_precip_DFS5.2_y1993.nc'
+       ##          nemo_file = 'coordinates_WED12.nc'
+       ##          datagrid_file = 'remap_data_grid.nc'
+       ##          nemogrid_file = 'remap_nemo_grid.nc'
+       ##          method = 'regular'
+       ##          input_lon = 'lon'
+       ##          input_lat = 'lat'
+       ##          nemo_lon = 'glamt'
+       ##          nemo_lat = 'gphit'
+       ##          nemo_mask = 'none'
+       ##          nemo_mask_value = 10
+       ##          input_mask = 'none'
+       ##          input_mask_value = 10
+       ##      /
+       ##      
+       ##      &remap_inputs
+       ##          num_maps = 1
+       ##          grid1_file = 'remap_data_grid.nc'
+       ##          grid2_file = 'remap_nemo_grid.nc'
+       ##          interp_file1 = 'data_nemo_bilin.nc'
+       ##          interp_file2 = 'nemo_data_bilin.nc'
+       ##          map1_name = 'data to nemo bilin Mapping'
+       ##          map2_name = 'nemo to data bilin Mapping'
+       ##          map_method = 'bilinear'
+       ##          normalize_opt = 'frac'
+       ##          output_opt = 'scrip'
+       ##          restrict_type = 'latitude'
+       ##          num_srch_bins = 90
+       ##          luse_grid1_area = .false.
+       ##          luse_grid2_area = .false.
+       ##      /
+       ##      
+       ##      &interp_inputs
+       ##          input_file = "drowned_precip_DFS5.2_y1993.nc"
+       ##          interp_file = "data_nemo_bilin.nc"
+       ##          input_name = "snow"
+       ##          input_start = 1,1,1,1
+       ##          input_stride = 1,1,1,1
+       ##          input_stop = 0,0,0,1
+       ##          input_vars = 'initial_time0_hours'
+       ##      /
+       ##      
+       ##      &interp_outputs
+       ##          output_file = "snow_orca.nc"
+       ##          output_mode = "create"
+       ##          output_dims = 'x', 'y', 'time_counter'
+       ##          output_scaling = "snow|1.0", "time_counter|86400.0"
+       ##          output_name = 'snow'
+       ##          output_lon = 'x'
+       ##          output_lat = 'y'
+       ##          output_vars = 'time_counter'
+       ##          output_attributes = 'time_counter|units|seconds since 1995-00-00 00:00:00',
+       ##                              'time_counter|calendar|noleap',
+       ##                              'snow|units|mm/s'
+       ##      /
+       ##      
+
+       ## Then, execute these things:
+	./scripgrid.exe   ## namelist_${CONFIG}_bilin
+	./scrip.exe       ## namelist_${CONFIG}_bilin
+	./scripshape.exe  ## namelist_${CONFIG}_bilin
+
+       ## Then create another namelist:  namelist_${CONFIG}_bicub and just change these parameters:
+       ##      interp_file1 = 'data_nemo_bicubic.nc'
+       ##      interp_file2 = 'nemo_data_bicubic.nc'
+       ##      map1_name = 'data to nemo bicubic Mapping'
+       ##      map2_name = 'nemo to data bicubic Mapping'
+       ##      map_method = 'bicubic'
+       ##      interp_file = "data_nemo_bicubic.nc"
+       ##      interp_file = 'data_nemo_bicubic.nc'
+       ##      output_file = 'weights_bicubic.nc'
+       ## Then execute :
+	./scrip.exe       ## namelist_${CONFIG}_bicub
+	./scripshape.exe  ## namelist_${CONFIG}_bicub
