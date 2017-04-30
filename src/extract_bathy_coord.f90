@@ -224,13 +224,14 @@ if ( ln_coarse_bdy ) then
     ! (there is a second halo of same width for the transition)
     npts=CEILING(ai*1.5)  ! in nb of points on the regional grid
     
-    !---------------------------------------
-    ! Adjust domain bounds to match ORCA025 :
+    !----------------------------------------------------------------------
+    ! Adjust domain bounds to match ORCA025 on the points on which BDY
+    ! conditions will be applied (i.e. 2nd pt given the 1-pt masked halo):
     
-    imin_ORCA12 = ai * FLOOR(   FLOAT(imin_ORCA12-bi)/ai ) + bi
-    imax_ORCA12 = ai * CEILING( FLOAT(imax_ORCA12-bi)/ai ) + bi
-    jmin_ORCA12 = aj * FLOOR(   FLOAT(jmin_ORCA12-bj)/aj ) + bj
-    jmax_ORCA12 = aj * CEILING( FLOAT(jmax_ORCA12-bj)/aj ) + bj
+    imin_ORCA12 = ai * FLOOR(   FLOAT(imin_ORCA12-bi)/ai ) + bi - 1
+    imax_ORCA12 = ai * CEILING( FLOAT(imax_ORCA12-bi)/ai ) + bi + 1
+    jmin_ORCA12 = aj * FLOOR(   FLOAT(jmin_ORCA12-bj)/aj ) + bj - 1
+    jmax_ORCA12 = aj * CEILING( FLOAT(jmax_ORCA12-bj)/aj ) + bj + 1
     
 endif
     
@@ -396,7 +397,7 @@ if ( ln_coarse_bdy ) then
     enddo
    
 endif
- 
+
 !=================================================================================
 ! 5- Manual corrections for WED12 :
 !=================================================================================
@@ -404,29 +405,29 @@ endif
 if ( TRIM(config) == 'WED12' ) then
    
     ! correction to avoid a closed cavity of 2x2x2 pts (identified after first mesh_mask creation)
-    isf_draft_REG     (240:241,666:667) = 0.0 
-    Bathymetry_isf_REG(240:241,666:667) = 0.0
+    isf_draft_REG     (241:242,667:668) = 0.0 
+    Bathymetry_isf_REG(241:242,667:668) = 0.0
 
     ! no isf along eastern boundary :
-    isf_draft_REG     (1094:1120,667:702) = 0.0
-    Bathymetry_isf_REG(1094:1120,667:702) = Bathymetry_REG(1094:1120,667:702)
+    isf_draft_REG     (1095:1122,668:703) = 0.0
+    Bathymetry_isf_REG(1095:1122,668:703) = Bathymetry_REG(1095:1122,668:703)
     
     ! boxes to fill the Bellingshausen Sea :
-    imin = (/   1 , 191 , 212 , 236 , 253 , 274 , 286 , 298 /)
-    imax = (/ 190 , 211 , 235 , 252 , 273 , 285 , 297 , NINT(FLOAT(324+imin_ORCA12-1-bi)/ai)*ai+bi-imin_ORCA12+1-1 /) ! WARNING: last number must match with ORCA025 (i.e. next unmasked point neads to be on ORCA025) !!
-    jmin = (/ 493 , 806 , 834 , 861 , 875 , 893 , NINT(FLOAT(898+jmin_ORCA12-1-bj)/aj)*aj+bj-jmin_ORCA12+1+1 , NINT(FLOAT(902+jmin_ORCA12-1-bj)/aj)*aj+bj-jmin_ORCA12+1+1 /) ! WARNING: last two numbers must match with ORCA025 (i.e. next unmasked point neads to be on ORCA025) !!
+    imin = (/   1 , 192 , 213 , 237 , 254 , 275 , 287 , 299 /)
+    imax = (/ 191 , 212 , 236 , 253 , 274 , 286 , 298 , NINT(FLOAT(325+imin_ORCA12-1-bi)/ai)*ai+bi-imin_ORCA12+1-1 /) ! WARNING: last number must match with ORCA025 (i.e. next unmasked point neads to be on ORCA025) !!
+    jmin = (/ 494 , 807 , 835 , 862 , 876 , 894 , NINT(FLOAT(899+jmin_ORCA12-1-bj)/aj)*aj+bj-jmin_ORCA12+1+1 , NINT(FLOAT(903+jmin_ORCA12-1-bj)/aj)*aj+bj-jmin_ORCA12+1+1 /) ! WARNING: last two numbers must match with ORCA025 (i.e. next unmasked point neads to be on ORCA025) !!
     write(*,*) 'Note for future bdy building:'
     write(*,*) '                    '
-    write(*,*) '  ii_bdy_west(1)  = ', NINT(FLOAT(324+imin_ORCA12-1-bi)/ai)*ai+bi-imin_ORCA12+1
-    write(*,*) '  j1_bdy_west(1)  = ', NINT(FLOAT(902+jmin_ORCA12-1-bj)/aj)*aj+bj-jmin_ORCA12+1
+    write(*,*) '  ii_bdy_west(1)  = ', NINT(FLOAT(325+imin_ORCA12-1-bi)/ai)*ai+bi-imin_ORCA12+1
+    write(*,*) '  j1_bdy_west(1)  = ', NINT(FLOAT(903+jmin_ORCA12-1-bj)/aj)*aj+bj-jmin_ORCA12+1
     write(*,*) '  j2_bdy_west(1)  = ', my_REG-1
     write(*,*) '                    '
-    write(*,*) '  i1_bdy_north(1) = ', 290 ! masked so no need to be too accurate here
-    write(*,*) '  i2_bdy_north(1) = ', NINT(FLOAT(324+imin_ORCA12-1-bi)/ai)*ai+bi-imin_ORCA12+1
-    write(*,*) '  jj_bdy_north(1) = ', NINT(FLOAT(898+jmin_ORCA12-1-bj)/aj)*aj+bj-jmin_ORCA12+1
+    write(*,*) '  i1_bdy_north(1) = ', 291 ! masked so no need to be too accurate here
+    write(*,*) '  i2_bdy_north(1) = ', NINT(FLOAT(325+imin_ORCA12-1-bi)/ai)*ai+bi-imin_ORCA12+1
+    write(*,*) '  jj_bdy_north(1) = ', NINT(FLOAT(899+jmin_ORCA12-1-bj)/aj)*aj+bj-jmin_ORCA12+1
     write(*,*) '                    '
-    write(*,*) '  i1_bdy_north(2) = ', NINT(FLOAT(324+jmin_ORCA12-1-bj)/aj)*aj+bj-jmin_ORCA12+2
-    write(*,*) '  i2_bdy_north(2) = ', my_REG-2 ! -2 because east bdy already contains my_REG-1
+    write(*,*) '  i1_bdy_north(2) = ', NINT(FLOAT(325+jmin_ORCA12-1-bj)/aj)*aj+bj-jmin_ORCA12+2
+    write(*,*) '  i2_bdy_north(2) = ', mx_REG-2 ! -2 because east bdy already contains mx_REG-1
     write(*,*) '  jj_bdy_north(2) = ', my_REG-1
     write(*,*) '                    '
     ! put ORCA025 along modified North-Western corner :
