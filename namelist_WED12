@@ -45,7 +45,7 @@ nn_rsmax              =    5   ! [optional] nb of points to look for horizontall
 nn_rzmax              =    1   ! [optional] nb of points to look for vertically closest neighbour (in one iteration, after horizontal search)
 rn_temp               = -1.9   ! default temperature (if no close neighbour after nn_iter iterations)
 rn_sal                = 34.5   ! default salinity    (if no close neighbour after nn_iter iterations)
-nn_smooth             =    7   ! size of the box for running mean (=1 for no smoothing, 3,5,7,... for more smoothing)
+nn_smooth             =    3   ! size of the box for running mean (=1 for no smoothing, 3,5,7,... for more smoothing)
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &bdy
@@ -57,25 +57,26 @@ nn_harm               =   18    ! number of tidal harmonics to prescribe along t
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &bdy_east
-ii_bdy_east(1)        = 1119    ! i-index for eastern boundary (ocean T-pt, standard = mx-1)
-j1_bdy_east(1)        =  660    ! lowest  j-index for eastern boundary (ocean T-pt, standard = 2)
-j2_bdy_east(1)        =  969    ! highest j-index for eastern boundary (ocean T-pt, standard = my-1)
+ii_bdy_east(1)        = 1121    ! i-index for eastern boundary (ocean T-pt, standard = mx-1)
+j1_bdy_east(1)        =  661    ! lowest  j-index for eastern boundary (ocean T-pt, standard = 2)
+j2_bdy_east(1)        =  971    ! highest j-index for eastern boundary (ocean T-pt, standard = my-1)
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &bdy_west
-ii_bdy_west(1)        =  325    ! i-index for western boundary (ocean T-pt, standard = 2)
-j1_bdy_west(1)        =  901    ! lowest  j-index for western boundary (ocean T-pt, standard = 2)
-j2_bdy_west(1)        =  969    ! highest j-index for western boundary (ocean T-pt, standard = my-1)
+ii_bdy_west(1)        =  326    ! i-index for western boundary (ocean T-pt, standard = 2)
+j1_bdy_west(1)        =  902    ! lowest  j-index for western boundary (ocean T-pt, standard = 2)
+j2_bdy_west(1)        =  971    ! highest j-index for western boundary (ocean T-pt, standard = my-1)
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &bdy_north
-i1_bdy_north(1)       =  290    ! lowest  i-index for northern boundary (ocean T-pt, standard = 2, or = 3 if full bdy_west)
-i2_bdy_north(1)       =  325    ! highest i-index for northern boundary (ocean T-pt, standard = mx-1, or = mx-2 if full bdy_east)
-jj_bdy_north(1)       =  898    ! j-index for northern boundary (ocean T-pt, standard = my-1)
+i1_bdy_north(1)       =  291    ! lowest  i-index for northern boundary (ocean T-pt, standard = 2, or = 3 if full bdy_west)
+i2_bdy_north(1)       =  326    ! highest i-index for northern boundary (ocean T-pt, standard = mx-1, or = mx-2 if full bdy_east)
+jj_bdy_north(1)       =  899    ! j-index for northern boundary (ocean T-pt, standard = my-1)
 !---
-i1_bdy_north(2)       =  326
-i2_bdy_north(2)       =  968
-jj_bdy_north(2)       =  969
+i1_bdy_north(2)       =  327
+i2_bdy_north(2)       =  1120
+jj_bdy_north(2)       =  971
+/
 !-------------------------------------------------------------------------------------------------------------------------------
 &bdy_south
 i1_bdy_south(1)       =    0    ! lowest  i-index for southern boundary (ocean T-pt, standard = 2, or = 3 if full bdy_west)
