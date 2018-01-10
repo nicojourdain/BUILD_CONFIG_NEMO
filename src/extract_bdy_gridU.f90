@@ -49,7 +49,7 @@ REAL*4,ALLOCATABLE,DIMENSION(:,:,:)  :: e3u_GLO, vobtcrtx, vobtcrtx_bdy
 REAL*4,ALLOCATABLE,DIMENSION(:,:,:,:):: vozocrtx, vozocrtx_bdy
 REAL*4,ALLOCATABLE,DIMENSION(:)      :: depthu
 REAL*8,ALLOCATABLE,DIMENSION(:)      :: time
-REAL*4                               :: thic, rr1, rr2, rr3, rr4
+REAL*4                               :: thic
 LOGICAL                              :: existfile
 
 !=================================================================================
@@ -444,34 +444,15 @@ DO kyear=nn_yeari,nn_yearf
         ALLOCATE( vobtcrtx_bdy(mxbu,1,mtime)  )
 
         do kbdy=1,mxbu
-          iGLOinf = FLOOR(FLOAT(nbiu(kbdy,1)+imin_ORCA12-1-bi)/ai)
-          iGLOsup = CEILING(FLOAT(nbiu(kbdy,1)+imin_ORCA12-1-bi)/ai)
-          jGLOinf = FLOOR(FLOAT(nbju(kbdy,1)+jmin_ORCA12-1-bj)/aj)
-          jGLOsup = CEILING(FLOAT(nbju(kbdy,1)+jmin_ORCA12-1-bj)/aj)
-          rr1 =   ( FLOAT(nbiu(kbdy,1)+imin_ORCA12-1-bi)/ai - FLOOR(FLOAT(nbiu(kbdy,1)+imin_ORCA12-1-bi)/ai) )                             &
-          &     * ( FLOAT(nbju(kbdy,1)+jmin_ORCA12-1-bj)/aj - FLOOR(FLOAT(nbju(kbdy,1)+jmin_ORCA12-1-bj)/aj) )   * e2u_GLO(iGLOsup,jGLOsup) 
-          rr2 =   ( CEILING(FLOAT(nbiu(kbdy,1)+imin_ORCA12-1-bi)/ai) - FLOAT(nbiu(kbdy,1)+imin_ORCA12-1-bi)/ai )                           &
-          &     * ( FLOAT(nbju(kbdy,1)+jmin_ORCA12-1-bj)/aj - FLOOR(FLOAT(nbju(kbdy,1)+jmin_ORCA12-1-bj)/aj) )   * e2u_GLO(iGLOinf,jGLOsup)
-          rr3 =   ( FLOAT(nbiu(kbdy,1)+imin_ORCA12-1-bi)/ai - FLOOR(FLOAT(nbiu(kbdy,1)+imin_ORCA12-1-bi)/ai) )                             &
-          &     * ( CEILING(FLOAT(nbju(kbdy,1)+jmin_ORCA12-1-bj)/aj) - FLOAT(nbju(kbdy,1)+jmin_ORCA12-1-bj)/aj ) * e2u_GLO(iGLOsup,jGLOinf) 
-          rr4 =   ( CEILING(FLOAT(nbiu(kbdy,1)+imin_ORCA12-1-bi)/ai) - FLOAT(nbiu(kbdy,1)+imin_ORCA12-1-bi)/ai )                           &
-          &     * ( CEILING(FLOAT(nbiu(kbdy,1)+imin_ORCA12-1-bi)/ai) - FLOAT(nbiu(kbdy,1)+imin_ORCA12-1-bi)/ai ) * e2u_GLO(iGLOinf,jGLOinf)
-          write(*,*) '@$', kbdy, iGLOinf, iGLOsup, jGLOinf, jGLOsup
-          write(*,*) '  ', rr1, rr2, rr3, rr4 
+          iGLO=NINT(FLOAT(nbiu(kbdy,1)+imin_ORCA12-1-bi)/ai)
+          jGLO=NINT(FLOAT(nbju(kbdy,1)+jmin_ORCA12-1-bj)/aj)
+          write(*,*) kbdy, iGLO, jGLO, nbiu(kbdy,1), nbju(kbdy,1)
           do kt=1,mtime
-            do kz=1,mdepthu
-              vozocrtx_bdy(kbdy,1,kz,kt) = (   vozocrtx(iGLOsup,jGLOsup,kz,kt)*rr1 &
-              &                              + vozocrtx(iGLOinf,jGLOsup,kz,kt)*rr2 &
-              &                              + vozocrtx(iGLOsup,jGLOinf,kz,kt)*rr3 &
-              &                              + vozocrtx(iGLOinf,jGLOinf,kz,kt)*rr4  ) / (e2u(kbdy,1)*aj)
-            enddo
-            vobtcrtx_bdy(kbdy,1,kt) = (   vobtcrtx(iGLOsup,jGLOsup,kt)*rr1 &
-            &                           + vobtcrtx(iGLOinf,jGLOsup,kt)*rr2 &
-            &                           + vobtcrtx(iGLOsup,jGLOinf,kt)*rr3 &
-            &                           + vobtcrtx(iGLOinf,jGLOinf,kt)*rr4  ) / (e2u(kbdy,1)*aj)
+           do kz=1,mdepthu
+             vozocrtx_bdy(kbdy,1,kz,kt) = vozocrtx( iGLO, jGLO, kz, kt ) * e2u_GLO( iGLO, jGLO ) / (e2u(kbdy,1)*aj)
+             vobtcrtx_bdy(kbdy,1,   kt) = vobtcrtx( iGLO, jGLO,     kt ) * e2u_GLO( iGLO, jGLO ) / (e2u(kbdy,1)*aj)
+           enddo
           enddo
-          write(*,*) '#$', vobtcrtx(iGLOsup,jGLOsup,1), vobtcrtx(iGLOinf,jGLOsup,1), vobtcrtx(iGLOsup,jGLOinf,1), vobtcrtx(iGLOinf,jGLOinf,1), vobtcrtx_bdy(kbdy,1,1)
-          write(*,*) '---------------------------------'
         enddo
 
         !--------------------------------------
