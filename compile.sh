@@ -17,14 +17,17 @@
 FC='ifort'
 
 # Netcdf libraries :
-#export NC_INC='-I /usr/local/netcdf/intel/4.1.1/include'
-#export NC_LIB='-L /usr/local/netcdf/intel/4.1.1/lib -lnetcdf -lnetcdff'
-export NC_INC="-I`nc-config --includedir`"
-export NC_LIB="`nc-config --libs` -lnetcdff"
+export NC_INC=" "  ## empty on adapp with modules 1) hdf5/seq/1.8.9(default); 2) netcdf/seq/4.1.3(default); 3) intel/2013.1
+export NC_LIB=" "  ## empty on adapp with modules 1) hdf5/seq/1.8.9(default); 2) netcdf/seq/4.1.3(default); 3) intel/2013.1
+#export NC_INC="-I`nc-config --includedir`"
+#export NC_LIB="`nc-config --libs` -lnetcdff"
 
 export GSW_DIR="./GSW-Fortran"
 
 ##==============================================================================
+
+echo "NC_INC=${NC_INC}"
+echo "NC_LIB=${NC_LIB}"
 
 if [ ! -n "$1" ]
 then

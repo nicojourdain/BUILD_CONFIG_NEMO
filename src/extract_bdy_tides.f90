@@ -30,28 +30,30 @@ CHARACTER(LEN=150)                        :: config_dir, tide_dir
 INTEGER                                   :: nn_bdy_east, nn_bdy_west, nn_bdy_north, nn_bdy_south, nn_harm
 CHARACTER(LEN=4),ALLOCATABLE,DIMENSION(:) :: harm
 
-INTEGER :: fidELEV, fidUV, status, dimID_y, dimID_x, my, mx, lat_ID, lon_ID, Hg_ID, Ha_ID, Vg_ID, Va_ID, Ug_ID, Ua_ID,         & 
+INTEGER :: fidELEV, fidUV, status, dimID_y, dimID_x, my, mx, lat_ID, lon_ID, Hg_ID, Ha_ID, Vg_ID, Va_ID, Ug_ID, Ua_ID, knb,    & 
 &          fidCOORD, dimID_yb, dimID_xbt, dimID_xbu, dimID_xbv, myb, mxbt, mxbu, mxbv, glamt_ID, gphit_ID, glamu_ID, gphiu_ID, &
 &          glamv_ID, gphiv_ID, nbit_ID, nbjt_ID, nbrt_ID, nbiu_ID, nbju_ID, nbru_ID, nbiv_ID, nbjv_ID, nbrv_ID, z1_ID, z2_ID,  &
 &          u1_ID, u2_ID, v1_ID, v2_ID, fidG, dimIDG_x, dimIDG_y, dimIDG_z, dimIDG_t, mxG, myG, mzG, mtG, tmask_ID, umask_ID,   &
 &          vmask_ID, kbdy, iinf, isup, jinf, jsup, itmp, jtmp, kharm, fidoutT, fidoutU, fidoutV, i, j
 
-CHARACTER(LEN=150) :: file_in_elev, file_in_uv, file_coord, file_mesh_mask, file_out_T, file_out_U, file_out_V
+CHARACTER(LEN=150) :: file_in_elev, file_in_uv, file_coord, file_mesh_mask, file_out_T, file_out_U, file_out_V, command_str
 
 CHARACTER(LEN=4) :: harmstr
 
-REAL*8,ALLOCATABLE,DIMENSION(:) :: lat, lon          
+REAL*8,ALLOCATABLE,DIMENSION(:) :: lat, lon, zlon
 
 REAL*4,ALLOCATABLE,DIMENSION(:,:) :: Hg, Ha,  Vg, Va, Ug, Ua, z1, z2, u1, u2, v1, v2, glamt, gphit, glamu, gphiu, glamv, gphiv,&
-&                                    zglamt, zglamu, zglamv 
+&                                    zglamt, zglamu, zglamv, gphiu_REG, glamu_REG, gphiv_REG, glamv_REG, zglamu_REG, zglamv_REG
 
-REAL*8 :: Hg_bdy, Ha_bdy, Vg_bdy, Va_bdy, Ug_bdy, Ua_bdy, div, zrad
+REAL*8 :: Hg_bdy, Ha_bdy, Vg_bdy, Va_bdy, Ug_bdy, Ua_bdy, div, zrad, angle, tmp1, tmp2, Hcs, Hsn, Ucs, Usn, Vcs, Vsn
 
 INTEGER*4,ALLOCATABLE,DIMENSION(:,:) :: nbit, nbjt, nbrt, nbiu, nbju, nbru, nbiv, nbjv, nbrv
 
 INTEGER*1,ALLOCATABLE,DIMENSION(:,:) :: mskfes
 
 INTEGER*1,ALLOCATABLE,DIMENSION(:,:,:,:) :: tmask, umask, vmask, fmask
+
+LOGICAL :: idateline !! to put in the namelist at some point
 
 !-----------------------------------------------------------------
 
@@ -97,6 +99,13 @@ write(file_mesh_mask,102) TRIM(config_dir), TRIM(config)
 403 FORMAT(a,'/BDY/bdytide_',a,'_',a,'_grid_V.nc')
 
 zrad = 3.14159265358979323846264338327 / 180.000000000000000000000000000
+
+idateline = .false. !! = .true. if dateline withing the regional domain
+
+!--
+write(command_str,888) TRIM(config_dir)
+888 FORMAT('mkdir ',a,'/BDY')
+CALL system(TRIM(command_str))
 
 !---------------------------------------
 ! Read  bdy coordinates :
@@ -184,39 +193,85 @@ status = NF90_INQUIRE_DIMENSION(fidG,dimIDG_t,len=mtG) ; call erreur(status,.TRU
                                
 ALLOCATE(  tmask(mxG,myG,mzG,mtG)  ) 
 ALLOCATE(  umask(mxG,myG,mzG,mtG)  ) 
-ALLOCATE(  vmask(mxG,myG,mzG,mtG)  ) 
+ALLOCATE(  vmask(mxG,myG,mzG,mtG)  )
+ALLOCATE(  gphiu_REG(mxG,myG), glamu_REG(mxG,myG), zglamu_REG(mxG,myG) ) 
+ALLOCATE(  gphiv_REG(mxG,myG), glamv_REG(mxG,myG), zglamv_REG(mxG,myG) ) 
                                  
 status = NF90_INQ_VARID(fidG,"tmask",tmask_ID) ; call erreur(status,.TRUE.,"inq_tmask_ID")
 status = NF90_INQ_VARID(fidG,"umask",umask_ID) ; call erreur(status,.TRUE.,"inq_umask_ID")
 status = NF90_INQ_VARID(fidG,"vmask",vmask_ID) ; call erreur(status,.TRUE.,"inq_vmask_ID")
+status = NF90_INQ_VARID(fidG,"gphiu",gphiu_ID) ; call erreur(status,.TRUE.,"inq_gphiu_ID")
+status = NF90_INQ_VARID(fidG,"glamu",glamu_ID) ; call erreur(status,.TRUE.,"inq_glamu_ID")
+status = NF90_INQ_VARID(fidG,"gphiv",gphiv_ID) ; call erreur(status,.TRUE.,"inq_gphiv_ID")
+status = NF90_INQ_VARID(fidG,"glamv",glamv_ID) ; call erreur(status,.TRUE.,"inq_glamv_ID")
                                                               
-status = NF90_GET_VAR(fidG,tmask_ID,tmask) ; call erreur(status,.TRUE.,"getvar_tmask")
-status = NF90_GET_VAR(fidG,umask_ID,umask) ; call erreur(status,.TRUE.,"getvar_umask")
-status = NF90_GET_VAR(fidG,vmask_ID,vmask) ; call erreur(status,.TRUE.,"getvar_vmask")
+status = NF90_GET_VAR(fidG,tmask_ID,tmask)     ; call erreur(status,.TRUE.,"getvar_tmask")
+status = NF90_GET_VAR(fidG,umask_ID,umask)     ; call erreur(status,.TRUE.,"getvar_umask")
+status = NF90_GET_VAR(fidG,vmask_ID,vmask)     ; call erreur(status,.TRUE.,"getvar_vmask")
+status = NF90_GET_VAR(fidG,gphiu_ID,gphiu_REG) ; call erreur(status,.TRUE.,"getvar_gphiu")
+status = NF90_GET_VAR(fidG,glamu_ID,glamu_REG) ; call erreur(status,.TRUE.,"getvar_glamu")
+status = NF90_GET_VAR(fidG,gphiv_ID,gphiv_REG) ; call erreur(status,.TRUE.,"getvar_gphiv")
+status = NF90_GET_VAR(fidG,glamv_ID,glamv_REG) ; call erreur(status,.TRUE.,"getvar_glamv")
                                                       
 status = NF90_CLOSE(fidG) ; call erreur(status,.TRUE.,"fin_lecture")     
 
+if ( idateline) then
+
+  write(*,*) 'swithc REG longitudes to [ 0; 360 ]'
+
+  where( glamu_REG(:,:) .lt. 0.0 )
+    zglamu_REG(:,:) = 360.0 + glamu_REG(:,:)
+  elsewhere
+    zglamu_REG(:,:) = glamu_REG(:,:)
+  endwhere
+
+  where( glamv_REG(:,:) .lt. 0.0 )
+    zglamv_REG(:,:) = 360.0 + glamv_REG(:,:)
+  elsewhere
+    zglamv_REG(:,:) = glamv_REG(:,:)
+  endwhere
+
+else
+
+  write(*,*) 'keep REG longitudes in [ -180; 180]'
+  zglamu_REG(:,:) = glamu_REG(:,:)
+  zglamv_REG(:,:) = glamv_REG(:,:)
+
+endif
+
 !----------------------------------------------------------------------------------------
 
-write(*,*) 'longitudes in [ 0; 360 ]'
+if ( idateline ) then
 
-where( glamt(:,:) .lt. 0.0 )
-  zglamt(:,:) = 360.0 + glamt(:,:)
-elsewhere
+  write(*,*) 'switch bdy longitudes to [ 0; 360 ]'
+  
+  where( glamt(:,:) .lt. 0.0 )
+    zglamt(:,:) = 360.0 + glamt(:,:)
+  elsewhere
+    zglamt(:,:) = glamt(:,:)
+  endwhere
+  
+  where( glamu(:,:) .lt. 0.0 )
+    zglamu(:,:) = 360.0 + glamu(:,:)
+  elsewhere
+    zglamu(:,:) = glamu(:,:)
+  endwhere
+  
+  where( glamv(:,:) .lt. 0.0 )
+    zglamv(:,:) = 360.0 + glamv(:,:)
+  elsewhere
+    zglamv(:,:) = glamv(:,:)
+  endwhere
+
+else
+
+  write(*,*) 'keep bdy longitudes in [ -180; 180 ]'
+
   zglamt(:,:) = glamt(:,:)
-endwhere
-
-where( glamu(:,:) .lt. 0.0 )
-  zglamu(:,:) = 360.0 + glamu(:,:)
-elsewhere
   zglamu(:,:) = glamu(:,:)
-endwhere
-
-where( glamv(:,:) .lt. 0.0 )
-  zglamv(:,:) = 360.0 + glamv(:,:)
-elsewhere
   zglamv(:,:) = glamv(:,:)
-endwhere
+
+endif
 
 !-----------------------------------------------------------------
 
@@ -246,7 +301,7 @@ DO kharm=1,nn_harm
    status = NF90_INQUIRE_DIMENSION(fidELEV,dimID_x,len=mx) ; call erreur(status,.TRUE.,"inq_dim_x")
                           
    ALLOCATE(  lat(my)     ) 
-   ALLOCATE(  lon(mx)     ) 
+   ALLOCATE(  lon(mx), zlon(mx)  ) 
    ALLOCATE(  Hg (mx,my)  ) 
    ALLOCATE(  Ha (mx,my)  ) 
                                     
@@ -261,7 +316,22 @@ DO kharm=1,nn_harm
    status = NF90_GET_VAR(fidELEV,Ha_ID,Ha)   ; call erreur(status,.TRUE.,"getvar_Ha")
                                                          
    status = NF90_CLOSE(fidELEV) ; call erreur(status,.TRUE.,"fin_lecture")     
-   
+  
+   if ( idateline ) then
+     write(*,*) 'keep FES2012 longitude in [ 0; 360 ]'
+     zlon(:) = lon(:)
+   else
+     write(*,*) 'switch FES2012 longitude to [ -180; 180]'
+     where( lon(:) .gt. 180.00000000 )
+       zlon(:) = lon(:) - 360.00000000
+     elsewhere
+       zlon(:) = lon(:)
+     endwhere
+   endif
+
+   write(*,*) 'max(Ha) = ', maxval(maxval(abs(Ha),2),1)
+   write(*,*) 'max(Hg) = ', maxval(maxval(abs(Hg),2),1)
+
    !---------------------------------------                   
    ! Read tidal u,v
    
@@ -315,12 +385,6 @@ DO kharm=1,nn_harm
    enddo
    enddo
 
-   !where ( abs(Ha(:,:)) .lt. 1.e5 )
-   !  mskfes(:,:) = 1
-   !elsewhere
-   !  mskfes(:,:) = 0
-   !endwhere
-   
    !----------------------------------------------------------------------------------------
    
    write(*,*) 'Interpolation of z1 and z2'
@@ -328,91 +392,68 @@ DO kharm=1,nn_harm
    ALLOCATE( z1(mxbt,myb), z2(mxbt,myb) )
    
    do kbdy=1,mxbt
-   
+  
+     write(*,*) 'nj1: ', kbdy, tmask(nbit(kbdy,1),nbjt(kbdy,1),1,1) 
+ 
      if ( tmask(nbit(kbdy,1),nbjt(kbdy,1),1,1) .ne. 0 ) then
-   
-        itmp=MINLOC(abs(lon-zglamt(kbdy,1)),1)
-        if ( lon(itmp) .lt. zglamt(kbdy,1) ) then
-          iinf=itmp
-          isup=itmp+1
-        else
-          iinf=itmp-1
-          isup=itmp
-        endif
+ 
+       itmp=MINLOC(abs(zlon-zglamt(kbdy,1)),1)
+       jtmp=MINLOC(abs(lat-gphit(kbdy,1)),1)
+ 
+       do knb=1,10 ! looking for closest neighbour (knb=1), then expand if not found
+  
+         if ( zlon(itmp) .lt. zglamt(kbdy,1) ) then
+           iinf=itmp-knb+1
+           isup=itmp+knb
+         else
+           iinf=itmp-knb
+           isup=itmp+knb-1
+         endif
+       
+         if ( lat(jtmp) .lt. gphit(kbdy,1) ) then
+           jinf=jtmp-knb+1
+           jsup=jtmp+knb
+         else
+           jinf=jtmp-knb
+           jsup=jtmp+knb-1
+         endif
+       
+         Ha_bdy =   ( zlon(isup) - zglamt(kbdy,1) ) * ( lat(jsup) - gphit(kbdy,1) ) * Ha(iinf,jinf) * mskfes(iinf,jinf)  &
+         &        + ( zlon(isup) - zglamt(kbdy,1) ) * ( gphit(kbdy,1) - lat(jinf) ) * Ha(iinf,jsup) * mskfes(iinf,jsup)  &
+         &        + ( zglamt(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphit(kbdy,1) ) * Ha(isup,jinf) * mskfes(isup,jinf)  &
+         &        + ( zglamt(kbdy,1) - zlon(iinf) ) * ( gphit(kbdy,1) - lat(jinf) ) * Ha(isup,jsup) * mskfes(isup,jsup)
+       
+         Hcs =      ( zlon(isup) - zglamt(kbdy,1) ) * ( lat(jsup) - gphit(kbdy,1) ) * COS(zrad*Hg(iinf,jinf)) * mskfes(iinf,jinf)  &
+         &        + ( zlon(isup) - zglamt(kbdy,1) ) * ( gphit(kbdy,1) - lat(jinf) ) * COS(zrad*Hg(iinf,jsup)) * mskfes(iinf,jsup)  &
+         &        + ( zglamt(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphit(kbdy,1) ) * COS(zrad*Hg(isup,jinf)) * mskfes(isup,jinf)  &
+         &        + ( zglamt(kbdy,1) - zlon(iinf) ) * ( gphit(kbdy,1) - lat(jinf) ) * COS(zrad*Hg(isup,jsup)) * mskfes(isup,jsup)
       
-        jtmp=MINLOC(abs(lat-gphit(kbdy,1)),1)
-        if ( lat(jtmp) .lt. gphit(kbdy,1) ) then
-          jinf=jtmp
-          jsup=jtmp+1
-        else
-          jinf=jtmp-1
-          jsup=jtmp
-        endif
+         Hsn =      ( zlon(isup) - zglamt(kbdy,1) ) * ( lat(jsup) - gphit(kbdy,1) ) * SIN(zrad*Hg(iinf,jinf)) * mskfes(iinf,jinf)  &
+         &        + ( zlon(isup) - zglamt(kbdy,1) ) * ( gphit(kbdy,1) - lat(jinf) ) * SIN(zrad*Hg(iinf,jsup)) * mskfes(iinf,jsup)  &
+         &        + ( zglamt(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphit(kbdy,1) ) * SIN(zrad*Hg(isup,jinf)) * mskfes(isup,jinf)  &
+         &        + ( zglamt(kbdy,1) - zlon(iinf) ) * ( gphit(kbdy,1) - lat(jinf) ) * SIN(zrad*Hg(isup,jsup)) * mskfes(isup,jsup)
+  
+         div =   ( zlon(isup) - zglamt(kbdy,1) ) * ( lat(jsup) - gphit(kbdy,1) ) * mskfes(iinf,jinf)  &
+         &     + ( zlon(isup) - zglamt(kbdy,1) ) * ( gphit(kbdy,1) - lat(jinf) ) * mskfes(iinf,jsup)  &
+         &     + ( zglamt(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphit(kbdy,1) ) * mskfes(isup,jinf)  &
+         &     + ( zglamt(kbdy,1) - zlon(iinf) ) * ( gphit(kbdy,1) - lat(jinf) ) * mskfes(isup,jsup)
       
-        Ha_bdy =   ( lon(isup) - zglamt(kbdy,1) ) * ( lat(jsup) - gphit(kbdy,1) ) * Ha(iinf,jinf) * mskfes(iinf,jinf)  &
-        &        + ( lon(isup) - zglamt(kbdy,1) ) * ( gphit(kbdy,1) - lat(jinf) ) * Ha(iinf,jsup) * mskfes(iinf,jsup)  &
-        &        + ( zglamt(kbdy,1) - lon(iinf) ) * ( lat(jsup) - gphit(kbdy,1) ) * Ha(isup,jinf) * mskfes(isup,jinf)  &
-        &        + ( zglamt(kbdy,1) - lon(iinf) ) * ( gphit(kbdy,1) - lat(jinf) ) * Ha(isup,jsup) * mskfes(isup,jsup)
-      
-        Hg_bdy =   ( lon(isup) - zglamt(kbdy,1) ) * ( lat(jsup) - gphit(kbdy,1) ) * Hg(iinf,jinf) * mskfes(iinf,jinf)  &
-        &        + ( lon(isup) - zglamt(kbdy,1) ) * ( gphit(kbdy,1) - lat(jinf) ) * Hg(iinf,jsup) * mskfes(iinf,jsup)  &
-        &        + ( zglamt(kbdy,1) - lon(iinf) ) * ( lat(jsup) - gphit(kbdy,1) ) * Hg(isup,jinf) * mskfes(isup,jinf)  &
-        &        + ( zglamt(kbdy,1) - lon(iinf) ) * ( gphit(kbdy,1) - lat(jinf) ) * Hg(isup,jsup) * mskfes(isup,jsup)
-      
-        div =   ( lon(isup) - zglamt(kbdy,1) ) * ( lat(jsup) - gphit(kbdy,1) ) * mskfes(iinf,jinf)  &
-          &   + ( lon(isup) - zglamt(kbdy,1) ) * ( gphit(kbdy,1) - lat(jinf) ) * mskfes(iinf,jsup)  &
-          &   + ( zglamt(kbdy,1) - lon(iinf) ) * ( lat(jsup) - gphit(kbdy,1) ) * mskfes(isup,jinf)  &
-          &   + ( zglamt(kbdy,1) - lon(iinf) ) * ( gphit(kbdy,1) - lat(jinf) ) * mskfes(isup,jsup)
-      
-        if ( abs(div) .gt. 0.0 ) then
+         write(*,*) '   nj2: ', knb, Ha_bdy, Hcs, Hsn, div
+ 
+         if ( abs(div) .gt. 1.e-12 ) then
+           Ha_bdy = Ha_bdy / div
+           Hg_bdy = ATAN2( Hsn/div, Hcs/div ) / zrad !- to have a proper "modulo" interpolation of the phase
+           exit
+         endif
+ 
+       enddo
+ 
+       if ( .not. abs(div) .gt. 1.e-12 ) then
+         write(*,*) '~!@#$%^ INCREASE NB OF LOOPS ON knb (bdyT)  >>>>>>>>>>  stop !!'
+         write(*,*) kbdy, iinf, jinf, Ha_bdy, Hcs, Hsn
+         stop
+       endif
 
-          Ha_bdy = Ha_bdy / (div+SIGN(1.e-9,div))
-          Hg_bdy = Hg_bdy / (div+SIGN(1.e-9,div))
-
-        else
-
-          if ( lon(itmp) .lt. zglamt(kbdy,1) ) then
-            iinf=itmp-1
-            isup=itmp+2
-          else
-            iinf=itmp-2
-            isup=itmp+1
-          endif
-        
-          if ( lat(jtmp) .lt. gphit(kbdy,1) ) then
-            jinf=jtmp-1
-            jsup=jtmp+2
-          else
-            jinf=jtmp-2
-            jsup=jtmp+1
-          endif
-        
-          Ha_bdy =   ( lon(isup) - zglamt(kbdy,1) ) * ( lat(jsup) - gphit(kbdy,1) ) * Ha(iinf,jinf) * mskfes(iinf,jinf)  &
-          &        + ( lon(isup) - zglamt(kbdy,1) ) * ( gphit(kbdy,1) - lat(jinf) ) * Ha(iinf,jsup) * mskfes(iinf,jsup)  &
-          &        + ( zglamt(kbdy,1) - lon(iinf) ) * ( lat(jsup) - gphit(kbdy,1) ) * Ha(isup,jinf) * mskfes(isup,jinf)  &
-          &        + ( zglamt(kbdy,1) - lon(iinf) ) * ( gphit(kbdy,1) - lat(jinf) ) * Ha(isup,jsup) * mskfes(isup,jsup)
-        
-          Hg_bdy =   ( lon(isup) - zglamt(kbdy,1) ) * ( lat(jsup) - gphit(kbdy,1) ) * Hg(iinf,jinf) * mskfes(iinf,jinf)  &
-          &        + ( lon(isup) - zglamt(kbdy,1) ) * ( gphit(kbdy,1) - lat(jinf) ) * Hg(iinf,jsup) * mskfes(iinf,jsup)  &
-          &        + ( zglamt(kbdy,1) - lon(iinf) ) * ( lat(jsup) - gphit(kbdy,1) ) * Hg(isup,jinf) * mskfes(isup,jinf)  &
-          &        + ( zglamt(kbdy,1) - lon(iinf) ) * ( gphit(kbdy,1) - lat(jinf) ) * Hg(isup,jsup) * mskfes(isup,jsup)
-        
-          div =   ( lon(isup) - zglamt(kbdy,1) ) * ( lat(jsup) - gphit(kbdy,1) ) * mskfes(iinf,jinf)  &
-            &   + ( lon(isup) - zglamt(kbdy,1) ) * ( gphit(kbdy,1) - lat(jinf) ) * mskfes(iinf,jsup)  &
-            &   + ( zglamt(kbdy,1) - lon(iinf) ) * ( lat(jsup) - gphit(kbdy,1) ) * mskfes(isup,jinf)  &
-            &   + ( zglamt(kbdy,1) - lon(iinf) ) * ( gphit(kbdy,1) - lat(jinf) ) * mskfes(isup,jsup)
-        
-          if ( abs(div) .gt. 0.0 ) then
-            Ha_bdy = Ha_bdy / (div+SIGN(1.e-9,div))
-            Hg_bdy = Hg_bdy / (div+SIGN(1.e-9,div))
-          else
-            write(*,*) '~!@#$%^ ADAPT THE CODE FOR MISSING NEIGHBOURS (bdyT)  >>>>>>>>>>  stop !!'
-            write(*,*) kbdy, iinf, jinf, Ha_bdy, Hg_bdy
-            stop
-          endif
-
-        endif
-      
      else
     
         Ha_bdy = 0.0
@@ -427,7 +468,7 @@ DO kharm=1,nn_harm
    
    !----------------------------------------------------------------------------------------
    
-   write(*,*) 'Interpolation of u1 and u2'
+   write(*,*) 'Interpolation of u1 and u2 (from Utide,Vtide brought at U pt then rotated)'
    
    ALLOCATE( u1(mxbu,myb), u2(mxbu,myb) )
    
@@ -435,204 +476,204 @@ DO kharm=1,nn_harm
    
      if ( umask(nbiu(kbdy,1),nbju(kbdy,1),1,1) .ne. 0 ) then
    
-        itmp=MINLOC(abs(lon-zglamu(kbdy,1)),1)
-        if ( lon(itmp) .lt. zglamu(kbdy,1) ) then
-          iinf=itmp
-          isup=itmp+1
-        else
-          iinf=itmp-1
-          isup=itmp
-        endif
-      
-        jtmp=MINLOC(abs(lat-gphiu(kbdy,1)),1)
-        if ( lat(jtmp) .lt. gphiu(kbdy,1) ) then
-          jinf=jtmp
-          jsup=jtmp+1
-        else
-          jinf=jtmp-1
-          jsup=jtmp
-        endif
-      
-        Ua_bdy =   ( lon(isup) - zglamu(kbdy,1) ) * ( lat(jsup) - gphiu(kbdy,1) ) * Ua(iinf,jinf) * mskfes(iinf,jinf)  &
-        &        + ( lon(isup) - zglamu(kbdy,1) ) * ( gphiu(kbdy,1) - lat(jinf) ) * Ua(iinf,jsup) * mskfes(iinf,jsup)  &
-        &        + ( zglamu(kbdy,1) - lon(iinf) ) * ( lat(jsup) - gphiu(kbdy,1) ) * Ua(isup,jinf) * mskfes(isup,jinf)  &
-        &        + ( zglamu(kbdy,1) - lon(iinf) ) * ( gphiu(kbdy,1) - lat(jinf) ) * Ua(isup,jsup) * mskfes(isup,jsup)
-      
-        Ug_bdy =   ( lon(isup) - zglamu(kbdy,1) ) * ( lat(jsup) - gphiu(kbdy,1) ) * Ug(iinf,jinf) * mskfes(iinf,jinf)  &
-        &        + ( lon(isup) - zglamu(kbdy,1) ) * ( gphiu(kbdy,1) - lat(jinf) ) * Ug(iinf,jsup) * mskfes(iinf,jsup)  &
-        &        + ( zglamu(kbdy,1) - lon(iinf) ) * ( lat(jsup) - gphiu(kbdy,1) ) * Ug(isup,jinf) * mskfes(isup,jinf)  &
-        &        + ( zglamu(kbdy,1) - lon(iinf) ) * ( gphiu(kbdy,1) - lat(jinf) ) * Ug(isup,jsup) * mskfes(isup,jsup)
-      
-        div =   ( lon(isup) - zglamu(kbdy,1) ) * ( lat(jsup) - gphiu(kbdy,1) ) * mskfes(iinf,jinf)  &
-          &   + ( lon(isup) - zglamu(kbdy,1) ) * ( gphiu(kbdy,1) - lat(jinf) ) * mskfes(iinf,jsup)  &
-          &   + ( zglamu(kbdy,1) - lon(iinf) ) * ( lat(jsup) - gphiu(kbdy,1) ) * mskfes(isup,jinf)  &
-          &   + ( zglamu(kbdy,1) - lon(iinf) ) * ( gphiu(kbdy,1) - lat(jinf) ) * mskfes(isup,jsup)
-      
-        if ( abs(div) .gt. 0.0 ) then
-          Ua_bdy = Ua_bdy / (div+SIGN(1.e-9,div))
-          Ug_bdy = Ug_bdy / (div+SIGN(1.e-9,div))
-        else
-
-          if ( lon(itmp) .lt. zglamu(kbdy,1) ) then
-            iinf=itmp-1
-            isup=itmp+2
-          else
-            iinf=itmp-2
-            isup=itmp+1
-          endif
-        
-          if ( lat(jtmp) .lt. gphiu(kbdy,1) ) then
-            jinf=jtmp-1
-            jsup=jtmp+2
-          else
-            jinf=jtmp-2
-            jsup=jtmp+1
-          endif
-        
-          Ua_bdy =   ( lon(isup) - zglamu(kbdy,1) ) * ( lat(jsup) - gphiu(kbdy,1) ) * Ua(iinf,jinf) * mskfes(iinf,jinf)  &
-          &        + ( lon(isup) - zglamu(kbdy,1) ) * ( gphiu(kbdy,1) - lat(jinf) ) * Ua(iinf,jsup) * mskfes(iinf,jsup)  &
-          &        + ( zglamu(kbdy,1) - lon(iinf) ) * ( lat(jsup) - gphiu(kbdy,1) ) * Ua(isup,jinf) * mskfes(isup,jinf)  &
-          &        + ( zglamu(kbdy,1) - lon(iinf) ) * ( gphiu(kbdy,1) - lat(jinf) ) * Ua(isup,jsup) * mskfes(isup,jsup)
-        
-          Ug_bdy =   ( lon(isup) - zglamu(kbdy,1) ) * ( lat(jsup) - gphiu(kbdy,1) ) * Ug(iinf,jinf) * mskfes(iinf,jinf)  &
-          &        + ( lon(isup) - zglamu(kbdy,1) ) * ( gphiu(kbdy,1) - lat(jinf) ) * Ug(iinf,jsup) * mskfes(iinf,jsup)  &
-          &        + ( zglamu(kbdy,1) - lon(iinf) ) * ( lat(jsup) - gphiu(kbdy,1) ) * Ug(isup,jinf) * mskfes(isup,jinf)  &
-          &        + ( zglamu(kbdy,1) - lon(iinf) ) * ( gphiu(kbdy,1) - lat(jinf) ) * Ug(isup,jsup) * mskfes(isup,jsup)
-        
-          div =   ( lon(isup) - zglamu(kbdy,1) ) * ( lat(jsup) - gphiu(kbdy,1) ) * mskfes(iinf,jinf)  &
-            &   + ( lon(isup) - zglamu(kbdy,1) ) * ( gphiu(kbdy,1) - lat(jinf) ) * mskfes(iinf,jsup)  &
-            &   + ( zglamu(kbdy,1) - lon(iinf) ) * ( lat(jsup) - gphiu(kbdy,1) ) * mskfes(isup,jinf)  &
-            &   + ( zglamu(kbdy,1) - lon(iinf) ) * ( gphiu(kbdy,1) - lat(jinf) ) * mskfes(isup,jsup)
-        
-          if ( abs(div) .gt. 0.0 ) then
-            Ua_bdy = Ua_bdy / (div+SIGN(1.e-9,div))
-            Ug_bdy = Ug_bdy / (div+SIGN(1.e-9,div))
-          else
-            write(*,*) '@@@@@@@ ADAPT THE CODE FOR MISSING NEIGHBOURS (bdyU) >>>>>>>>>>  stop !!'
-            write(*,*) kbdy, iinf, jinf, Ua_bdy, Ug_bdy
-            stop
-          endif
+       itmp=MINLOC(abs(zlon-zglamu(kbdy,1)),1)
+       jtmp=MINLOC(abs(lat-gphiu(kbdy,1)),1)
+ 
+       do knb=1,10 ! looking for closest neighbour (knb=1), then expand if not found
+  
+         if ( zlon(itmp) .lt. zglamu(kbdy,1) ) then
+           iinf=itmp-knb+1
+           isup=itmp+knb
+         else
+           iinf=itmp-knb
+           isup=itmp+knb-1
+         endif
        
-        endif
-      
+         if ( lat(jtmp) .lt. gphiu(kbdy,1) ) then
+           jinf=jtmp-knb+1
+           jsup=jtmp+knb
+         else
+           jinf=jtmp-knb
+           jsup=jtmp+knb-1
+         endif
+
+         Ua_bdy =   ( zlon(isup) - zglamu(kbdy,1) ) * ( lat(jsup) - gphiu(kbdy,1) ) * Ua(iinf,jinf) * mskfes(iinf,jinf)  &
+         &        + ( zlon(isup) - zglamu(kbdy,1) ) * ( gphiu(kbdy,1) - lat(jinf) ) * Ua(iinf,jsup) * mskfes(iinf,jsup)  &
+         &        + ( zglamu(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphiu(kbdy,1) ) * Ua(isup,jinf) * mskfes(isup,jinf)  &
+         &        + ( zglamu(kbdy,1) - zlon(iinf) ) * ( gphiu(kbdy,1) - lat(jinf) ) * Ua(isup,jsup) * mskfes(isup,jsup)
+       
+         Ucs =      ( zlon(isup) - zglamu(kbdy,1) ) * ( lat(jsup) - gphiu(kbdy,1) ) * COS(zrad*Ug(iinf,jinf)) * mskfes(iinf,jinf)  &
+         &        + ( zlon(isup) - zglamu(kbdy,1) ) * ( gphiu(kbdy,1) - lat(jinf) ) * COS(zrad*Ug(iinf,jsup)) * mskfes(iinf,jsup)  &
+         &        + ( zglamu(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphiu(kbdy,1) ) * COS(zrad*Ug(isup,jinf)) * mskfes(isup,jinf)  &
+         &        + ( zglamu(kbdy,1) - zlon(iinf) ) * ( gphiu(kbdy,1) - lat(jinf) ) * COS(zrad*Ug(isup,jsup)) * mskfes(isup,jsup)
+     
+         Usn =      ( zlon(isup) - zglamu(kbdy,1) ) * ( lat(jsup) - gphiu(kbdy,1) ) * SIN(zrad*Ug(iinf,jinf)) * mskfes(iinf,jinf)  &
+         &        + ( zlon(isup) - zglamu(kbdy,1) ) * ( gphiu(kbdy,1) - lat(jinf) ) * SIN(zrad*Ug(iinf,jsup)) * mskfes(iinf,jsup)  &
+         &        + ( zglamu(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphiu(kbdy,1) ) * SIN(zrad*Ug(isup,jinf)) * mskfes(isup,jinf)  &
+         &        + ( zglamu(kbdy,1) - zlon(iinf) ) * ( gphiu(kbdy,1) - lat(jinf) ) * SIN(zrad*Ug(isup,jsup)) * mskfes(isup,jsup)
+  
+         Va_bdy =   ( zlon(isup) - zglamu(kbdy,1) ) * ( lat(jsup) - gphiu(kbdy,1) ) * Va(iinf,jinf) * mskfes(iinf,jinf)  &
+         &        + ( zlon(isup) - zglamu(kbdy,1) ) * ( gphiu(kbdy,1) - lat(jinf) ) * Va(iinf,jsup) * mskfes(iinf,jsup)  &
+         &        + ( zglamu(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphiu(kbdy,1) ) * Va(isup,jinf) * mskfes(isup,jinf)  &
+         &        + ( zglamu(kbdy,1) - zlon(iinf) ) * ( gphiu(kbdy,1) - lat(jinf) ) * Va(isup,jsup) * mskfes(isup,jsup)
+       
+         Vcs =      ( zlon(isup) - zglamu(kbdy,1) ) * ( lat(jsup) - gphiu(kbdy,1) ) * COS(zrad*Vg(iinf,jinf)) * mskfes(iinf,jinf)  &
+         &        + ( zlon(isup) - zglamu(kbdy,1) ) * ( gphiu(kbdy,1) - lat(jinf) ) * COS(zrad*Vg(iinf,jsup)) * mskfes(iinf,jsup)  &
+         &        + ( zglamu(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphiu(kbdy,1) ) * COS(zrad*Vg(isup,jinf)) * mskfes(isup,jinf)  &
+         &        + ( zglamu(kbdy,1) - zlon(iinf) ) * ( gphiu(kbdy,1) - lat(jinf) ) * COS(zrad*Vg(isup,jsup)) * mskfes(isup,jsup)
+ 
+         Vsn =      ( zlon(isup) - zglamu(kbdy,1) ) * ( lat(jsup) - gphiu(kbdy,1) ) * SIN(zrad*Vg(iinf,jinf)) * mskfes(iinf,jinf)  &
+         &        + ( zlon(isup) - zglamu(kbdy,1) ) * ( gphiu(kbdy,1) - lat(jinf) ) * SIN(zrad*Vg(iinf,jsup)) * mskfes(iinf,jsup)  &
+         &        + ( zglamu(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphiu(kbdy,1) ) * SIN(zrad*Vg(isup,jinf)) * mskfes(isup,jinf)  &
+         &        + ( zglamu(kbdy,1) - zlon(iinf) ) * ( gphiu(kbdy,1) - lat(jinf) ) * SIN(zrad*Vg(isup,jsup)) * mskfes(isup,jsup)
+ 
+         tmp1  = gphiu_REG( MIN(mxG,nbiu(kbdy,1)+1), nbju(kbdy,1) ) - gphiu_REG( MAX(1,nbiu(kbdy,1)-1), nbju(kbdy,1) )
+         tmp2  = ( zglamu_REG( MIN(mxG,nbiu(kbdy,1)+1), nbju(kbdy,1) ) - zglamu_REG( MAX(1,nbiu(kbdy,1)-1), nbju(kbdy,1) ) ) * cos( zrad * gphiu_REG(nbiu(kbdy,1),nbju(kbdy,1)) )
+         angle = ATAN2( tmp1, tmp2 )
+ 
+         div =   ( zlon(isup) - zglamu(kbdy,1) ) * ( lat(jsup) - gphiu(kbdy,1) ) * mskfes(iinf,jinf)  &
+           &   + ( zlon(isup) - zglamu(kbdy,1) ) * ( gphiu(kbdy,1) - lat(jinf) ) * mskfes(iinf,jsup)  &
+           &   + ( zglamu(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphiu(kbdy,1) ) * mskfes(isup,jinf)  &
+           &   + ( zglamu(kbdy,1) - zlon(iinf) ) * ( gphiu(kbdy,1) - lat(jinf) ) * mskfes(isup,jsup)
+       
+         if ( abs(div) .gt. 1.e-12 ) then
+           Ua_bdy = Ua_bdy / div
+           Ug_bdy = ATAN2( Usn/div, Ucs/div ) / zrad !- to have a proper "modulo" interpolation of the phase
+           Va_bdy = Va_bdy / div
+           Vg_bdy = ATAN2( Vsn/div, Vcs/div ) / zrad !- to have a proper "modulo" interpolation of the phase
+           exit
+         endif
+
+       enddo  !- knb
+
+       if ( .not. abs(div) .gt. 1.e-12 ) then
+         write(*,*) '@@@@@@@ INCREASE NB OF LOOPS ON knb (bdyU) >>>>>>>>>>  stop !!'
+         write(*,*) kbdy, iinf, jinf, Ua_bdy, Ug_bdy
+         stop
+       endif
+       
      else
     
         Ua_bdy = 0.0
         Ug_bdy = 0.0
-   
+        Va_bdy = 0.0
+        Vg_bdy = 0.0
+        angle  = 0.0   
+ 
      endif !--  if ( tmask(nbit(kbdy,1),nbjt(kbdy,1),1) .ne. 0 )
-   
-     u1(kbdy,1) = Ua_bdy * COS( zrad * Ug_bdy )
-     u2(kbdy,1) = Ua_bdy * SIN( zrad * Ug_bdy )
-   
+  
+     !write(*,*) TRIM(harmstr), kbdy, angle
+     !write(*,*) '      ', gphiu_REG( MIN(mxG,nbiu(kbdy,1)+1),nbju(kbdy,1) ), gphiu_REG( MIN(mxG,nbiu(kbdy,1)+1),nbju(kbdy,1) ) - gphiu_REG( MAX(1,nbiu(kbdy,1)-1), nbju(kbdy,1) )
+     !write(*,*) '      ', zglamu_REG( MIN(mxG,nbiu(kbdy,1)+1), nbju(kbdy,1) ), ( zglamu_REG( MIN(mxG,nbiu(kbdy,1)+1), nbju(kbdy,1) ) - zglamu_REG( MAX(1,nbiu(kbdy,1)-1), nbju(kbdy,1) ) ) * cos( zrad * gphiu_REG(nbiu(kbdy,1),nbju(kbdy,1)) ) 
+ 
+     u1(kbdy,1) = Ua_bdy * COS( zrad * Ug_bdy ) * COS(angle) + Va_bdy * COS( zrad * Vg_bdy ) * SIN(angle)  ! real part
+     u2(kbdy,1) = Ua_bdy * SIN( zrad * Ug_bdy ) * COS(angle) + Va_bdy * SIN( zrad * Vg_bdy ) * SIN(angle)  ! imaginary part
+  
    enddo
    
    !----------------------------------------------------------------------------------------
    
-   write(*,*) 'Interpolation of v1 and v2'
+   write(*,*) 'Interpolation of v1 and v2 (from Utide,Vtide brought at V pt then rotated)'
    
    ALLOCATE( v1(mxbv,myb), v2(mxbv,myb) )
    
    do kbdy=1,mxbv
    
      if ( vmask(nbiv(kbdy,1),nbjv(kbdy,1),1,1) .ne. 0 ) then
-   
-        itmp=MINLOC(abs(lon-zglamv(kbdy,1)),1)
-        if ( lon(itmp) .lt. zglamv(kbdy,1) ) then
-          iinf=itmp
-          isup=itmp+1
-        else
-          iinf=itmp-1
-          isup=itmp
-        endif
-      
-        jtmp=MINLOC(abs(lat-gphiv(kbdy,1)),1)
-        if ( lat(jtmp) .lt. gphiv(kbdy,1) ) then
-          jinf=jtmp
-          jsup=jtmp+1
-        else
-          jinf=jtmp-1
-          jsup=jtmp
-        endif
-      
-        Va_bdy =   ( lon(isup) - zglamv(kbdy,1) ) * ( lat(jsup) - gphiv(kbdy,1) ) * Va(iinf,jinf) * mskfes(iinf,jinf)  &
-        &        + ( lon(isup) - zglamv(kbdy,1) ) * ( gphiv(kbdy,1) - lat(jinf) ) * Va(iinf,jsup) * mskfes(iinf,jsup)  &
-        &        + ( zglamv(kbdy,1) - lon(iinf) ) * ( lat(jsup) - gphiv(kbdy,1) ) * Va(isup,jinf) * mskfes(isup,jinf)  &
-        &        + ( zglamv(kbdy,1) - lon(iinf) ) * ( gphiv(kbdy,1) - lat(jinf) ) * Va(isup,jsup) * mskfes(isup,jsup)
-      
-        Vg_bdy =   ( lon(isup) - zglamv(kbdy,1) ) * ( lat(jsup) - gphiv(kbdy,1) ) * Vg(iinf,jinf) * mskfes(iinf,jinf)  &
-        &        + ( lon(isup) - zglamv(kbdy,1) ) * ( gphiv(kbdy,1) - lat(jinf) ) * Vg(iinf,jsup) * mskfes(iinf,jsup)  &
-        &        + ( zglamv(kbdy,1) - lon(iinf) ) * ( lat(jsup) - gphiv(kbdy,1) ) * Vg(isup,jinf) * mskfes(isup,jinf)  &
-        &        + ( zglamv(kbdy,1) - lon(iinf) ) * ( gphiv(kbdy,1) - lat(jinf) ) * Vg(isup,jsup) * mskfes(isup,jsup)
-      
-        div =   ( lon(isup) - zglamv(kbdy,1) ) * ( lat(jsup) - gphiv(kbdy,1) ) * mskfes(iinf,jinf)  &
-          &   + ( lon(isup) - zglamv(kbdy,1) ) * ( gphiv(kbdy,1) - lat(jinf) ) * mskfes(iinf,jsup)  &
-          &   + ( zglamv(kbdy,1) - lon(iinf) ) * ( lat(jsup) - gphiv(kbdy,1) ) * mskfes(isup,jinf)  &
-          &   + ( zglamv(kbdy,1) - lon(iinf) ) * ( gphiv(kbdy,1) - lat(jinf) ) * mskfes(isup,jsup)
-      
-        if ( abs(div) .gt. 0.0 ) then
+  
+       itmp=MINLOC(abs(zlon-zglamv(kbdy,1)),1)
+       jtmp=MINLOC(abs(lat-gphiv(kbdy,1)),1)
+ 
+       do knb=1,10 ! looking for closest neighbour (knb=1), then expand if not found
+  
+         if ( zlon(itmp) .lt. zglamv(kbdy,1) ) then
+           iinf=itmp-knb+1
+           isup=itmp+knb
+         else
+           iinf=itmp-knb
+           isup=itmp+knb-1
+         endif
+       
+         if ( lat(jtmp) .lt. gphiv(kbdy,1) ) then
+           jinf=jtmp-knb+1
+           jsup=jtmp+knb
+         else
+           jinf=jtmp-knb
+           jsup=jtmp+knb-1
+         endif
 
-          Va_bdy = Va_bdy / (div+SIGN(1.e-9,div))
-          Vg_bdy = Vg_bdy / (div+SIGN(1.e-9,div))
+         Ua_bdy =   ( zlon(isup) - zglamv(kbdy,1) ) * ( lat(jsup) - gphiv(kbdy,1) ) * Ua(iinf,jinf) * mskfes(iinf,jinf)  &
+         &        + ( zlon(isup) - zglamv(kbdy,1) ) * ( gphiv(kbdy,1) - lat(jinf) ) * Ua(iinf,jsup) * mskfes(iinf,jsup)  &
+         &        + ( zglamv(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphiv(kbdy,1) ) * Ua(isup,jinf) * mskfes(isup,jinf)  &
+         &        + ( zglamv(kbdy,1) - zlon(iinf) ) * ( gphiv(kbdy,1) - lat(jinf) ) * Ua(isup,jsup) * mskfes(isup,jsup)
+       
+         Ucs =      ( zlon(isup) - zglamv(kbdy,1) ) * ( lat(jsup) - gphiv(kbdy,1) ) * COS(zrad*Ug(iinf,jinf)) * mskfes(iinf,jinf)  &
+         &        + ( zlon(isup) - zglamv(kbdy,1) ) * ( gphiv(kbdy,1) - lat(jinf) ) * COS(zrad*Ug(iinf,jsup)) * mskfes(iinf,jsup)  &
+         &        + ( zglamv(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphiv(kbdy,1) ) * COS(zrad*Ug(isup,jinf)) * mskfes(isup,jinf)  &
+         &        + ( zglamv(kbdy,1) - zlon(iinf) ) * ( gphiv(kbdy,1) - lat(jinf) ) * COS(zrad*Ug(isup,jsup)) * mskfes(isup,jsup)
+ 
+         Usn =      ( zlon(isup) - zglamv(kbdy,1) ) * ( lat(jsup) - gphiv(kbdy,1) ) * SIN(zrad*Ug(iinf,jinf)) * mskfes(iinf,jinf)  &
+         &        + ( zlon(isup) - zglamv(kbdy,1) ) * ( gphiv(kbdy,1) - lat(jinf) ) * SIN(zrad*Ug(iinf,jsup)) * mskfes(iinf,jsup)  &
+         &        + ( zglamv(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphiv(kbdy,1) ) * SIN(zrad*Ug(isup,jinf)) * mskfes(isup,jinf)  &
+         &        + ( zglamv(kbdy,1) - zlon(iinf) ) * ( gphiv(kbdy,1) - lat(jinf) ) * SIN(zrad*Ug(isup,jsup)) * mskfes(isup,jsup)
+  
+         Va_bdy =   ( zlon(isup) - zglamv(kbdy,1) ) * ( lat(jsup) - gphiv(kbdy,1) ) * Va(iinf,jinf) * mskfes(iinf,jinf)  &
+         &        + ( zlon(isup) - zglamv(kbdy,1) ) * ( gphiv(kbdy,1) - lat(jinf) ) * Va(iinf,jsup) * mskfes(iinf,jsup)  &
+         &        + ( zglamv(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphiv(kbdy,1) ) * Va(isup,jinf) * mskfes(isup,jinf)  &
+         &        + ( zglamv(kbdy,1) - zlon(iinf) ) * ( gphiv(kbdy,1) - lat(jinf) ) * Va(isup,jsup) * mskfes(isup,jsup)
+       
+         Vcs =      ( zlon(isup) - zglamv(kbdy,1) ) * ( lat(jsup) - gphiv(kbdy,1) ) * COS(zrad*Vg(iinf,jinf)) * mskfes(iinf,jinf)  &
+         &        + ( zlon(isup) - zglamv(kbdy,1) ) * ( gphiv(kbdy,1) - lat(jinf) ) * COS(zrad*Vg(iinf,jsup)) * mskfes(iinf,jsup)  &
+         &        + ( zglamv(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphiv(kbdy,1) ) * COS(zrad*Vg(isup,jinf)) * mskfes(isup,jinf)  &
+         &        + ( zglamv(kbdy,1) - zlon(iinf) ) * ( gphiv(kbdy,1) - lat(jinf) ) * COS(zrad*Vg(isup,jsup)) * mskfes(isup,jsup)
+ 
+         Vsn =      ( zlon(isup) - zglamv(kbdy,1) ) * ( lat(jsup) - gphiv(kbdy,1) ) * SIN(zrad*Vg(iinf,jinf)) * mskfes(iinf,jinf)  &
+         &        + ( zlon(isup) - zglamv(kbdy,1) ) * ( gphiv(kbdy,1) - lat(jinf) ) * SIN(zrad*Vg(iinf,jsup)) * mskfes(iinf,jsup)  &
+         &        + ( zglamv(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphiv(kbdy,1) ) * SIN(zrad*Vg(isup,jinf)) * mskfes(isup,jinf)  &
+         &        + ( zglamv(kbdy,1) - zlon(iinf) ) * ( gphiv(kbdy,1) - lat(jinf) ) * SIN(zrad*Vg(isup,jsup)) * mskfes(isup,jsup)
+ 
+         angle  = ATAN2(    gphiv_REG( MIN(mxG,nbiv(kbdy,1)+1), nbjv(kbdy,1) ) -  gphiv_REG( MAX(1,nbiv(kbdy,1)-1), nbjv(kbdy,1) )  , &
+         &               ( zglamv_REG( MIN(mxG,nbiv(kbdy,1)+1), nbjv(kbdy,1) ) - zglamv_REG( MAX(1,nbiv(kbdy,1)-1), nbjv(kbdy,1) ) )  &
+         &               * cos( zrad * gphiv_REG(nbiv(kbdy,1),nbjv(kbdy,1)) )  ) 
+ 
+         div =   ( zlon(isup) - zglamv(kbdy,1) ) * ( lat(jsup) - gphiv(kbdy,1) ) * mskfes(iinf,jinf)  &
+           &   + ( zlon(isup) - zglamv(kbdy,1) ) * ( gphiv(kbdy,1) - lat(jinf) ) * mskfes(iinf,jsup)  &
+           &   + ( zglamv(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphiv(kbdy,1) ) * mskfes(isup,jinf)  &
+           &   + ( zglamv(kbdy,1) - zlon(iinf) ) * ( gphiv(kbdy,1) - lat(jinf) ) * mskfes(isup,jsup)
+       
+         if ( abs(div) .gt. 1.e-12 ) then
+           Ua_bdy = Ua_bdy / div
+           Ug_bdy = ATAN2( Usn/div, Ucs/div ) / zrad !- to have a proper "modulo" interpolation of the phase 
+           Va_bdy = Va_bdy / div
+           Vg_bdy = ATAN2( Vsn/div, Vcs/div ) / zrad !- to have a proper "modulo" interpolation of the phase
+           exit
+         endif
 
-        else
+       enddo !- knb
 
-          if ( lon(itmp) .lt. zglamv(kbdy,1) ) then
-            iinf=itmp-1
-            isup=itmp+2
-          else
-            iinf=itmp-2
-            isup=itmp+1
-          endif
-        
-          if ( lat(jtmp) .lt. gphiv(kbdy,1) ) then
-            jinf=jtmp-1
-            jsup=jtmp+2
-          else
-            jinf=jtmp-2
-            jsup=jtmp+1
-          endif
-        
-          Va_bdy =   ( lon(isup) - zglamv(kbdy,1) ) * ( lat(jsup) - gphiv(kbdy,1) ) * Va(iinf,jinf) * mskfes(iinf,jinf)  &
-          &        + ( lon(isup) - zglamv(kbdy,1) ) * ( gphiv(kbdy,1) - lat(jinf) ) * Va(iinf,jsup) * mskfes(iinf,jsup)  &
-          &        + ( zglamv(kbdy,1) - lon(iinf) ) * ( lat(jsup) - gphiv(kbdy,1) ) * Va(isup,jinf) * mskfes(isup,jinf)  &
-          &        + ( zglamv(kbdy,1) - lon(iinf) ) * ( gphiv(kbdy,1) - lat(jinf) ) * Va(isup,jsup) * mskfes(isup,jsup)
-        
-          Vg_bdy =   ( lon(isup) - zglamv(kbdy,1) ) * ( lat(jsup) - gphiv(kbdy,1) ) * Vg(iinf,jinf) * mskfes(iinf,jinf)  &
-          &        + ( lon(isup) - zglamv(kbdy,1) ) * ( gphiv(kbdy,1) - lat(jinf) ) * Vg(iinf,jsup) * mskfes(iinf,jsup)  &
-          &        + ( zglamv(kbdy,1) - lon(iinf) ) * ( lat(jsup) - gphiv(kbdy,1) ) * Vg(isup,jinf) * mskfes(isup,jinf)  &
-          &        + ( zglamv(kbdy,1) - lon(iinf) ) * ( gphiv(kbdy,1) - lat(jinf) ) * Vg(isup,jsup) * mskfes(isup,jsup)
-        
-          div =   ( lon(isup) - zglamv(kbdy,1) ) * ( lat(jsup) - gphiv(kbdy,1) ) * mskfes(iinf,jinf)  &
-            &   + ( lon(isup) - zglamv(kbdy,1) ) * ( gphiv(kbdy,1) - lat(jinf) ) * mskfes(iinf,jsup)  &
-            &   + ( zglamv(kbdy,1) - lon(iinf) ) * ( lat(jsup) - gphiv(kbdy,1) ) * mskfes(isup,jinf)  &
-            &   + ( zglamv(kbdy,1) - lon(iinf) ) * ( gphiv(kbdy,1) - lat(jinf) ) * mskfes(isup,jsup)
-        
-          if ( abs(div) .gt. 0.0 ) then
-            Va_bdy = Va_bdy / (div+SIGN(1.e-9,div))
-            Vg_bdy = Vg_bdy / (div+SIGN(1.e-9,div))
-          else
-            write(*,*) '~!@#$%^ ADAPT THE CODE FOR MISSING NEIGHBOURS (bdyV)  >>>>>>>>>>  stop !!'
-            write(*,*) kbdy, iinf, jinf, Va_bdy, Vg_bdy
-            stop
-          endif
+       if ( .not. abs(div) .gt. 1.e-12 ) then
+         write(*,*) '~!@#$%^ INCREASE NB OF LOOPS ON knb (bdyV)  >>>>>>>>>>  stop !!'
+         write(*,*) kbdy, iinf, jinf, Va_bdy, Vg_bdy
+         stop
+       endif
 
-        endif
-      
      else
     
+        Ua_bdy = 0.0
+        Ug_bdy = 0.0
         Va_bdy = 0.0
         Vg_bdy = 0.0
+        angle  = 0.0
    
      endif !--  if ( tmask(nbit(kbdy,1),nbjt(kbdy,1),1) .ne. 0 )
-   
-     v1(kbdy,1) = Va_bdy * COS( zrad * Vg_bdy )
-     v2(kbdy,1) = Va_bdy * SIN( zrad * Vg_bdy )
+  
+     v1(kbdy,1) = - Ua_bdy * COS( zrad * Ug_bdy ) * SIN(angle) + Va_bdy * COS( zrad * Vg_bdy ) * COS(angle) !- real part
+     v2(kbdy,1) = - Ua_bdy * SIN( zrad * Ug_bdy ) * SIN(angle) + Va_bdy * SIN( zrad * Vg_bdy ) * COS(angle) !- imaginary part
    
    enddo
 
    !========================================
-   
+  
    !------------------------
    ! Create gridT bdy file :
    
@@ -665,7 +706,7 @@ DO kharm=1,nn_harm
    status = NF90_PUT_ATT(fidoutT,nbit_ID,"units","unitless")                  ; call erreur(status,.TRUE.,"put_att_nbit_ID")
    
    status = NF90_PUT_ATT(fidoutT,NF90_GLOBAL,"history","Created using extract_bdy_tides.f90")
-   status = NF90_PUT_ATT(fidoutT,NF90_GLOBAL,"tools","https://github.com/nicojourdain/BUILD_CONFIG_NEMO")
+   status = NF90_PUT_ATT(fidoutT,NF90_GLOBAL,"tools","https://github.com/nicojourdain/BUILD_CONFIG_NEMO_2")
    call erreur(status,.TRUE.,"put_att_GLOBAL")
    
    status = NF90_ENDDEF(fidoutT) ; call erreur(status,.TRUE.,"fin_definition") 
@@ -770,7 +811,7 @@ DO kharm=1,nn_harm
   
    !-----
  
-   DEALLOCATE( z1, z2, u1, u2, v1, v2, Ha, Hg, Ua, Ug, Va, Vg, mskfes, lat, lon )
+   DEALLOCATE( z1, z2, u1, u2, v1, v2, Ha, Hg, Ua, Ug, Va, Vg, mskfes, lat, lon, zlon )
 
 ENDDO  !-- kharm
 

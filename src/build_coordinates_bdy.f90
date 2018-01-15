@@ -4,7 +4,7 @@ program modif
 !
 ! Used to build netcdf coordinate file for BDY
 !
-! hisotry: - Feb. 2017: use of namelist and BDY definition by segments (N. Jourdain)
+! hisotry: - Feb. 2017: use of namelist
 !
 ! 0- Initializations
 ! 1- Read coordinates of the entire domain
@@ -37,9 +37,10 @@ INTEGER                              :: fidA, status, dimID_xbv, dimID_xbu, dimI
 &                                       mxbt, myb, e2v_ID, e1v_ID, gphiv_ID, glamv_ID, e2u_ID, e1u_ID, gphiu_ID,&
 &                                       glamu_ID, e2t_ID, e1t_ID, gphit_ID, glamt_ID, nbrv_ID, nbjv_ID, nbiv_ID,&
 &                                       nbru_ID, nbju_ID, nbiu_ID, nbrt_ID, nbjt_ID, nbit_ID, fidM, dimID_x,    &
-&                                       dimID_y, k, kt, ku, kv, kt0, ku0, kv0, mx, my, kkbdy
+&                                       dimID_y, k, kt, ku, kv, kt0, ku0, kv0, mx, my, kkbdy, k1, k2, ndouble
 CHARACTER(LEN=150)                   :: file_in, file_out                     
 INTEGER*4,ALLOCATABLE,DIMENSION(:,:) :: nbrv, nbjv, nbiv, nbru, nbju, nbiu, nbrt, nbjt, nbit    
+INTEGER*4,ALLOCATABLE,DIMENSION(:,:) :: nbjv_tmp, nbiv_tmp, nbju_tmp, nbiu_tmp, nbjt_tmp, nbit_tmp    
 REAL*4,ALLOCATABLE,DIMENSION(:,:)    :: e1t_bdy, e2t_bdy, e1u_bdy, e2u_bdy, e1v_bdy, e2v_bdy,                   &
 &                                       gphit_bdy, glamt_bdy, gphiu_bdy, glamu_bdy, gphiv_bdy, glamv_bdy
 REAL*4,ALLOCATABLE,DIMENSION(:,:)    :: e1t, e2t, e1u, e2u, e1v, e2v, gphit, glamt, gphiu, glamu, gphiv, glamv
@@ -143,24 +144,28 @@ mxbv=0
 do kkbdy=1,nn_bdy_east
   mxbt=mxbt+j2_bdy_east(kkbdy)-j1_bdy_east(kkbdy)+1
   mxbu=mxbu+j2_bdy_east(kkbdy)-j1_bdy_east(kkbdy)+1
-  mxbv=mxbv+j2_bdy_east(kkbdy)-j1_bdy_east(kkbdy)
+  !mxbv=mxbv+j2_bdy_east(kkbdy)-j1_bdy_east(kkbdy)
+  mxbv=mxbv+j2_bdy_east(kkbdy)-j1_bdy_east(kkbdy)+MIN(2,j1_bdy_east(kkbdy))
 enddo
 
 do kkbdy=1,nn_bdy_west
   mxbt=mxbt+j2_bdy_west(kkbdy)-j1_bdy_west(kkbdy)+1
   mxbu=mxbu+j2_bdy_west(kkbdy)-j1_bdy_west(kkbdy)+1
-  mxbv=mxbv+j2_bdy_west(kkbdy)-j1_bdy_west(kkbdy)
+  !mxbv=mxbv+j2_bdy_west(kkbdy)-j1_bdy_west(kkbdy)
+  mxbv=mxbv+j2_bdy_west(kkbdy)-j1_bdy_west(kkbdy)+MIN(2,j1_bdy_west(kkbdy))
 enddo
 
 do kkbdy=1,nn_bdy_north
   mxbt=mxbt+i2_bdy_north(kkbdy)-i1_bdy_north(kkbdy)+1
-  mxbu=mxbu+i2_bdy_north(kkbdy)-i1_bdy_north(kkbdy)
+  !mxbu=mxbu+i2_bdy_north(kkbdy)-i1_bdy_north(kkbdy)
+  mxbu=mxbu+i2_bdy_north(kkbdy)-i1_bdy_north(kkbdy)+MIN(2,i1_bdy_north(kkbdy))
   mxbv=mxbv+i2_bdy_north(kkbdy)-i1_bdy_north(kkbdy)+1
 enddo
 
 do kkbdy=1,nn_bdy_south
   mxbt=mxbt+i2_bdy_south(kkbdy)-i1_bdy_south(kkbdy)+1
-  mxbu=mxbu+i2_bdy_south(kkbdy)-i1_bdy_south(kkbdy)
+  !mxbu=mxbu+i2_bdy_south(kkbdy)-i1_bdy_south(kkbdy)
+  mxbu=mxbu+i2_bdy_south(kkbdy)-i1_bdy_south(kkbdy)+MIN(2,i1_bdy_south(kkbdy))
   mxbv=mxbv+i2_bdy_south(kkbdy)-i1_bdy_south(kkbdy)+1
 enddo
 
@@ -170,15 +175,9 @@ write(*,*) 'mxbv = ', mxbv
 
 myb=1 !- degenerated dimension
 
-ALLOCATE(  e1t_bdy(mxbt,myb), e2t_bdy(mxbt,myb)  )
-ALLOCATE(  e1u_bdy(mxbu,myb), e2u_bdy(mxbu,myb)  )
-ALLOCATE(  e1v_bdy(mxbv,myb), e2v_bdy(mxbv,myb)  )
-ALLOCATE(  gphit_bdy(mxbt,myb), glamt_bdy(mxbt,myb)  )
-ALLOCATE(  gphiu_bdy(mxbu,myb), glamu_bdy(mxbu,myb)  )
-ALLOCATE(  gphiv_bdy(mxbv,myb), glamv_bdy(mxbv,myb)  )
-ALLOCATE(  nbit(mxbt,myb), nbjt(mxbt,myb), nbrt(mxbt,myb)  )
-ALLOCATE(  nbiu(mxbu,myb), nbju(mxbu,myb), nbru(mxbu,myb)  )
-ALLOCATE(  nbiv(mxbv,myb), nbjv(mxbv,myb), nbrv(mxbv,myb)  )
+ALLOCATE(  nbit_tmp(mxbt,myb), nbjt_tmp(mxbt,myb)  )
+ALLOCATE(  nbiu_tmp(mxbu,myb), nbju_tmp(mxbu,myb)  )
+ALLOCATE(  nbiv_tmp(mxbv,myb), nbjv_tmp(mxbv,myb)  )
 
 !=================================================================================
 ! 3- Exctract coordinates along BDY:
@@ -192,18 +191,20 @@ kv=0;  kv0=0
 
 do kkbdy=1,nn_bdy_east
   do k=j1_bdy_east(kkbdy),j2_bdy_east(kkbdy)
-    nbit(kt0+k-j1_bdy_east(kkbdy)+1,1)=ii_bdy_east(kkbdy)
-    nbjt(kt0+k-j1_bdy_east(kkbdy)+1,1)=k
+    nbit_tmp(kt0+k-j1_bdy_east(kkbdy)+1,1)=ii_bdy_east(kkbdy)
+    nbjt_tmp(kt0+k-j1_bdy_east(kkbdy)+1,1)=k
     kt=kt+1
   enddo
   do k=j1_bdy_east(kkbdy),j2_bdy_east(kkbdy)
-    nbiu(ku0+k-j1_bdy_east(kkbdy)+1,1)=ii_bdy_east(kkbdy)
-    nbju(ku0+k-j1_bdy_east(kkbdy)+1,1)=k
+    nbiu_tmp(ku0+k-j1_bdy_east(kkbdy)+1,1)=ii_bdy_east(kkbdy)-1
+    nbju_tmp(ku0+k-j1_bdy_east(kkbdy)+1,1)=k
     ku=ku+1
   enddo
-  do k=j1_bdy_east(kkbdy),j2_bdy_east(kkbdy)-1
-    nbiv(kv0+k-j1_bdy_east(kkbdy)+1,1)=ii_bdy_east(kkbdy)
-    nbjv(kv0+k-j1_bdy_east(kkbdy)+1,1)=k
+  !do k=j1_bdy_east(kkbdy),j2_bdy_east(kkbdy)-1
+  do k=MAX(1,j1_bdy_east(kkbdy)-1),j2_bdy_east(kkbdy)
+    nbiv_tmp(kv0+k-MAX(1,j1_bdy_east(kkbdy)-1)+1,1)=ii_bdy_east(kkbdy)
+    nbjv_tmp(kv0+k-MAX(1,j1_bdy_east(kkbdy)-1)+1,1)=k
+    write(*,*) '@@ ', kv0+k-j1_bdy_east(kkbdy)+1, ii_bdy_east(kkbdy), k
     kv=kv+1
   enddo
   kt0=kt
@@ -213,18 +214,20 @@ enddo
 
 do kkbdy=1,nn_bdy_west
   do k=j1_bdy_west(kkbdy),j2_bdy_west(kkbdy)
-    nbit(kt0+k-j1_bdy_west(kkbdy)+1,1)=ii_bdy_west(kkbdy)
-    nbjt(kt0+k-j1_bdy_west(kkbdy)+1,1)=k
+    nbit_tmp(kt0+k-j1_bdy_west(kkbdy)+1,1)=ii_bdy_west(kkbdy)
+    nbjt_tmp(kt0+k-j1_bdy_west(kkbdy)+1,1)=k
     kt=kt+1
   enddo
   do k=j1_bdy_west(kkbdy),j2_bdy_west(kkbdy)
-    nbiu(ku0+k-j1_bdy_west(kkbdy)+1,1)=ii_bdy_west(kkbdy)
-    nbju(ku0+k-j1_bdy_west(kkbdy)+1,1)=k
+    nbiu_tmp(ku0+k-j1_bdy_west(kkbdy)+1,1)=ii_bdy_west(kkbdy)
+    nbju_tmp(ku0+k-j1_bdy_west(kkbdy)+1,1)=k
     ku=ku+1
   enddo
-  do k=j1_bdy_west(kkbdy),j2_bdy_west(kkbdy)-1
-    nbiv(kv0+k-j1_bdy_west(kkbdy)+1,1)=ii_bdy_west(kkbdy)
-    nbjv(kv0+k-j1_bdy_west(kkbdy)+1,1)=k
+  !do k=j1_bdy_west(kkbdy),j2_bdy_west(kkbdy)-1
+  do k=MAX(1,j1_bdy_west(kkbdy)-1),j2_bdy_west(kkbdy)
+    nbiv_tmp(kv0+k-MAX(1,j1_bdy_west(kkbdy)-1)+1,1)=ii_bdy_west(kkbdy)
+    nbjv_tmp(kv0+k-MAX(1,j1_bdy_west(kkbdy)-1)+1,1)=k
+    write(*,*) '@@ ', kv0+k-j1_bdy_west(kkbdy)+1, ii_bdy_west(kkbdy), k
     kv=kv+1
   enddo
   kt0=kt
@@ -234,18 +237,20 @@ enddo
 
 do kkbdy=1,nn_bdy_north
   do k=i1_bdy_north(kkbdy),i2_bdy_north(kkbdy)
-    nbit(kt0+k-i1_bdy_north(kkbdy)+1,1)=k
-    nbjt(kt0+k-i1_bdy_north(kkbdy)+1,1)=jj_bdy_north(kkbdy)
+    nbit_tmp(kt0+k-i1_bdy_north(kkbdy)+1,1)=k
+    nbjt_tmp(kt0+k-i1_bdy_north(kkbdy)+1,1)=jj_bdy_north(kkbdy)
     kt=kt+1
   enddo
-  do k=i1_bdy_north(kkbdy),i2_bdy_north(kkbdy)-1
-    nbiu(ku0+k-i1_bdy_north(kkbdy)+1,1)=k
-    nbju(ku0+k-i1_bdy_north(kkbdy)+1,1)=jj_bdy_north(kkbdy)
+  !do k=i1_bdy_north(kkbdy),i2_bdy_north(kkbdy)-1
+  do k=MAX(1,i1_bdy_north(kkbdy)-1),i2_bdy_north(kkbdy)
+    nbiu_tmp(ku0+k-MAX(1,i1_bdy_north(kkbdy)-1)+1,1)=k
+    nbju_tmp(ku0+k-MAX(1,i1_bdy_north(kkbdy)-1)+1,1)=jj_bdy_north(kkbdy)
     ku=ku+1
   enddo
   do k=i1_bdy_north(kkbdy),i2_bdy_north(kkbdy)
-    nbiv(kv0+k-i1_bdy_north(kkbdy)+1,1)=k
-    nbjv(kv0+k-i1_bdy_north(kkbdy)+1,1)=jj_bdy_north(kkbdy)
+    nbiv_tmp(kv0+k-i1_bdy_north(kkbdy)+1,1)=k
+    nbjv_tmp(kv0+k-i1_bdy_north(kkbdy)+1,1)=jj_bdy_north(kkbdy)-1
+    write(*,*) '@@ ', kv0+k-i1_bdy_north(kkbdy)+1, k, jj_bdy_north(kkbdy)-1
     kv=kv+1
   enddo
   kt0=kt
@@ -255,18 +260,20 @@ enddo
 
 do kkbdy=1,nn_bdy_south
   do k=i1_bdy_south(kkbdy),i2_bdy_south(kkbdy)
-    nbit(kt0+k-i1_bdy_south(kkbdy)+1,1)=k
-    nbjt(kt0+k-i1_bdy_south(kkbdy)+1,1)=jj_bdy_south(kkbdy)
+    nbit_tmp(kt0+k-i1_bdy_south(kkbdy)+1,1)=k
+    nbjt_tmp(kt0+k-i1_bdy_south(kkbdy)+1,1)=jj_bdy_south(kkbdy)
     kt=kt+1
   enddo
-  do k=i1_bdy_south(kkbdy),i2_bdy_south(kkbdy)-1
-    nbiu(ku0+k-i1_bdy_south(kkbdy)+1,1)=k
-    nbju(ku0+k-i1_bdy_south(kkbdy)+1,1)=jj_bdy_south(kkbdy)
+  !do k=i1_bdy_south(kkbdy),i2_bdy_south(kkbdy)-1
+  do k=MAX(1,i1_bdy_south(kkbdy)-1),i2_bdy_south(kkbdy)
+    nbiu_tmp(ku0+k-MAX(1,i1_bdy_south(kkbdy)-1)+1,1)=k
+    nbju_tmp(ku0+k-MAX(1,i1_bdy_south(kkbdy)-1)+1,1)=jj_bdy_south(kkbdy)
     ku=ku+1
   enddo
   do k=i1_bdy_south(kkbdy),i2_bdy_south(kkbdy)
-    nbiv(kv0+k-i1_bdy_south(kkbdy)+1,1)=k
-    nbjv(kv0+k-i1_bdy_south(kkbdy)+1,1)=jj_bdy_south(kkbdy)
+    nbiv_tmp(kv0+k-i1_bdy_south(kkbdy)+1,1)=k
+    nbjv_tmp(kv0+k-i1_bdy_south(kkbdy)+1,1)=jj_bdy_south(kkbdy)
+    write(*,*) '@@ ', kv0+k-i1_bdy_south(kkbdy)+1, k, jj_bdy_south(kkbdy)
     kv=kv+1
   enddo
   kt0=kt
@@ -274,9 +281,104 @@ do kkbdy=1,nn_bdy_south
   kv0=kv
 enddo
 
+!--
+! Check for locations defined two times (useful for complex boundaries)
+! And remove them and adjust dimensions :
+
+write(*,*) 'Check for double values on grid T'
+
+ndouble=0
+do k1=1,mxbt-1
+  do k2=k1+1,mxbt
+    if ( nbit_tmp(k1,1).eq.nbit_tmp(k2,1) .and. nbjt_tmp(k1,1).eq.nbjt_tmp(k2,1) ) then
+      ndouble=ndouble+1
+      nbit_tmp(k1,1) = 999999
+      nbjt_tmp(k1,1) = 999999
+      write(*,*) 'adjusting ', ndouble, k1, k2, nbit_tmp(k2,1), nbjt_tmp(k2,1)
+    endif
+  enddo
+enddo
+ALLOCATE( nbit(mxbt-ndouble,myb), nbjt(mxbt-ndouble,myb) )
+kt0=0
+do k1=1,mxbt
+  if ( nbit_tmp(k1,1).ne.999999 .and. nbjt_tmp(k1,1).ne.999999 ) then
+    kt0=kt0+1
+    nbit(kt0,:)=nbit_tmp(k1,:)
+    nbjt(kt0,:)=nbjt_tmp(k1,:)
+  endif
+enddo
+!DEALLOCATE( nbit_tmp, nbjt_tmp )
+mxbt=mxbt-ndouble
+
+write(*,*) 'Check for double values on grid U'
+ndouble=0
+do k1=1,mxbu-1
+  do k2=k1+1,mxbu
+    if ( nbiu_tmp(k1,1).eq.nbiu_tmp(k2,1) .and. nbju_tmp(k1,1).eq.nbju_tmp(k2,1) ) then
+      ndouble=ndouble+1
+      nbiu_tmp(k1,1) = 999999
+      nbju_tmp(k1,1) = 999999
+      write(*,*) 'adjusting ', ndouble, k1, k2, nbiu_tmp(k2,1), nbju_tmp(k2,1)
+    endif
+  enddo
+enddo
+ALLOCATE( nbiu(mxbu-ndouble,myb), nbju(mxbu-ndouble,myb) )
+ku0=0
+do k1=1,mxbu
+  if ( nbiu_tmp(k1,1).ne.999999 .and. nbju_tmp(k1,1).ne.999999 ) then
+    ku0=ku0+1
+    nbiu(ku0,:)=nbiu_tmp(k1,:)
+    nbju(ku0,:)=nbju_tmp(k1,:)
+  endif
+enddo
+!DEALLOCATE( nbiu_tmp, nbju_tmp )
+mxbu=mxbu-ndouble
+
+write(*,*) 'Check for double values on grid V'
+ndouble=0
+do k1=1,mxbv-1
+  do k2=k1+1,mxbv
+    if ( nbiv_tmp(k1,1).eq.nbiv_tmp(k2,1) .and. nbjv_tmp(k1,1).eq.nbjv_tmp(k2,1) ) then
+      ndouble=ndouble+1
+      nbiv_tmp(k1,1) = 999999
+      nbjv_tmp(k1,1) = 999999
+      write(*,*) 'adjusting ', ndouble, k1, k2, nbiv_tmp(k2,1), nbjv_tmp(k2,1)
+    endif
+  enddo
+enddo
+ALLOCATE( nbiv(mxbv-ndouble,myb), nbjv(mxbv-ndouble,myb) )
+kv0=0
+do k1=1,mxbv
+  if ( nbiv_tmp(k1,1).ne.999999 .and. nbjv_tmp(k1,1).ne.999999 ) then
+    kv0=kv0+1
+    nbiv(kv0,:)=nbiv_tmp(k1,:)
+    nbjv(kv0,:)=nbjv_tmp(k1,:)
+  endif
+enddo
+!DEALLOCATE( nbiv_tmp, nbjv_tmp )
+mxbv=mxbv-ndouble
+
+write(*,*) 'Adjusted dimensions are:'
+write(*,*) 'mxbt = ', mxbt
+write(*,*) 'mxbu = ', mxbu
+write(*,*) 'mxbv = ', mxbv
+
+!---
+
+ALLOCATE(  e1t_bdy(mxbt,myb), e2t_bdy(mxbt,myb)  )
+ALLOCATE(  e1u_bdy(mxbu,myb), e2u_bdy(mxbu,myb)  )
+ALLOCATE(  e1v_bdy(mxbv,myb), e2v_bdy(mxbv,myb)  )
+ALLOCATE(  gphit_bdy(mxbt,myb), glamt_bdy(mxbt,myb)  )
+ALLOCATE(  gphiu_bdy(mxbu,myb), glamu_bdy(mxbu,myb)  )
+ALLOCATE(  gphiv_bdy(mxbv,myb), glamv_bdy(mxbv,myb)  )
+ALLOCATE(  nbrt(mxbt,myb)  )
+ALLOCATE(  nbru(mxbu,myb)  )
+ALLOCATE(  nbrv(mxbv,myb)  )
+
 !---
 
 do k=1,mxbt
+  write(*,*) '%% T ', k, nbit(k,1), nbjt(k,1)
   e1t_bdy  (k,1) = e1t  ( nbit(k,1), nbjt(k,1) )
   e2t_bdy  (k,1) = e2t  ( nbit(k,1), nbjt(k,1) )
   gphit_bdy(k,1) = gphit( nbit(k,1), nbjt(k,1) )
@@ -284,6 +386,7 @@ do k=1,mxbt
 enddo
 
 do k=1,mxbu
+  write(*,*) '%% U ', k, nbiu(k,1), nbju(k,1)
   e1u_bdy  (k,1) = e1u  ( nbiu(k,1), nbju(k,1) )
   e2u_bdy  (k,1) = e2u  ( nbiu(k,1), nbju(k,1) )
   gphiu_bdy(k,1) = gphiu( nbiu(k,1), nbju(k,1) )
@@ -291,6 +394,7 @@ do k=1,mxbu
 enddo
 
 do k=1,mxbv
+  write(*,*) '%% V ', k, nbiv(k,1), nbjv(k,1)
   e1v_bdy  (k,1) = e1v  ( nbiv(k,1), nbjv(k,1) )
   e2v_bdy  (k,1) = e2v  ( nbiv(k,1), nbjv(k,1) )
   gphiv_bdy(k,1) = gphiv( nbiv(k,1), nbjv(k,1) )
@@ -351,7 +455,7 @@ status = NF90_PUT_ATT(fidM,gphit_ID,"units","degrees_north") ; call erreur(statu
 status = NF90_PUT_ATT(fidM,glamt_ID,"units","degrees_east")  ; call erreur(status,.TRUE.,"put_att_glamt_ID")
 
 status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"history","Created using build_coordinates_bdy.f90")
-status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"tools","https://github.com/nicojourdain/BUILD_CONFIG_NEMO")
+status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"tools","https://github.com/nicojourdain/BUILD_CONFIG_NEMO_2")
 call erreur(status,.TRUE.,"put_att_GLOBAL_ID")
 
 status = NF90_ENDDEF(fidM) ; call erreur(status,.TRUE.,"fin_definition") 

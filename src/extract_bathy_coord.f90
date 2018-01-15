@@ -38,12 +38,12 @@ INTEGER :: fidORCA12, fidORCA025, fidM, status, dimID_y, dimID_x, nav_lat_ID, na
 &          my_ORCA12, mx_ORCA12,  my_ORCA025, mx_ORCA025,  my_REG, mx_REG, imin_ORCA12, imax_ORCA12, jmin_ORCA12, jmax_ORCA12,            &
 &          ai, aj, bi, bj, iREG, jREG, jtmp, npts, kk, ki, kj, ni1, ni2, nj1, nj2, pi, pj, kiref, kjref, mx_tmp, my_tmp, e2f_ID, e2v_ID,  &
 &          e2u_ID, e2t_ID, e1f_ID, e1v_ID, e1u_ID, e1t_ID, gphif_ID, gphiv_ID, gphiu_ID, gphit_ID, glamf_ID, glamv_ID, glamu_ID, glamt_ID,&
-&          fidCOORDreg, fidCOORDpar 
+&          fidCOORDreg, fidCOORDpar, i0, j0 
 
 CHARACTER(LEN=150) :: aaa, file_bathy_out, file_coord_out
 
-REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:) :: nav_lat_ORCA12, nav_lon_ORCA12, isf_draft_ORCA12, Bathymetry_isf_ORCA12, Bathymetry_ORCA12,  &
-&                                          nav_lat_ORCA025, nav_lon_ORCA025, Bathymetry_ORCA025,                                        &
+REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:) :: nav_lat_ORCA12, nav_lon_ORCA12, isf_draft_ORCA12, Bathymetry_isf_ORCA12, Bathymetry_ORCA12,     &
+&                                          nav_lat_ORCA025, nav_lon_ORCA025, Bathymetry_ORCA025, Bathymetry_isf_ORCA025, isf_draft_ORCA025,&
 &                                          nav_lat_REG, nav_lon_REG, isf_draft_REG, Bathymetry_isf_REG, Bathymetry_REG
 
 REAL(KIND=8),ALLOCATABLE,DIMENSION(:,:) :: e2f, e2v, e2u, e2t, e1f, e1v, e1u, e1t, gphif, gphiv, gphiu, gphit, glamf, glamv, glamu, glamt, &
@@ -148,12 +148,34 @@ if ( ln_coarse_bdy ) then
     status = NF90_INQUIRE_DIMENSION(fidORCA025,dimID_y,len=my_ORCA025); call erreur(status,.TRUE.,"inq_dim_y_ORCA025")
     status = NF90_INQUIRE_DIMENSION(fidORCA025,dimID_x,len=mx_ORCA025); call erreur(status,.TRUE.,"inq_dim_x_ORCA025")
     
-    ALLOCATE(  Bathymetry_ORCA025 (mx_ORCA025,my_ORCA025)  ) 
-    ALLOCATE(  nav_lat_ORCA025    (mx_ORCA025,my_ORCA025)  ) 
-    ALLOCATE(  nav_lon_ORCA025    (mx_ORCA025,my_ORCA025)  ) 
+    ALLOCATE(  Bathymetry_ORCA025     (mx_ORCA025,my_ORCA025)  ) 
+    ALLOCATE(  nav_lat_ORCA025        (mx_ORCA025,my_ORCA025)  ) 
+    ALLOCATE(  nav_lon_ORCA025        (mx_ORCA025,my_ORCA025)  ) 
     
-    status = NF90_INQ_VARID(fidORCA025,"Bathymetry",Bathymetry_ID)
-    call erreur(status,.TRUE.,"inq_Bathymetry_ID_ORCA025")
+    status = NF90_INQ_VARID(fidORCA025,"Bathymetry",Bathymetry_ID) ; call erreur(status,.TRUE.,"inq_Bathymetry_ID_ORCA025")
+    status = NF90_GET_VAR(fidORCA025,Bathymetry_ID,Bathymetry_ORCA025); call erreur(status,.TRUE.,"getvar_Bathymetry_ORCA025")
+
+    if ( ln_isfcav ) then
+      ALLOCATE(  Bathymetry_isf_ORCA025 (mx_ORCA025,my_ORCA025)  )
+      ALLOCATE(  isf_draft_ORCA025      (mx_ORCA025,my_ORCA025)  )
+      status = NF90_INQ_VARID(fidORCA025,"Bathymetry_isf",Bathymetry_isf_ID)
+      if ( status .ne. 0 ) then
+        Bathymetry_isf_ORCA025(:,:) = Bathymetry_ORCA025(:,:)
+      else
+        write(*,*) 'Taking Bathymetry_isf from the coarse dataset used for boundaries'
+        status = NF90_GET_VAR(fidORCA025,Bathymetry_isf_ID,Bathymetry_isf_ORCA025)
+        call erreur(status,.TRUE.,"getvar_Bathymetry_isf_ORCA025")
+      endif
+      status = NF90_INQ_VARID(fidORCA025,"isf_draft",isf_draft_ID)
+      if ( status .ne. 0 ) then
+        isf_draft_ORCA025(:,:) = 0.0
+      else
+        write(*,*) 'Taking isf_draft from the coarse dataset used for boundaries'
+        status = NF90_GET_VAR(fidORCA025,isf_draft_ID,isf_draft_ORCA025)
+        call erreur(status,.TRUE.,"getvar_isf_draft_ORCA025")
+      endif          
+    endif
+
     status = NF90_INQ_VARID(fidORCA025,"nav_lat",nav_lat_ID)
     if ( status .ne. 0 ) status = NF90_INQ_VARID(fidORCA025,"lat",nav_lat_ID)
     if ( status .ne. 0 ) status = NF90_INQ_VARID(fidORCA025,"latitude",nav_lat_ID)
@@ -162,8 +184,6 @@ if ( ln_coarse_bdy ) then
     if ( status .ne. 0 ) status = NF90_INQ_VARID(fidORCA025,"lon",nav_lon_ID)
     if ( status .ne. 0 ) status = NF90_INQ_VARID(fidORCA025,"longitude",nav_lon_ID)
     call erreur(status,.TRUE.,"inq_nav_lon_ID_ORCA025")
-    
-    status = NF90_GET_VAR(fidORCA025,Bathymetry_ID,Bathymetry_ORCA025); call erreur(status,.TRUE.,"getvar_Bathymetry_ORCA025")
     status = NF90_GET_VAR(fidORCA025,nav_lat_ID,nav_lat_ORCA025);       call erreur(status,.TRUE.,"getvar_nav_lat_ORCA025")
     status = NF90_GET_VAR(fidORCA025,nav_lon_ID,nav_lon_ORCA025);       call erreur(status,.TRUE.,"getvar_nav_lon_ORCA025")
        
@@ -247,6 +267,10 @@ write(*,*) ' Note for later:'
 write(*,113) imin_ORCA12, imax_ORCA12, jmin_ORCA12, jmax_ORCA12
 113 FORMAT('To crop the global files, use:   ncks -F -d x,',i4,',',i4,' -d y,',i4,',',i4,' file_eORCA12.nc file_REG.nc')
 write(*,*) '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
+write(*,*) ' Do not forget to adapt NEMO s namelist with:'
+write(*,*) '    jpidta  =  ', mx_REG
+write(*,*) '    jpjdta  =  ', my_REG
+write(*,*) '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
 write(*,*) ' '
     
 !=================================================================================
@@ -280,41 +304,45 @@ if ( ln_coarse_bdy ) then
     do jREG=1,my_REG
       jtmp = NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj)
       if ( jtmp .gt. 0 ) then !! we do not try to change the bathy southward of ORCA025's grid
+        !-- Western BDY :
         do iREG=1,npts
           if ( ln_isfcav) then
-            isf_draft_REG     (iREG,jREG) = 0.
-            Bathymetry_isf_REG(iREG,jREG) = Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp )
+            isf_draft_REG     (iREG,jREG) = isf_draft_ORCA025      ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp )
+            Bathymetry_isf_REG(iREG,jREG) = Bathymetry_isf_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp )
           endif
           Bathymetry_REG    (iREG,jREG) = Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp )
         enddo
+        !--- Eastern BDY :
         do iREG=mx_REG-npts+1,mx_REG
           if ( ln_isfcav) then
-            isf_draft_REG     (iREG,jREG) = 0.
-            Bathymetry_isf_REG(iREG,jREG) = Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp )
+            isf_draft_REG     (iREG,jREG) = isf_draft_ORCA025      ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp )
+            Bathymetry_isf_REG(iREG,jREG) = Bathymetry_isf_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp )
           endif
           Bathymetry_REG    (iREG,jREG) = Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp )
         enddo
       endif
     enddo
+    !-- Southern BDY :
     do jREG=1,npts
       jtmp = NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj)
       if ( jtmp .gt. 0 ) then !! we do not try to change the bathy southward of ORCA025's grid
         do iREG=npts+1,mx_REG-npts
           if ( ln_isfcav) then
-            isf_draft_REG     (iREG,jREG) = 0.
-            Bathymetry_isf_REG(iREG,jREG) = Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp )
+            isf_draft_REG     (iREG,jREG) = isf_draft_ORCA025      ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp )
+            Bathymetry_isf_REG(iREG,jREG) = Bathymetry_isf_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp )
           endif
           Bathymetry_REG    (iREG,jREG) = Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp )
         enddo
       endif
     enddo
+    !--- Northern BDY :
     do jREG=my_REG-npts+1,my_REG
       jtmp = NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj)
       if ( jtmp .gt. 0 ) then !! we do not try to change the bathy southward of ORCA025's grid
         do iREG=npts+1,mx_REG-npts
           if ( ln_isfcav) then
-            isf_draft_REG     (iREG,jREG) = 0.
-            Bathymetry_isf_REG(iREG,jREG) = Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp )
+            isf_draft_REG     (iREG,jREG) = isf_draft_ORCA025      ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp )
+            Bathymetry_isf_REG(iREG,jREG) = Bathymetry_isf_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp )
           endif
           Bathymetry_REG    (iREG,jREG) = Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp )
         enddo
@@ -322,76 +350,106 @@ if ( ln_coarse_bdy ) then
     enddo
     
     write(*,*) 'Smooth transition...'
-    
+
     !=== smooth transition from ORCA025 to ORCA12 (over npts points again) :
     do jREG=npts+1,my_REG-npts
       jtmp = NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj)
+      !-- Western BDY :
       if ( jtmp .gt. 0 ) then !! we do not try to change the bathy southward of ORCA025's grid
         do iREG=npts+1,2*npts
           if ( ln_isfcav) then
-            if ( isf_draft_ORCA12(iREG+imin_ORCA12-1,jREG+jmin_ORCA12-1) .gt. 1.0 ) then
-              isf_draft_REG   (iREG,jREG) = (  (2*npts+1-iREG) * Bathymetry_ORCA025    ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
-              &                                    + (iREG-npts)     * isf_draft_ORCA12      ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
-            else
-              isf_draft_REG   (iREG,jREG) = 0.0
+            if (       isf_draft_ORCA12(iREG+imin_ORCA12-1,jREG+jmin_ORCA12-1) .gt. 1.0       &
+            &    .and. isf_draft_ORCA025(NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai),jtmp) .gt. 1.0 ) then
+              isf_draft_REG   (iREG,jREG) = (  (2*npts+1-iREG)   * isf_draft_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
+              &                                    + (iREG-npts) * isf_draft_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+            !else
+            !  isf_draft_REG   (iREG,jREG) = 0.0
             endif
-            Bathymetry_isf_REG(iREG,jREG) = (  (2*npts+1-iREG) * Bathymetry_ORCA025    ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
-            &                                      + (iREG-npts)     * Bathymetry_isf_ORCA12 ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+            if (       Bathymetry_isf_ORCA12(iREG+imin_ORCA12-1,jREG+jmin_ORCA12-1) .gt. 1.0       &
+            &    .and. Bathymetry_isf_ORCA025(NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai),jtmp) .gt. 1.0 ) then
+              Bathymetry_isf_REG   (iREG,jREG) = (  (2*npts+1-iREG)   * Bathymetry_isf_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
+              &                                    + (iREG-npts) * Bathymetry_isf_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+            !else
+            !  Bathymetry_isf_REG   (iREG,jREG) = 0.0
+            endif
           endif
-          Bathymetry_REG    (iREG,jREG) = (  (2*npts+1-iREG) * Bathymetry_ORCA025    ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
-          &                                      + (iREG-npts)     * Bathymetry_ORCA12     ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+          Bathymetry_REG    (iREG,jREG) = (  (2*npts+1-iREG)   * Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
+          &                                      + (iREG-npts) * Bathymetry_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
         enddo
+        !-- Eastern BDY
         do iREG=mx_REG-2*npts+1,mx_REG-npts
           if ( ln_isfcav) then
-            if ( isf_draft_ORCA12(iREG+imin_ORCA12-1,jREG+jmin_ORCA12-1) .gt. 1.0 ) then
-              isf_draft_REG   (iREG,jREG) = (  (mx_REG-npts+1-iREG) * Bathymetry_ORCA025    ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
-              &                                    + (iREG-mx_REG+2*npts) * isf_draft_ORCA12      ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
-            else
-              isf_draft_REG   (iREG,jREG) = 0.0
+            if (       isf_draft_ORCA12(iREG+imin_ORCA12-1,jREG+jmin_ORCA12-1) .gt. 1.0        &
+            &    .and. isf_draft_ORCA025(NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp) .gt. 1.0 ) then
+              isf_draft_REG   (iREG,jREG) = (   (iREG-mx_REG+2*npts) * isf_draft_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
+              &                               + (mx_REG-npts+1-iREG) * isf_draft_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+            !else
+            !  isf_draft_REG   (iREG,jREG) = 0.0
             endif
-            Bathymetry_isf_REG(iREG,jREG) = (  (mx_REG-npts+1-iREG) * Bathymetry_ORCA025    ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
-            &                                      + (iREG-mx_REG+2*npts) * Bathymetry_isf_ORCA12 ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+            if (       Bathymetry_isf_ORCA12(iREG+imin_ORCA12-1,jREG+jmin_ORCA12-1) .gt. 1.0        &
+            &    .and. Bathymetry_isf_ORCA025(NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp) .gt. 1.0 ) then
+              Bathymetry_isf_REG   (iREG,jREG) = (   (iREG-mx_REG+2*npts) * Bathymetry_isf_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
+              &                               + (mx_REG-npts+1-iREG) * Bathymetry_isf_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+            !else
+            !  Bathymetry_isf_REG   (iREG,jREG) = 0.0
+            endif
           endif
-          Bathymetry_REG    (iREG,jREG) = (  (mx_REG-npts+1-iREG) * Bathymetry_ORCA025    ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
-          &                                      + (iREG-mx_REG+2*npts) * Bathymetry_ORCA12     ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+          Bathymetry_REG    (iREG,jREG) = (   (iREG-mx_REG+2*npts) * Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
+          &                                 + (mx_REG-npts+1-iREG) * Bathymetry_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
         enddo
       endif
     enddo
+    !-- Southern BDY :
     do jREG=npts+1,2*npts
       jtmp = NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj)
       if ( jtmp .gt. 0 ) then !! we do not try to change the bathy southward of ORCA025's grid
         do iREG=2*npts+1,mx_REG-2*npts
           if ( ln_isfcav) then
-            if ( isf_draft_ORCA12(iREG+imin_ORCA12-1,jREG+jmin_ORCA12-1) .gt. 1.0 ) then
-              isf_draft_REG   (iREG,jREG) = (  (2*npts+1-jREG) * Bathymetry_ORCA025    ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
-              &                                    + (jREG-npts)     * isf_draft_ORCA12      ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
-            else
-              isf_draft_REG   (iREG,jREG) = 0.0
+            if (       isf_draft_ORCA12(iREG+imin_ORCA12-1,jREG+jmin_ORCA12-1) .gt. 1.0       &
+            &    .and. isf_draft_ORCA025(NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai),jtmp) .gt. 1.0 ) then
+              isf_draft_REG   (iREG,jREG) = (   (2*npts+1-jREG) * isf_draft_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
+              &                               +   (jREG-npts)   * isf_draft_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+            !else
+            !  isf_draft_REG   (iREG,jREG) = 0.0
             endif
-            Bathymetry_isf_REG(iREG,jREG) = (  (2*npts+1-jREG) * Bathymetry_ORCA025    ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
-            &                                      + (jREG-npts)     * Bathymetry_isf_ORCA12 ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+            if (       Bathymetry_isf_ORCA12(iREG+imin_ORCA12-1,jREG+jmin_ORCA12-1) .gt. 1.0       &
+            &    .and. Bathymetry_isf_ORCA025(NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai),jtmp) .gt. 1.0 ) then
+              Bathymetry_isf_REG   (iREG,jREG) = (   (2*npts+1-jREG) * Bathymetry_isf_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
+              &                                    +   (jREG-npts)   * Bathymetry_isf_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+            !else
+            !  Bathymetry_isf_REG   (iREG,jREG) = 0.0
+            endif
           endif
-          Bathymetry_REG    (iREG,jREG) = (  (2*npts+1-jREG) * Bathymetry_ORCA025    ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
-          &                                      + (jREG-npts)     * Bathymetry_ORCA12     ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+          Bathymetry_REG    (iREG,jREG) = (   (2*npts+1-jREG) * Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
+          &                                 + (jREG-npts)     * Bathymetry_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
         enddo
       endif
     enddo
+    !-- Northern BDY :
     do jREG=my_REG-2*npts+1,my_REG-npts
       jtmp = NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj)
       if ( jtmp .gt. 0 ) then !! we do not try to change the bathy southward of ORCA025's grid
         do iREG=2*npts+1,mx_REG-2*npts
           if ( ln_isfcav) then
-            if ( isf_draft_ORCA12(iREG+imin_ORCA12-1,jREG+jmin_ORCA12-1) .gt. 1.0 ) then
-              isf_draft_REG   (iREG,jREG) = (  (my_REG-npts+1-jREG) * Bathymetry_ORCA025    ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
-              &                                    + (jREG-my_REG+2*npts) * isf_draft_ORCA12      ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
-            else
-              isf_draft_REG   (iREG,jREG) = 0.0
+            if (       isf_draft_ORCA12(iREG+imin_ORCA12-1,jREG+jmin_ORCA12-1) .gt. 1.0       &
+            &    .and. isf_draft_ORCA025(NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai),jtmp) .gt. 1.0 ) then
+              isf_draft_REG   (iREG,jREG) = (   (jREG-my_REG+2*npts) * isf_draft_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
+              &                               + (my_REG-npts+1-jREG) * isf_draft_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+            !else
+            !  isf_draft_REG   (iREG,jREG) = 0.0
             endif
-            Bathymetry_isf_REG(iREG,jREG) = (  (my_REG-npts+1-jREG) * Bathymetry_ORCA025    ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
-            &                                      + (jREG-my_REG+2*npts) * Bathymetry_isf_ORCA12 ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+            if (       Bathymetry_isf_ORCA12(iREG+imin_ORCA12-1,jREG+jmin_ORCA12-1) .gt. 1.0       &
+            &    .and. Bathymetry_isf_ORCA025(NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai),jtmp) .gt. 1.0 ) then
+              Bathymetry_isf_REG   (iREG,jREG) = (   (jREG-my_REG+2*npts) * Bathymetry_isf_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
+              &                               + (my_REG-npts+1-jREG) * Bathymetry_isf_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+            !else
+            !  Bathymetry_isf_REG   (iREG,jREG) = 0.0
+            endif
+            Bathymetry_isf_REG(iREG,jREG) = (   (jREG-my_REG+2*npts) * Bathymetry_isf_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
+            &                                 + (my_REG-npts+1-jREG) * Bathymetry_isf_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
           endif
-          Bathymetry_REG    (iREG,jREG) = (  (my_REG-npts+1-jREG) * Bathymetry_ORCA025    ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
-          &                                      + (jREG-my_REG+2*npts) * Bathymetry_ORCA12     ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+          Bathymetry_REG    (iREG,jREG) = (   (jREG-my_REG+2*npts) * Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), jtmp ) &
+          &                                 + (my_REG-npts+1-jREG) * Bathymetry_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
         enddo
       endif
     enddo
@@ -403,69 +461,96 @@ endif
 !=================================================================================
 
 if ( TRIM(config) == 'WED12' ) then
-   
-    ! correction to avoid a closed cavity of 2x2x2 pts (identified after first mesh_mask creation)
-    isf_draft_REG     (241:242,667:668) = 0.0 
-    Bathymetry_isf_REG(241:242,667:668) = 0.0
+  
+    ! Note that you DO NOT have to change the following in you change the domain
+    ! size
+    ! through modifications of nn_imin_extract, nn_imax_extract, ... in the
+    ! namelist 
 
-    ! no isf along eastern boundary :
-    isf_draft_REG     (1095:1122,668:703) = 0.0
-    Bathymetry_isf_REG(1095:1122,668:703) = Bathymetry_REG(1095:1122,668:703)
-    
-    ! boxes to fill the Bellingshausen Sea :
-    imin = (/   1 , 192 , 213 , 237 , 254 , 275 , 287 , 299 /)
-    imax = (/ 191 , 212 , 236 , 253 , 274 , 286 , 298 , NINT(FLOAT(325+imin_ORCA12-1-bi)/ai)*ai+bi-imin_ORCA12+1-1 /) ! WARNING: last number must match with ORCA025 (i.e. next unmasked point neads to be on ORCA025) !!
-    jmin = (/ 494 , 807 , 835 , 862 , 876 , 894 , NINT(FLOAT(899+jmin_ORCA12-1-bj)/aj)*aj+bj-jmin_ORCA12+1+1 , NINT(FLOAT(903+jmin_ORCA12-1-bj)/aj)*aj+bj-jmin_ORCA12+1+1 /) ! WARNING: last two numbers must match with ORCA025 (i.e. next unmasked point neads to be on ORCA025) !!
+    ! To keep the boxes at the same position:
+    i0 = imin_ORCA12 - 2464
+    j0 = jmin_ORCA12 -  151
+
+    !! correction to avoid a closed cavity of 2x2x2 pts (identified after first
+    !! mesh_mask creation)
+    !isf_draft_REG     (i0+241:i0+242,j0+667:j0+668) = 0.0
+    !Bathymetry_isf_REG(i0+241:i0+242,j0+667:j0+668) = 0.0
+    !
+    !! no isf along eastern boundary (adapt manually to adjust more accurately) :
+    !isf_draft_REG     (i0+1095:mx_REG,j0+668:j0+703) = 0.0
+    !Bathymetry_isf_REG(i0+1095:mx_REG,j0+668:j0+703) = Bathymetry_REG(i0+1095:mx_REG,j0+668:j0+703)
+
+    ! boxes to fill the Bellingshausen Sea : filled over [imin:imax,jmin:my]
+    imin = (/   1+i0 , 192+i0 , 213+i0 , 237+i0 , 254+i0 , 275+i0 , 287+i0 , 299+i0 /)
+    imax = (/ 191+i0 , 212+i0 , 236+i0 , 253+i0 , 274+i0 , 286+i0 , 298+i0 , &
+    &           NINT(FLOAT(325+i0+imin_ORCA12-1-bi)/ai)*ai+bi-imin_ORCA12+1-1 /) ! WARNING: last number must match with ORCA025 (i.e. next unmasked point neads to be on ORCA025) !!
+    jmin = (/ 494+j0 , 807+j0 , 835+j0 , 862+j0 , 876+j0 , 894+j0 ,            &
+    &           NINT(FLOAT(899+j0+jmin_ORCA12-1-bj)/aj)*aj+bj-jmin_ORCA12+1+1 ,&
+    &           NINT(FLOAT(903+j0+jmin_ORCA12-1-bj)/aj)*aj+bj-jmin_ORCA12+1+1 /) ! WARNING: last two numbers must match with ORCA025 (i.e. next unmasked point neads to be on ORCA025) !!
+
+    do kk=1,size(imin)
+      imin(kk) = MIN( MAX( 1, imin(kk) ), mx_REG )
+      imax(kk) = MIN( MAX( 1, imax(kk) ), mx_REG )
+      jmin(kk) = MIN( MAX( 1, jmin(kk) ), my_REG )
+    enddo     
+ 
     write(*,*) 'Note for future bdy building:'
     write(*,*) '                    '
-    write(*,*) '  ii_bdy_west(1)  = ', NINT(FLOAT(325+imin_ORCA12-1-bi)/ai)*ai+bi-imin_ORCA12+1
-    write(*,*) '  j1_bdy_west(1)  = ', NINT(FLOAT(903+jmin_ORCA12-1-bj)/aj)*aj+bj-jmin_ORCA12+1
-    write(*,*) '  j2_bdy_west(1)  = ', my_REG-1
+    write(*,*) '  ii_bdy_west(1)  = ', imax(8)+1
+    write(*,*) '  j1_bdy_west(1)  = ', jmin(8)
+    write(*,*) '  j2_bdy_west(1)  = ', my_REG-1 ! given that jmax(8)=my_REG-1
     write(*,*) '                    '
-    write(*,*) '  i1_bdy_north(1) = ', 291 ! masked so no need to be too accurate here
-    write(*,*) '  i2_bdy_north(1) = ', NINT(FLOAT(325+imin_ORCA12-1-bi)/ai)*ai+bi-imin_ORCA12+1
-    write(*,*) '  jj_bdy_north(1) = ', NINT(FLOAT(899+jmin_ORCA12-1-bj)/aj)*aj+bj-jmin_ORCA12+1
+    write(*,*) '  i1_bdy_north(1) = ', imin(8)
+    write(*,*) '  i2_bdy_north(1) = ', imax(8)
+    write(*,*) '  jj_bdy_north(1) = ', jmin(8)-1
     write(*,*) '                    '
-    write(*,*) '  i1_bdy_north(2) = ', NINT(FLOAT(325+jmin_ORCA12-1-bj)/aj)*aj+bj-jmin_ORCA12+2
+    write(*,*) '  i1_bdy_north(2) = ', imax(8)+2
     write(*,*) '  i2_bdy_north(2) = ', mx_REG-2 ! -2 because east bdy already contains mx_REG-1
     write(*,*) '  jj_bdy_north(2) = ', my_REG-1
     write(*,*) '                    '
-    ! put ORCA025 along modified North-Western corner :
-    do jREG=jmin(8)-1,my_REG-npts
+
+    !----- put ORCA025 along modified North-Western corner :
+    !- bdy_west(1) :
+    do jREG=jmin(8),my_REG
       do iREG=imax(8)+1,imax(8)+npts
-        isf_draft_REG     (iREG,jREG) = 0.
-        Bathymetry_isf_REG(iREG,jREG) = Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) )
-        Bathymetry_REG    (iREG,jREG) = Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) )
+        isf_draft_REG     (iREG,jREG) = isf_draft_ORCA025      ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) )
+        Bathymetry_isf_REG(iREG,jREG) = Bathymetry_isf_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) )
+        Bathymetry_REG    (iREG,jREG) = Bathymetry_ORCA025     ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) )
       enddo
     enddo
-    !-
-    do jREG=jmin(7)-npts, jmin(8)-1
-      do iREG=imin(7),imax(8)+1 
-        isf_draft_REG     (iREG,jREG) = 0.
-        Bathymetry_isf_REG(iREG,jREG) = Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) )
-        Bathymetry_REG    (iREG,jREG) = Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) )
+    !- bdy_north(1) :
+    do jREG=jmin(8)-npts, jmin(8)-1
+      do iREG=imin(8),imax(8)
+        isf_draft_REG     (iREG,jREG) = isf_draft_ORCA025      ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) )
+        Bathymetry_isf_REG(iREG,jREG) = Bathymetry_isf_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) )
+        Bathymetry_REG    (iREG,jREG) = Bathymetry_ORCA025     ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) )
       enddo
     enddo
-    !- smooth transition :
-    do jREG=jmin(8)-1,my_REG-npts
+
+    !---- smooth transitions :
+    !- bdy_west(1) :
+    do jREG=jmin(8),my_REG
       do iREG=imax(8)+npts+1,imax(8)+2*npts
-        isf_draft_REG     (iREG,jREG) = 0.
-        Bathymetry_isf_REG(iREG,jREG) = (  (imax(8)+2*npts-iREG+1) * Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) ) &
-        &                                      + (iREG-imax(8)-npts)     * Bathymetry_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
-        Bathymetry_REG    (iREG,jREG) = (  (imax(8)+2*npts-iREG+1) * Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) ) &
-        &                                      + (iREG-imax(8)-npts)     * Bathymetry_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+        isf_draft_REG     (iREG,jREG) = (   (imax(8)+2*npts-iREG+1) * isf_draft_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) ) &
+        &                                 +     (iREG-imax(8)-npts) * isf_draft_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+        Bathymetry_isf_REG(iREG,jREG) = (   (imax(8)+2*npts-iREG+1) * Bathymetry_isf_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) ) &
+        &                                 +     (iREG-imax(8)-npts) * Bathymetry_isf_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
+        Bathymetry_REG    (iREG,jREG) = (   (imax(8)+2*npts-iREG+1) * Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) ) &
+        &                                 +     (iREG-imax(8)-npts) * Bathymetry_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)
       enddo
     enddo
-    !-
-    do jREG=jmin(7)-2*npts,jmin(7)-npts-1
-      do iREG=imin(7),imax(8)+1
-        isf_draft_REG     (iREG,jREG) = 0.
-        Bathymetry_isf_REG(iREG,jREG) = (  (jmin(7)-npts-jREG)     * Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) ) &
-        &                                      + (jREG-jmin(7)+2*npts+1) * Bathymetry_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)                     
-        Bathymetry_REG    (iREG,jREG) = (  (jmin(7)-npts-jREG)     * Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) ) &
-        &                                      + (jREG-jmin(7)+2*npts+1) * Bathymetry_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)                     
+    !- bdy_north(1) :
+    do jREG=jmin(8)-2*npts,jmin(8)-npts-1
+      do iREG=imin(8),imax(8)
+        isf_draft_REG     (iREG,jREG) = ( (jREG-jmin(8)+2*npts+1)    * isf_draft_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) ) &
+        &                                      + (jmin(8)-npts-jREG) * isf_draft_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)                     
+        Bathymetry_isf_REG(iREG,jREG) = ( (jREG-jmin(8)+2*npts+1)    * Bathymetry_isf_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) ) &
+        &                                      + (jmin(8)-npts-jREG) * Bathymetry_isf_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)                     
+        Bathymetry_REG    (iREG,jREG) = ( (jREG-jmin(8)+2*npts+1)    * Bathymetry_ORCA025 ( NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai), NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj) ) &
+        &                                      + (jmin(8)-npts-jREG) * Bathymetry_ORCA12  ( iREG+imin_ORCA12-1, jREG+jmin_ORCA12-1 ) ) / (npts+1)                     
       enddo
     enddo
+
     !- fill bellingshausen:
     do kk=1,8
       isf_draft_REG      (imin(kk):imax(kk),jmin(kk):my_REG) = 0.0

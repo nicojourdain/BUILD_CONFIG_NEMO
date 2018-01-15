@@ -56,13 +56,16 @@ EOF
 
 elif [ `hostname | cut -c 1-3` == "ada" ]; then
 
-echo "host is ada"
+echo "host is adapp"
 cat > tmptxp.sh << EOF
-# @ job_name = submit_${1}
-# @ output = submit_${1}.txt
-# @ error = $(output)
+# @ job_type = serial
+# @ requirements = (Feature == "prepost")
 # @ wall_clock_limit = ${walltime}
-### @ as_limit = ${mem}.0Gb
+# @ job_name = submit_${1}
+# @ output = \$(job_name).\$(jobid)
+# @ error = \$(job_name).\$(jobid)
+# @ wall_clock_limit = ${walltime}
+# @ as_limit = ${mem}.0gb
 # @ queue
 EOF
 

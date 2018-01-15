@@ -20,9 +20,10 @@ IMPLICIT NONE
 namelist /general/ config, config_dir
 namelist /bdy_data/ nn_yeari, nn_yearf, data_dir, data_prefix, nn_bdy_eosmatch, &
 &                   data_suffix_T, data_suffix_S, data_suffix_U, data_suffix_V, &
-&                   data_suffix_ssh, data_suffix_ice, file_data_mask, file_data_zgr, file_data_hgr
+&                   data_suffix_ssh, data_suffix_ice, file_data_mask,           &
+&                   file_data_zgr, file_data_hgr, sep1, sep2
 
-CHARACTER(LEN=50)                    :: config
+CHARACTER(LEN=50)                    :: config, sep1, sep2
 CHARACTER(LEN=150)                   :: config_dir, data_dir, data_prefix, data_suffix_T, data_suffix_S, &
 &                                       data_suffix_U, data_suffix_V, data_suffix_ssh, data_suffix_ice,  &
 &                                       file_data_mask, file_data_zgr, file_data_hgr
@@ -137,71 +138,36 @@ status = NF90_CLOSE(fidCOORD) ; call erreur(status,.TRUE.,"close coordinate file
 !=================================================================================
 
 !- accepted input format :
-191 FORMAT(a,'/',i4.4,'/',a,'_',i4.4,'_',i2.2,'_',i2.2,'_',a,'.nc')  ! <data_dir>/YYYY/<data_prefix>_YYYY_MM_DD_<data_suffix_V>.nc
-192 FORMAT(a,'/',i4.4,'/',a,'_',i4.4,'_',i2.2,'_',a,'.nc')           ! <data_dir>/YYYY/<data_prefix>_YYYY_MM_<data_suffix_V>.nc
-193 FORMAT(a,'/',i4.4,'/',a,'_',i4.4,'_',i2.2,'_',i2.2,'.nc')        ! <data_dir>/YYYY/<data_prefix>_YYYY_MM_DD.nc
-194 FORMAT(a,'/',i4.4,'/',a,'_',i4.4,'_',i2.2,'.nc')                 ! <data_dir>/YYYY/<data_prefix>_YYYY_MM.nc
-195 FORMAT(a,'/',a,'_',i4.4,'_',i2.2,'_',i2.2,'_',a,'.nc')           ! <data_dir>/<data_prefix>_YYYY_MM_DD_<data_suffix_V>.nc
-196 FORMAT(a,'/',a,'_',i4.4,'_',i2.2,'_',a,'.nc')                    ! <data_dir>/<data_prefix>_YYYY_MM_<data_suffix_V>.nc
-197 FORMAT(a,'/',a,'_',i4.4,'_',i2.2,'_',i2.2,'.nc')                 ! <data_dir>/<data_prefix>_YYYY_MM_DD.nc
-198 FORMAT(a,'/',a,'_',i4.4,'_',i2.2,'.nc')                          ! <data_dir>/<data_prefix>_YYYY_MM.nc
-291 FORMAT(a,'/',i4.4,'/',a,'_',i4.4,i2.2,i2.2,'_',a,'.nc')          ! <data_dir>/YYYY/<data_prefix>_YYYYMMDD_<data_suffix_V>.nc
-292 FORMAT(a,'/',i4.4,'/',a,'_',i4.4,i2.2,'_',a,'.nc')               ! <data_dir>/YYYY/<data_prefix>_YYYYMM_<data_suffix_V>.nc
-293 FORMAT(a,'/',i4.4,'/',a,'_',i4.4,i2.2,i2.2,'.nc')                ! <data_dir>/YYYY/<data_prefix>_YYYYMMDD.nc
-294 FORMAT(a,'/',i4.4,'/',a,'_',i4.4,i2.2,'.nc')                     ! <data_dir>/YYYY/<data_prefix>_YYYYMM.nc
-295 FORMAT(a,'/',a,'_',i4.4,i2.2,i2.2,'_',a,'.nc')                   ! <data_dir>/<data_prefix>_YYYYMMDD_<data_suffix_V>.nc
-296 FORMAT(a,'/',a,'_',i4.4,i2.2,'_',a,'.nc')                        ! <data_dir>/<data_prefix>_YYYYMM_<data_suffix_V>.nc
-297 FORMAT(a,'/',a,'_',i4.4,i2.2,i2.2,'.nc')                         ! <data_dir>/<data_prefix>_YYYYMMDD.nc
-298 FORMAT(a,'/',a,'_',i4.4,i2.2,'.nc')                              ! <data_dir>/<data_prefix>_YYYYMM.nc
+191 FORMAT(a,'/',i4.4,'/',a,i4.4,a,i2.2,a,i2.2,a,'.nc')  ! <data_dir>/YYYY/<data_prefix>YYYY<sep1>MM<sep2>DD<data_suffix>.nc  
+192 FORMAT(a,'/',i4.4,'/',a,i4.4,a,i2.2,a,'.nc')         ! <data_dir>/YYYY/<data_prefix>YYYY<sep1>MM<data_suffix>.nc  
+193 FORMAT(a,'/',a,i4.4,a,i2.2,a,i2.2,a,'.nc')           ! <data_dir>/<data_prefix>YYYY<sep1>MM<sep2>DD<data_suffix>.nc  
+194 FORMAT(a,'/',a,i4.4,a,i2.2,a,'.nc')                  ! <data_dir>/<data_prefix>YYYY<sep1>MM<data_suffix>.nc 
+
+ALLOCATE(list_fmt(4))
+list_fmt=(/191,192,193,194/)
 
 kyear=nn_yeari
 kmonth=1
 DO kday=1,31
 
-  ALLOCATE(list_fmt(16))
-  list_fmt=(/191,192,193,194,195,196,197,198,291,292,293,294,295,296,297,298/)
-
   do kfmt=1,size(list_fmt)
      nfmt=list_fmt(kfmt)
      SELECT CASE(nfmt)
         CASE(191)
-          write(file_in_gridV,191) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, kmonth, kday, TRIM(data_suffix_V)
+          write(file_in_gridV,191) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, TRIM(sep1), kmonth, TRIM(sep2), kday, TRIM(data_suffix_V)
         CASE(192)
-          write(file_in_gridV,192) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, kmonth, TRIM(data_suffix_V) 
+          write(file_in_gridV,192) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, TRIM(sep1), kmonth, TRIM(data_suffix_V) 
         CASE(193)
-          write(file_in_gridV,193) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, kmonth, kday
-        CASE(194) 
-          write(file_in_gridV,194) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, kmonth
-        CASE(195) 
-          write(file_in_gridV,195) TRIM(data_dir), TRIM(data_prefix), kyear, kmonth, kday, TRIM(data_suffix_V)
-        CASE(196) 
-          write(file_in_gridV,196) TRIM(data_dir), TRIM(data_prefix), kyear, kmonth, TRIM(data_suffix_V)
-        CASE(197) 
-          write(file_in_gridV,197) TRIM(data_dir), TRIM(data_prefix), kyear, kmonth, kday
-        CASE(198)
-          write(file_in_gridV,198) TRIM(data_dir), TRIM(data_prefix), kyear, kmonth
-        CASE(291)
-          write(file_in_gridV,291) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, kmonth, kday, TRIM(data_suffix_V)
-        CASE(292)
-          write(file_in_gridV,292) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, kmonth, TRIM(data_suffix_V) 
-        CASE(293)
-          write(file_in_gridV,293) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, kmonth, kday
-        CASE(294) 
-          write(file_in_gridV,294) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, kmonth
-        CASE(295) 
-          write(file_in_gridV,295) TRIM(data_dir), TRIM(data_prefix), kyear, kmonth, kday, TRIM(data_suffix_V)
-        CASE(296) 
-          write(file_in_gridV,296) TRIM(data_dir), TRIM(data_prefix), kyear, kmonth, TRIM(data_suffix_V)
-        CASE(297) 
-          write(file_in_gridV,297) TRIM(data_dir), TRIM(data_prefix), kyear, kmonth, kday
-        CASE(298)
-          write(file_in_gridV,298) TRIM(data_dir), TRIM(data_prefix), kyear, kmonth
+          write(file_in_gridV,193) TRIM(data_dir), TRIM(data_prefix), kyear, TRIM(sep1), kmonth, TRIM(sep2), kday, TRIM(data_suffix_V)
+        CASE(194)
+          write(file_in_gridV,194) TRIM(data_dir), TRIM(data_prefix), kyear, TRIM(sep1), kmonth, TRIM(data_suffix_V)
         CASE DEFAULT 
           write(*,*) 'wrong nfmt value >>>>>> stop !'
           stop
      END SELECT
+     write(*,*) 'Looking for existence of ', TRIM(file_in_gridV)
      inquire(file=file_in_gridV, exist=existfile)
-     if ( existfile ) exit
+     if ( existfile ) then; write(*,*) 'BINGO !'; exit ; endif
   enddo !-kfmt
 
   IF ( existfile ) THEN
@@ -310,37 +276,13 @@ DO kyear=nn_yeari,nn_yearf
 
       SELECT CASE(nfmt)
         CASE(191)
-          write(file_in_gridV,191) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, kmonth, kday, TRIM(data_suffix_V)
+          write(file_in_gridV,191) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, TRIM(sep1), kmonth, TRIM(sep2), kday, TRIM(data_suffix_V)
         CASE(192)
-          write(file_in_gridV,192) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, kmonth, TRIM(data_suffix_V) 
+          write(file_in_gridV,192) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, TRIM(sep1), kmonth, TRIM(data_suffix_V) 
         CASE(193)
-          write(file_in_gridV,193) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, kmonth, kday
-        CASE(194) 
-          write(file_in_gridV,194) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, kmonth
-        CASE(195) 
-          write(file_in_gridV,195) TRIM(data_dir), TRIM(data_prefix), kyear, kmonth, kday, TRIM(data_suffix_V)
-        CASE(196) 
-          write(file_in_gridV,196) TRIM(data_dir), TRIM(data_prefix), kyear, kmonth, TRIM(data_suffix_V)
-        CASE(197) 
-          write(file_in_gridV,197) TRIM(data_dir), TRIM(data_prefix), kyear, kmonth, kday
-        CASE(198)
-          write(file_in_gridV,198) TRIM(data_dir), TRIM(data_prefix), kyear, kmonth
-        CASE(291)
-          write(file_in_gridV,291) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, kmonth, kday, TRIM(data_suffix_V)
-        CASE(292)
-          write(file_in_gridV,292) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, kmonth, TRIM(data_suffix_V) 
-        CASE(293)
-          write(file_in_gridV,293) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, kmonth, kday
-        CASE(294) 
-          write(file_in_gridV,294) TRIM(data_dir), kyear, TRIM(data_prefix), kyear, kmonth
-        CASE(295) 
-          write(file_in_gridV,295) TRIM(data_dir), TRIM(data_prefix), kyear, kmonth, kday, TRIM(data_suffix_V)
-        CASE(296) 
-          write(file_in_gridV,296) TRIM(data_dir), TRIM(data_prefix), kyear, kmonth, TRIM(data_suffix_V)
-        CASE(297) 
-          write(file_in_gridV,297) TRIM(data_dir), TRIM(data_prefix), kyear, kmonth, kday
-        CASE(298)
-          write(file_in_gridV,298) TRIM(data_dir), TRIM(data_prefix), kyear, kmonth
+          write(file_in_gridV,193) TRIM(data_dir), TRIM(data_prefix), kyear, TRIM(sep1), kmonth, TRIM(sep2), kday, TRIM(data_suffix_V)
+        CASE(194)
+          write(file_in_gridV,194) TRIM(data_dir), TRIM(data_prefix), kyear, TRIM(sep1), kmonth, TRIM(data_suffix_V)
         CASE DEFAULT 
           write(*,*) 'wrong nfmt value >>>>>> stop !'
           stop
@@ -350,20 +292,18 @@ DO kyear=nn_yeari,nn_yearf
       IF ( existfile ) THEN
 
         ! output file format :
-        if     ( nfmt .eq. 191 .or. nfmt .eq. 193 .or. nfmt .eq. 195 .or. nfmt .eq. 197 &
-        &   .or. nfmt .eq. 291 .or. nfmt .eq. 293 .or. nfmt .eq. 295 .or. nfmt .eq. 297 ) then
+        if     ( nfmt .eq. 191 .or. nfmt .eq. 193 ) then
           401 FORMAT(a,'/BDY/bdyV_u2d_',i4.4,'_',i2.2,'_',i2.2,'_',a,'.nc')
           write(file_bdy_gridV2d,401) TRIM(config_dir), kyear, kmonth, kday, TRIM(config)
           501 FORMAT(a,'/BDY/bdyV_u3d_',i4.4,'_',i2.2,'_',i2.2,'_',a,'.nc')
           write(file_bdy_gridV3d,501) TRIM(config_dir), kyear, kmonth, kday, TRIM(config)
-        elseif ( nfmt .eq. 192 .or. nfmt .eq. 194 .or. nfmt .eq. 196 .or. nfmt .eq. 198 &
-        &   .or. nfmt .eq. 292 .or. nfmt .eq. 294 .or. nfmt .eq. 296 .or. nfmt .eq. 298 ) then
+        elseif ( nfmt .eq. 192 .or. nfmt .eq. 194 ) then
           402 FORMAT(a,'/BDY/bdyV_u2d_',i4.4,'_',i2.2,'_',a,'.nc')
           write(file_bdy_gridV2d,402) TRIM(config_dir), kyear, kmonth, TRIM(config)
           502 FORMAT(a,'/BDY/bdyV_u3d_',i4.4,'_',i2.2,'_',a,'.nc')
           write(file_bdy_gridV3d,502) TRIM(config_dir), kyear, kmonth, TRIM(config)
         else
-          write(*,*) 'Do not forget to include new file format in the format definition for file_bdy_gridV2d and file_bdy_gridV3d  >>>> stop'
+          write(*,*) 'Do not forget to include new file format in the format definition for file_bdy_gridV3d and file_bdy_gridV3d  >>>> stop'
           stop
         endif
 
@@ -379,7 +319,9 @@ DO kyear=nn_yeari,nn_yearf
         status = NF90_OPEN(TRIM(file_in_gridV),0,fidV)                ; call erreur(status,.TRUE.,"read ORCA12 TS") 
         
         status = NF90_INQ_VARID(fidV,"time_counter",time_ID)          ; call erreur(status,.TRUE.,"inq_time_ID")
-        status = NF90_INQ_VARID(fidV,"vomecrty",vomecrty_ID)          ; call erreur(status,.TRUE.,"inq_vomecrty_ID")
+        status = NF90_INQ_VARID(fidV,"vomecrty",vomecrty_ID)
+        if ( status .ne. 0 ) status = NF90_INQ_VARID(fidV,"voce",vomecrty_ID)
+        call erreur(status,.TRUE.,"None existing velocity, or unknown variable name")
         
         status = NF90_GET_VAR(fidV,time_ID,time)                      ; call erreur(status,.TRUE.,"getvar_time")
         status = NF90_GET_VAR(fidV,vomecrty_ID,vomecrty)              ; call erreur(status,.TRUE.,"getvar_vomecrty")
@@ -573,11 +515,9 @@ DO kyear=nn_yeari,nn_yearf
         DEALLOCATE( vomecrty_bdy, vobtcrty_bdy )
 
         !--
-        if     ( nfmt .eq. 191 .or. nfmt .eq. 193 .or. nfmt .eq. 195 .or. nfmt .eq. 197 &
-        &   .or. nfmt .eq. 291 .or. nfmt .eq. 293 .or. nfmt .eq. 295 .or. nfmt .eq. 297 ) then
+        if     ( nfmt .eq. 191 .or. nfmt .eq. 193 ) then
           write(*,*) 'Looking for next existing day in this month/year'
-        elseif ( nfmt .eq. 192 .or. nfmt .eq. 194 .or. nfmt .eq. 196 .or. nfmt .eq. 198 &
-        &   .or. nfmt .eq. 292 .or. nfmt .eq. 294 .or. nfmt .eq. 296 .or. nfmt .eq. 298 ) then
+        elseif ( nfmt .eq. 192 .or. nfmt .eq. 194 ) then
           write(*,*) 'Only one file per month => switching to next month'
           exit
         else

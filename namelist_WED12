@@ -7,24 +7,22 @@
 
 !-------------------------------------------------------------------------------------------------------------------------------
 &general
-config                = 'WED12'                                      ! configuration name, e.g. 'WED12', 'AMU12', etc
-config_dir            = '/scratch/shared/egige60/input/nemo_WED12'   ! Directory where all the new netcdf files will be stored
+config     = 'WED12'                                   ! config name, e.g. 'WED12', 'AMU12', etc
+config_dir = '/arch/home/rech/omr/romr015/input_WED12' ! dir where new netcdf files will be stored
 /
-!-------------------------------------------------------------------------------------------------------------------------------
+!--------------------------------------------------------------------------------------------
 &griddata
-file_in_bathy_extract = '/store/njourd/eORCA12/eORCA12_bathymetry_v2.4.nc'  ! Bathy on the grid in which to extract 
-                                                                            !       the regional domain (e.g. eORCA12)
-file_in_coord_extract = '/store/njourd/eORCA12/eORCA12_coordinates.nc'      ! Coordinates of the grid in which to extract
-                                                                            !       the regional domain (e.g. eORCA12)
+file_in_bathy_extract = '/arch/home/rech/omr/romr016/fornico/filestorecreateinputsfortw12sn/eORCA12_bathymetry_v2.4.nc'                 ! Bathy on the grid from which we extract the regional domain (e.g. eORCA12).
+file_in_coord_extract = '/arch/home/rech/omr/romr016/fornico/filestorecreateinputsfortw12sn/eORCA12_coordinates.nc'                     ! Coordinates of grid from which we extract regional domain (e.g. eORCA12).
 ln_coarse_bdy         = .true.                                              ! true if coarser simulation is applied along 
                                                                             !       the boundaries (then fill file_in_bathy_bdy)
-file_in_bathy_bdy     = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025_bathy.nc'  ! Optional (fill only if ln_coarse_bdy = true)
+file_in_bathy_bdy     = '/arch/home/rech/omr/romr016/fornico/filestorecreateinputsfortw12sn/eORCA025_bathymetry_isf_v2.3_WEDDELLSEA.nc' ! Bathy on the grid corresponding to the lateral boundary conditions (e.g. ORCA025).
 ln_isfcav             = .true.                                              ! true if the domain includes ice shelves.
 ! Choose the domain bounds on eORCA12 grid (WARNING: will be rounded to closest point of the coarse grid if ln_coarse_bdy = true) :
-nn_imin_extract       = 2466
-nn_imax_extract       = 3582
-nn_jmin_extract       =  154
-nn_jmax_extract       = 1120
+nn_imin_extract       = 2464
+nn_imax_extract       = 3417
+nn_jmin_extract       =  151
+nn_jmax_extract       = 1122
 ! Choose latitude and longitude near which you know that the two grids match
 rn_latref             = -44.0
 rn_lonref             =  10.0
@@ -33,10 +31,10 @@ rn_lonref             =  10.0
 &init
 nn_init               =    2   !  1 -> initial state is an extraction from the corresponding global/large-scale grid [ if ln_coarse_bdy = false ]
                                !  2 -> initial state from coarser resolution [ if ln_coarse_bdy = true ]     
-file_in_mask_extract  = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025.L75-MJM91_byte_mask.nc' ! Global/large-scale file, according to nn_init 
+file_in_mask_extract  = '/arch/home/rech/omr/romr016/fornico/filestorecreateinputsfortw12sn/mesh_mask_eORCA025-GO7_WEDDELLSEA.nc' ! Global/large-scale file, according to nn_init 
                                                                                          ! (contains tmask, nav_lat, nav_lon, nav_lev)
-file_in_T             = '/store/njourd/ORCA025/SOUTHG2V3_199301_gridT.nc'         ! Temperature (same grid as file_in_mask_extract)
-file_in_S             = '/store/njourd/ORCA025/SOUTHG2V3_199301_gridS.nc'         ! Salinity    (same grid as file_in_mask_extract)
+file_in_T             = '/arch/home/rech/omr/romr016/fornico/filestorecreateinputsfortw12sn/mi-an854o_1m_19900101_19900131_grid_T_WEDDELLSEA.nc'  ! Temperature (same grid as file_in_mask_extract)
+file_in_S             = '/arch/home/rech/omr/romr016/fornico/filestorecreateinputsfortw12sn/mi-an854o_1m_19900101_19900131_grid_T_WEDDELLSEA.nc'  ! Salinity    (same grid as file_in_mask_extract)
 nn_eosmatch           =   0    ! match between model equ. of state and istate equ. of state :
                                !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
                                !    = 1, same equation of state everywhere
@@ -57,25 +55,25 @@ nn_harm               =   18    ! number of tidal harmonics to prescribe along t
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &bdy_east
-ii_bdy_east(1)        = 1121    ! i-index for eastern boundary (ocean T-pt, standard = mx-1)
-j1_bdy_east(1)        =  661    ! lowest  j-index for eastern boundary (ocean T-pt, standard = 2)
-j2_bdy_east(1)        =  971    ! highest j-index for eastern boundary (ocean T-pt, standard = my-1)
+ii_bdy_east(1)        =  959    ! i-index for eastern boundary (ocean T-pt, standard = mx-1)
+j1_bdy_east(1)        =  600    ! lowest  j-index for eastern boundary (ocean T-pt, standard = 2)
+j2_bdy_east(1)        =  977    ! highest j-index for eastern boundary (ocean T-pt, standard = my-1)
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &bdy_west
-ii_bdy_west(1)        =  326    ! i-index for western boundary (ocean T-pt, standard = 2)
-j1_bdy_west(1)        =  902    ! lowest  j-index for western boundary (ocean T-pt, standard = 2)
-j2_bdy_west(1)        =  971    ! highest j-index for western boundary (ocean T-pt, standard = my-1)
+ii_bdy_west(1)        =  323    ! i-index for western boundary (ocean T-pt, standard = 2)
+j1_bdy_west(1)        =  900    ! lowest  j-index for western boundary (ocean T-pt, standard = 2)
+j2_bdy_west(1)        =  977    ! highest j-index for western boundary (ocean T-pt, standard = my-1)
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &bdy_north
-i1_bdy_north(1)       =  291    ! lowest  i-index for northern boundary (ocean T-pt, standard = 2, or = 3 if full bdy_west)
-i2_bdy_north(1)       =  326    ! highest i-index for northern boundary (ocean T-pt, standard = mx-1, or = mx-2 if full bdy_east)
+i1_bdy_north(1)       =  296    ! lowest  i-index for northern boundary (ocean T-pt, standard = 2, or = 3 if full bdy_west)
+i2_bdy_north(1)       =  322    ! highest i-index for northern boundary (ocean T-pt, standard = mx-1, or = mx-2 if full bdy_east)
 jj_bdy_north(1)       =  899    ! j-index for northern boundary (ocean T-pt, standard = my-1)
 !---
-i1_bdy_north(2)       =  327
-i2_bdy_north(2)       =  1120
-jj_bdy_north(2)       =  971
+i1_bdy_north(2)       =  324
+i2_bdy_north(2)       =  958 
+jj_bdy_north(2)       =  977
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &bdy_south
@@ -87,44 +85,36 @@ jj_bdy_south(1)       =    0    ! j-index for southern boundary (ocean T-pt, sta
 &bdy_data
 ! Dataset used as lateral boundary conditions (same grid as file_in_mask_extract and as file_in_bathy_bdy if it is used)
 ! The dataset is assumed to be in files of one of the following types (YYYY is 4-digit year, MM 2-digit month and DD 2-digit day):
-!         <data_dir>/YYYY/<data_prefix>_YYYY_MM_DD_<data_suffix>.nc
-!         <data_dir>/YYYY/<data_prefix>_YYYY_MM_<data_suffix>.nc
-!         <data_dir>/YYYY/<data_prefix>_YYYY_MM_DD.nc
-!         <data_dir>/YYYY/<data_prefix>_YYYY_MM.nc
-!         <data_dir>/<data_prefix>_YYYY_MM_DD_<data_suffix>.nc
-!         <data_dir>/<data_prefix>_YYYY_MM_<data_suffix>.nc
-!         <data_dir>/<data_prefix>_YYYY_MM_DD.nc
-!         <data_dir>/<data_prefix>_YYYY_MM.nc
-!         <data_dir>/YYYY/<data_prefix>_YYYYMMDD_<data_suffix>.nc
-!         <data_dir>/YYYY/<data_prefix>_YYYYMM_<data_suffix>.nc
-!         <data_dir>/YYYY/<data_prefix>_YYYYMMDD.nc
-!         <data_dir>/YYYY/<data_prefix>_YYYYMM.nc
-!         <data_dir>/<data_prefix>_YYYYMMDD_<data_suffix>.nc
-!         <data_dir>/<data_prefix>_YYYYMM_<data_suffix>.nc
-!         <data_dir>/<data_prefix>_YYYYMMDD.nc
-!         <data_dir>/<data_prefix>_YYYYMM.nc
-data_dir              = '/store/njourd/SOUTHG2V3' 
-data_prefix           = 'SOUTHG2V3'
-data_suffix_T         = 'gridT' ! suffix for temperature
-data_suffix_S         = 'gridS' ! suffix for salinity
-data_suffix_U         = 'gridU' ! suffix for zonal velocity
-data_suffix_V         = 'gridV' ! suffix for meridional velocity
-data_suffix_ssh       = 'grid2D'! suffix for SSH
+!
+!        <data_dir>/YYYY/<data_prefix>YYYY<sep1>MM<sep2>DD<data_suffix>.nc
+! or:    <data_dir>/YYYY/<data_prefix>YYYY<sep1>MM<data_suffix>.nc
+! or:    <data_dir>/<data_prefix>YYYY<sep1>MM<sep2>DD<data_suffix>.nc
+! or:    <data_dir>/<data_prefix>YYYY<sep1>MM<data_suffix>.nc
+!
+data_dir              = '/arch/home/rech/omr/romr016/fornico/filestorecreateinputsfortw12sn'
+data_prefix           = 'mi-an854o_1m_'
+data_suffix_T         = '01_19900131_grid_T_WEDDELLSEA' ! suffix for temperature
+data_suffix_S         = '01_19900131_grid_T_WEDDELLSEA' ! suffix for salinity
+data_suffix_U         = '01_19900131_grid_U_WEDDELLSEA' ! suffix for zonal velocity
+data_suffix_V         = '01_19900131_grid_V_WEDDELLSEA' ! suffix for meridional velocity
+data_suffix_ssh       = '01_19900131_grid_T_WEDDELLSEA'! suffix for SSH
 data_suffix_ice       = 'icemod'! suffix for sea ice variables
-file_data_mask        = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025.L75-MJM91_byte_mask.nc' ! Mask for global/large-scale file
+sep1                  = '' 
+sep2                  = 'xxx'
+file_data_mask        = '/arch/home/rech/omr/romr016/fornico/filestorecreateinputsfortw12sn/mesh_mask_eORCA025-GO7_WEDDELLSEA.nc' ! Mask for global/large-scale file
                                                                                          ! (contains umask, vmask)
-file_data_zgr         = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025.L75-MJM91_mesh_zgr.nc'  ! Vertical mesh sizes (for btp vel.)
+file_data_zgr         = '/arch/home/rech/omr/romr016/fornico/filestorecreateinputsfortw12sn/mesh_mask_eORCA025-GO7_WEDDELLSEA.nc'  ! Vertical mesh sizes (for btp vel.)
                                                                                          ! (contains e3u_0 or e3u and e3v_0 or e3v)
-file_data_hgr         = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025.L75-MJM91_mesh_hgr.nc'  ! Horizontal mesh sizes (for btp vel.)
-nn_yeari              =  1993   ! initial year for BDYs
-nn_yearf              =  2013   ! final year for BDYs
+file_data_hgr         = '/arch/home/rech/omr/romr016/fornico/filestorecreateinputsfortw12sn/mesh_mask_eORCA025-GO7_WEDDELLSEA.nc'  ! Horizontal mesh sizes (for btp vel.)
+nn_yeari              =  1990   ! initial year for BDYs
+nn_yearf              =  1990   ! final year for BDYs
 nn_bdy_eosmatch       =   0     ! match between model equ. of state and BDY equ. of state :
                                 !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
                                 !    = 1, same equation of state everywhere
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &bdy_tide
-tide_dir              = '/store/CT1/egi6035/njourd/DATA/FES2012'
+tide_dir              = '/workgpfs/rech/omr/romr015/FES2012'
 ! name of the nn_harm tidal constituents :
 harm( 1)              = 'M2  '  ! name of 1st tidal constituent (4 characters)
 harm( 2)              = 'S2  '  ! name of 2nd tidal constituent (4 characters)
