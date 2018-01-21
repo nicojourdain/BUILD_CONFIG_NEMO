@@ -38,7 +38,7 @@ INTEGER                              :: fidCOORD, status, dimID_yb, dimID_xbv,  
 &                                       dimID_time_counter, dimID_depthv, time_ID, dimID_time, fidS, &
 &                                       i, j, k, l, fidC, imin_ORCA12, jmin_ORCA12, iGLO, jGLO,      &
 &                                       depth_ID, ai, aj, bi, bj, kfmt, fidMSKIN, vmask_GLO_ID,      &
-&                                       e3v_GLO_ID, fidZGRIN, fidHGRIN
+&                                       e3v_GLO_ID, fidZGRIN, fidHGRIN, e3v_ID
 CHARACTER(LEN=100)                   :: calendar, time_units
 CHARACTER(LEN=150)                   :: file_coord, file_in_gridV, file_bdy_gridV2d,  &
 &                                       file_in_coord_REG, command_str, file_bdy_gridV3d
@@ -47,11 +47,11 @@ INTEGER*4,ALLOCATABLE,DIMENSION(:,:) :: nbiv, nbjv, nbrv
 INTEGER*1,ALLOCATABLE,DIMENSION(:,:,:) :: vmask_GLO
 REAL*4,ALLOCATABLE,DIMENSION(:,:)    :: e1v_GLO, glamv, gphiv, e1v, e2v, nav_lon, nav_lat, nav_lon_bdy, nav_lat_bdy
 REAL*4,ALLOCATABLE,DIMENSION(:,:,:)  :: e3v_GLO, vobtcrty, vobtcrty_bdy
-REAL*4,ALLOCATABLE,DIMENSION(:,:,:,:):: vomecrty, vomecrty_bdy
+REAL*4,ALLOCATABLE,DIMENSION(:,:,:,:):: vomecrty, vomecrty_bdy, e3v
 REAL*4,ALLOCATABLE,DIMENSION(:)      :: depthv
 REAL*8,ALLOCATABLE,DIMENSION(:)      :: time
 REAL*4                               :: thic
-LOGICAL                              :: existfile
+LOGICAL                              :: existfile, ln_vvl
 
 !=================================================================================
 !- 0- Initialiartions
@@ -317,18 +317,28 @@ DO kyear=nn_yeari,nn_yearf
         write(*,*) 'Reading velocities in ', TRIM(file_in_gridV)
         
         status = NF90_OPEN(TRIM(file_in_gridV),0,fidV)                ; call erreur(status,.TRUE.,"read ORCA12 TS") 
-        
+
         status = NF90_INQ_VARID(fidV,"time_counter",time_ID)          ; call erreur(status,.TRUE.,"inq_time_ID")
+        status = NF90_GET_VAR(fidV,time_ID,time)                      ; call erreur(status,.TRUE.,"getvar_time")
+        status = NF90_GET_ATT(fidV,time_ID,"calendar",calendar)       ; call erreur(status,.TRUE.,"getatt_origin")
+        status = NF90_GET_ATT(fidV,time_ID,"units",time_units)        ; call erreur(status,.TRUE.,"getatt_units")
+
         status = NF90_INQ_VARID(fidV,"vomecrty",vomecrty_ID)
         if ( status .ne. 0 ) status = NF90_INQ_VARID(fidV,"voce",vomecrty_ID)
         call erreur(status,.TRUE.,"None existing velocity, or unknown variable name")
-        
-        status = NF90_GET_VAR(fidV,time_ID,time)                      ; call erreur(status,.TRUE.,"getvar_time")
         status = NF90_GET_VAR(fidV,vomecrty_ID,vomecrty)              ; call erreur(status,.TRUE.,"getvar_vomecrty")
 
-        status = NF90_GET_ATT(fidV,time_ID,"calendar",calendar)       ; call erreur(status,.TRUE.,"getatt_origin")
-        status = NF90_GET_ATT(fidV,time_ID,"units",time_units)        ; call erreur(status,.TRUE.,"getatt_units")
-        
+        status = NF90_INQ_VARID(fidV,"e3v",e3v_ID)
+        if ( status .ne. 0 ) then
+          write(*,*) 'No e3v found in grid_V file => assuming not in vvl mode (i.e. constant e3v)'
+          ln_vvl = .false.
+        else
+          ALLOCATE( e3v(mlon,mlat,mdepthv,mtime)  )
+          write(*,*) 'Barotropic component calculated from time-dependent e3v'
+          status = NF90_GET_VAR(fidV,e3v_ID,e3v) ; call erreur(status,.TRUE.,"getvar_e3v")
+          ln_vvl = .true.
+        endif
+
         status = NF90_CLOSE(fidV)                                     ; call erreur(status,.TRUE.,"fin_lecture")     
 
         !---------------------------------------
@@ -349,29 +359,30 @@ DO kyear=nn_yeari,nn_yearf
         !---------------------------------------
         ! Calculate the barotropic component :
   
-        do i=1,mlon
-        do j=1,mlat
         do l=1,mtime
-          vobtcrty(i,j,l) = 0.0
-          thic=0.0
-          do k=1,mdepthv
-            if ( vmask_GLO(i,j,k) .eq. 1 ) then
-              vobtcrty(i,j,l) = vobtcrty(i,j,l) + vomecrty(i,j,k,l) * e3v_GLO(i,j,k) * vmask_GLO(i,j,k)
-              thic            = thic            +                     e3v_GLO(i,j,k) * vmask_GLO(i,j,k)
-            endif
-          enddo
-          if ( thic .gt. 1.e-3 ) then
-            ! barotropic component :
-            vobtcrty(i,j,l) = vobtcrty(i,j,l) / thic
-          else
+          if ( ln_vvl ) e3v_GLO(:,:,:) = e3v(:,:,:,l)
+          do i=1,mlon
+          do j=1,mlat
             vobtcrty(i,j,l) = 0.0
-          endif
-          ! baroclinic component :
-          do k=1,mdepthv
-            vomecrty(i,j,k,l) = ( vomecrty(i,j,k,l) - vobtcrty(i,j,l) ) * vmask_GLO(i,j,k)
+            thic=0.0
+            do k=1,mdepthv
+              if ( vmask_GLO(i,j,k) .eq. 1 ) then
+                vobtcrty(i,j,l) = vobtcrty(i,j,l) + vomecrty(i,j,k,l) * e3v_GLO(i,j,k) * vmask_GLO(i,j,k)
+                thic            = thic            +                     e3v_GLO(i,j,k) * vmask_GLO(i,j,k)
+              endif
+            enddo
+            if ( thic .gt. 1.e-3 ) then
+              ! barotropic component :
+              vobtcrty(i,j,l) = vobtcrty(i,j,l) / thic
+            else
+              vobtcrty(i,j,l) = 0.0
+            endif
+            ! baroclinic component :
+            do k=1,mdepthv
+              vomecrty(i,j,k,l) = ( vomecrty(i,j,k,l) - vobtcrty(i,j,l) ) * vmask_GLO(i,j,k)
+            enddo
           enddo
-        enddo
-        enddo
+          enddo
         enddo
 
         !---------------------------------------
@@ -511,7 +522,7 @@ DO kyear=nn_yeari,nn_yearf
         !--       
         
         !--       
-        DEALLOCATE( vomecrty, vobtcrty, time )
+        DEALLOCATE( vomecrty, vobtcrty, e3v, time )
         DEALLOCATE( vomecrty_bdy, vobtcrty_bdy )
 
         !--

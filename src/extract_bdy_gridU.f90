@@ -38,7 +38,7 @@ INTEGER                              :: fidCOORD, status, dimID_yb, dimID_xbt, d
 &                                       dimID_time_counter, dimID_depthu, time_ID, dimID_time, fidS, &
 &                                       i, j, k, l, fidC, imin_ORCA12, jmin_ORCA12, iGLO, jGLO,      &
 &                                       depth_ID, ai, aj, bi, bj, kfmt, fidMSKIN, umask_GLO_ID,      &
-&                                       e3u_GLO_ID, fidZGRIN, fidHGRIN
+&                                       e3u_GLO_ID, fidZGRIN, fidHGRIN, e3u_ID
 CHARACTER(LEN=100)                   :: calendar, time_units
 CHARACTER(LEN=150)                   :: file_coord, file_in_gridU, file_bdy_gridU2d,  &
 &                                       file_in_coord_REG, command_str, file_bdy_gridU3d
@@ -47,11 +47,11 @@ INTEGER*4,ALLOCATABLE,DIMENSION(:,:) :: nbiu, nbju, nbru
 INTEGER*1,ALLOCATABLE,DIMENSION(:,:,:) :: umask_GLO
 REAL*4,ALLOCATABLE,DIMENSION(:,:)    :: e2u_GLO, glamu, gphiu, e1u, e2u, nav_lon, nav_lat, nav_lon_bdy, nav_lat_bdy
 REAL*4,ALLOCATABLE,DIMENSION(:,:,:)  :: e3u_GLO, vobtcrtx, vobtcrtx_bdy
-REAL*4,ALLOCATABLE,DIMENSION(:,:,:,:):: vozocrtx, vozocrtx_bdy
+REAL*4,ALLOCATABLE,DIMENSION(:,:,:,:):: e3u, vozocrtx, vozocrtx_bdy
 REAL*4,ALLOCATABLE,DIMENSION(:)      :: depthu
 REAL*8,ALLOCATABLE,DIMENSION(:)      :: time
 REAL*4                               :: thic
-LOGICAL                              :: existfile
+LOGICAL                              :: existfile, ln_vvl
 
 !=================================================================================
 !- 0- Initialiartions
@@ -321,16 +321,26 @@ DO kyear=nn_yeari,nn_yearf
         status = NF90_OPEN(TRIM(file_in_gridU),0,fidU)                ; call erreur(status,.TRUE.,"read ORCA12 TS") 
         
         status = NF90_INQ_VARID(fidU,"time_counter",time_ID)          ; call erreur(status,.TRUE.,"inq_time_ID")
+        status = NF90_GET_VAR(fidU,time_ID,time)                      ; call erreur(status,.TRUE.,"getvar_time")
+        status = NF90_GET_ATT(fidU,time_ID,"calendar",calendar)       ; call erreur(status,.TRUE.,"getatt_origin")
+        status = NF90_GET_ATT(fidU,time_ID,"units",time_units)        ; call erreur(status,.TRUE.,"getatt_units")
+
         status = NF90_INQ_VARID(fidU,"vozocrtx",vozocrtx_ID)
         if ( status .ne. 0 ) status = NF90_INQ_VARID(fidU,"uoce",vozocrtx_ID)
         call erreur(status,.TRUE.,"None existing velocity, or unknown variable name")
-        
-        status = NF90_GET_VAR(fidU,time_ID,time)                      ; call erreur(status,.TRUE.,"getvar_time")
         status = NF90_GET_VAR(fidU,vozocrtx_ID,vozocrtx)              ; call erreur(status,.TRUE.,"getvar_vozocrtx")
 
-        status = NF90_GET_ATT(fidU,time_ID,"calendar",calendar)       ; call erreur(status,.TRUE.,"getatt_origin")
-        status = NF90_GET_ATT(fidU,time_ID,"units",time_units)        ; call erreur(status,.TRUE.,"getatt_units")
-        
+        status = NF90_INQ_VARID(fidU,"e3u",e3u_ID)
+        if ( status .ne. 0 ) then
+          write(*,*) 'No e3u found in grid_U file => assuming not in vvl mode (i.e. constant e3u)'
+          ln_vvl = .false.
+        else
+          ALLOCATE( e3u(mlon,mlat,mdepthu,mtime)  )
+          write(*,*) 'Barotropic component calculated from time-dependent e3u'
+          status = NF90_GET_VAR(fidU,e3u_ID,e3u) ; call erreur(status,.TRUE.,"getvar_e3u")
+          ln_vvl = .true.
+        endif
+ 
         status = NF90_CLOSE(fidU)                                     ; call erreur(status,.TRUE.,"fin_lecture")     
 
         !---------------------------------------
@@ -351,29 +361,30 @@ DO kyear=nn_yeari,nn_yearf
         !---------------------------------------
         ! Calculate the barotropic component :
   
-        do i=1,mlon
-        do j=1,mlat
         do l=1,mtime
-          vobtcrtx(i,j,l) = 0.0
-          thic=0.0
-          do k=1,mdepthu
-            if ( umask_GLO(i,j,k) .eq. 1 ) then
-              vobtcrtx(i,j,l) = vobtcrtx(i,j,l) + vozocrtx(i,j,k,l) * e3u_GLO(i,j,k) * umask_GLO(i,j,k)
-              thic            = thic            +                     e3u_GLO(i,j,k) * umask_GLO(i,j,k)
-            endif
-          enddo
-          if ( thic .gt. 1.e-3 ) then
-            ! barotropic component :
-            vobtcrtx(i,j,l) = vobtcrtx(i,j,l) / thic
-          else
+          if ( ln_vvl ) e3u_GLO(:,:,:) = e3u(:,:,:,l)
+          do i=1,mlon
+          do j=1,mlat
             vobtcrtx(i,j,l) = 0.0
-          endif
-          ! baroclinic component :
-          do k=1,mdepthu
-            vozocrtx(i,j,k,l) = ( vozocrtx(i,j,k,l) - vobtcrtx(i,j,l) ) * umask_GLO(i,j,k)
+            thic=0.0
+            do k=1,mdepthu
+              if ( umask_GLO(i,j,k) .eq. 1 ) then
+                vobtcrtx(i,j,l) = vobtcrtx(i,j,l) + vozocrtx(i,j,k,l) * e3u_GLO(i,j,k) * umask_GLO(i,j,k)
+                thic            = thic            +                     e3u_GLO(i,j,k) * umask_GLO(i,j,k)
+              endif
+            enddo
+            if ( thic .gt. 1.e-3 ) then
+              ! barotropic component :
+              vobtcrtx(i,j,l) = vobtcrtx(i,j,l) / thic
+            else
+              vobtcrtx(i,j,l) = 0.0
+            endif
+            ! baroclinic component :
+            do k=1,mdepthu
+              vozocrtx(i,j,k,l) = ( vozocrtx(i,j,k,l) - vobtcrtx(i,j,l) ) * umask_GLO(i,j,k)
+            enddo
           enddo
-        enddo
-        enddo
+          enddo
         enddo
 
         !---------------------------------------
@@ -514,7 +525,7 @@ DO kyear=nn_yeari,nn_yearf
         !--       
         
         !--       
-        DEALLOCATE( vozocrtx, vobtcrtx, time )
+        DEALLOCATE( vozocrtx, vobtcrtx, e3u, time )
         DEALLOCATE( vozocrtx_bdy, vobtcrtx_bdy )
 
         !--
