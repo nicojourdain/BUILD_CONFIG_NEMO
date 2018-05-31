@@ -2,7 +2,7 @@ program modif
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! N. Jourdain, LGGE-CNRS, March 2015
 !
-! Used to build netcdf coordinate file for BDY
+! Used to build netcdf gridU file for BDY
 !
 ! 0- Initialiartions
 ! 1- Read information on grids

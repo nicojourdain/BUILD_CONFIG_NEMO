@@ -2,7 +2,7 @@ program modif
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! N. Jourdain, LGGE-CNRS, March 2015
 !
-! Used to build netcdf coordinate file for BDY
+! Used to build netcdf tide file for BDY
 !
 ! NB: in it current forn, only works if lon/lat grid (no rotated grid as near
 ! the north pole !!)
