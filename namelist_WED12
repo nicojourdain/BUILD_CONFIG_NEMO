@@ -168,9 +168,24 @@ file_sss_mask        = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025.L75-MJM91_byte_m
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &runoff
+! Dataset used as lateral boundary conditions (same grid as file_in_mask_extract and as file_in_bathy_bdy if it is used)
+! The sss dataset is assumed to be in files of one of the following types (YYYY is 4-digit year, MM 2-digit month and DD 2-digit day):
+!
+!        <rrr_dir>/YYYY/<rrr_prefix>YYYY<rrr_sep1>MM<rrr_sep2>DD<rrr_suffix>.nc
+! or:    <rrr_dir>/YYYY/<rrr_prefix>YYYY<rrr_sep1>MM<rrr_suffix>.nc
+! or:    <rrr_dir>/<rrr_prefix>YYYY<rrr_sep1>MM<rrr_sep2>DD<rrr_suffix>.nc
+! or:    <rrr_dir>/<rrr_prefix>YYYY<rrr_sep1>MM<rrr_suffix>.nc
+! or:    <rrr_dir>/<rrr_prefix>.nc        [ for climatology ]
+!
+rrr_dir              = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/links'
+rrr_prefix           = 'ORCA025.L75-GNJ002_5d_'
+rrr_sep1             = ''
+rrr_sep2             = ''
+rrr_suffix           = '_icb'
+nn_rrr_yeari         = 1993    ! First year to proceed
+nn_rrr_yearf         = 2013    ! Last year to proceed
 nn_band              = 50   ! Thickness of the band along the coast where we don't do SSS restoring (in nb of grid pts)
-file_mask_runoff     = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025_mask_iceberg.nc'      ! mask for global/large-scale file
-file_runoff_in       = '/store/njourd/ORCA025/SOUTHG2V3_ORCA025_climato_Icebergs.nc'  ! runoff for global/large-scale file
+file_mask_runoff     = '/scratch/shared/egige60/input/nemo_ORCA025.L75/mask_ORCA025.L75_GNJ001.nc'    ! mask for global/large-scale file
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &chloro
