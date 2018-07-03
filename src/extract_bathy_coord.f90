@@ -124,10 +124,22 @@ status = NF90_GET_VAR(fidORCA12,nav_lon_ID,nav_lon_ORCA12); call erreur(status,.
 status = NF90_GET_VAR(fidORCA12,Bathymetry_ID,Bathymetry_ORCA12); call erreur(status,.TRUE.,"getvar_Bathymetry_ORCA12")
 
 if ( ln_isfcav ) then
-  status = NF90_INQ_VARID(fidORCA12,"isf_draft",isf_draft_ID);              call erreur(status,.TRUE.,"inq_isf_draft_ID_ORCA12")
-  status = NF90_INQ_VARID(fidORCA12,"Bathymetry_isf",Bathymetry_isf_ID);    call erreur(status,.TRUE.,"inq_Bathymetry_isf_ID_ORCA12")
-  status = NF90_GET_VAR(fidORCA12,isf_draft_ID,isf_draft_ORCA12);           call erreur(status,.TRUE.,"getvar_isf_draft_ORCA12")
-  status = NF90_GET_VAR(fidORCA12,Bathymetry_isf_ID,Bathymetry_isf_ORCA12); call erreur(status,.TRUE.,"getvar_Bathymetry_isf_ORCA12")
+  status = NF90_INQ_VARID(fidORCA12,"isf_draft",isf_draft_ID)
+  if ( status .eq. 0 ) then
+    status = NF90_GET_VAR(fidORCA12,isf_draft_ID,isf_draft_ORCA12)
+    call erreur(status,.TRUE.,"getvar_isf_draft_ORCA12")
+  else
+    write(*,*) 'WARNING : no isf_draft in global bathymetry file !! isf_draft will be set to zero !!!!!!!!!'
+    isf_draft_ORCA12(:,:) = 0.e0
+  endif
+  status = NF90_INQ_VARID(fidORCA12,"Bathymetry_isf",Bathymetry_isf_ID)
+  if ( status .eq. 0 ) then
+    status = NF90_GET_VAR(fidORCA12,Bathymetry_isf_ID,Bathymetry_isf_ORCA12)
+    call erreur(status,.TRUE.,"getvar_Bathymetry_isf_ORCA12")
+  else
+    write(*,*) 'WARNING : no Bathymetry_isf in global bathymetry file !! Bathymetry_isf will be set to standard Bathymetry !!!!!!!!!'
+    Bathymetry_isf_ORCA12(:,:) = Bathymetry_ORCA12(:,:)
+  endif
 endif
 
 status = NF90_CLOSE(fidORCA12); call erreur(status,.TRUE.,"close_grid_to_extract")     

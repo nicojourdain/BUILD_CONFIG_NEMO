@@ -114,8 +114,23 @@ Last updates:
 ## 3-- Build the bathymetry (and ice shelf draft if needed) and coordinates files for the regional domain.
 
         ./submit.sh extract_bathy_coord 01  ## -> should create the bathy and coordinate files,
-                                            ##    e.g. bathy_meter_WED12.nc and coordinates_WED12.nc
+                                            ##    bathy_meter_${CONFIG}.nc and coordinates_${CONFIG}.nc
                                             ##    (stored in directory defined as config_dir in the namelist)
+
+        If your are happy with the newly created bathymetry, go directly to the next step.
+
+        If you want to replace the bathymetry (and maybe ice draft) with an interpolation from a dataset,
+        fill the &bathy_special section of the namelist, then remove the previous bathymetry file, e.g. :
+      
+        rm -f $WORKDIR/input/nemo_${CONFIG}/bathy_meter_${CONFIG}.nc
+
+        Then: 
+
+        a) if the dataset is on a lon/lat grid :
+        ./submit.sh extract_bathy_special_lonlat 03 30
+
+        b) if the dataset is on a stereographic grid : 
+        ./submit.sh extract_bathy_special_stereo 03 30
 
 #########################################################################################################
 #########################################################################################################
@@ -124,8 +139,11 @@ Last updates:
         cd xxxxx ## TO BE IMPROVED
         ## NB: set jpni=jpnj=jpnij=0 in the &nammpp section of NEMO's namelist.
         ##     and use the same &namdom parameters as in the simulation used as BDYs.
+
+        ## DON'T FORGET TO SET jpidta and jpjdta equal to the dimensions in the bathymetry file 
+        
         qsub run_nemo.sh    ## this will create mesh_mask_${CONFIG}.nc before crashing
-        ./rebuild_mesh_mask.sh 0
+
         mv mesh_mask.nc $WORKDIR/input/nemo_${CONFIG}/mesh_mask_${CONFIG}.nc ## directory defined as config_dir
 
 #########################################################################################################
@@ -143,11 +161,11 @@ Last updates:
 	./submit.sh build_coordinates_bdy 01  ## -> creates the coordinate file for lateral boundaries
                                               ##    e.g. coordinates_bdy_WED12.nc
 
-        ./submit.sh extract_bdy_gridT 01 15   ## -> creates T,S bdy files and store them in a BDY folder
+        ./submit.sh extract_bdy_gridT 03 15   ## -> creates T,S bdy files and store them in a BDY folder
                                               ##    itself located in directory defined as config_dir
 
-        ./submit.sh extract_bdy_gridU 01 15   ## -> creates U   bdy files and store them in a BDY folder
-        ./submit.sh extract_bdy_gridV 01 15   ## -> creates V   bdy files and store them in a BDY folder
+        ./submit.sh extract_bdy_gridU 04 15   ## -> creates U   bdy files and store them in a BDY folder
+        ./submit.sh extract_bdy_gridV 04 15   ## -> creates V   bdy files and store them in a BDY folder
         ./submit.sh extract_bdy_icemod 01     ## -> creates ice bdy files and store them in a BDY folder
         ./submit.sh extract_bdy_ssh 01        ## -> creates SSH bdy files and store them in a BDY folder
 
@@ -164,8 +182,9 @@ Last updates:
         ./concatenate_yearly_SSS.sh              ## Edit this file first.
                                                  ## -> concatenate the bdy files into yearly files
 
-	./submit.sh extract_runoff_icebergs 01   ## -> creates iceberg runoff file
-                                                 ##    (stored in config_dir defined in the namelist)
+	./submit.sh extract_runoff 03            ## -> creates runoff files and store them in a RNF folder
+        ./concatenate_yearly_runoff.sh           ## Edit this file first.
+                                                 ## -> concatenate the bdy files into yearly files
 
         ./submit.sh extract_chloro 01            ## -> creates chlorophyll file
                                                  ##    (stored in config_dir defined in the namelist)

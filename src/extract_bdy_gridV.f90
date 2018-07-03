@@ -522,8 +522,9 @@ DO kyear=nn_yeari,nn_yearf
         !--       
         
         !--       
-        DEALLOCATE( vomecrty, vobtcrty, e3v, time )
+        DEALLOCATE( vomecrty, vobtcrty, time )
         DEALLOCATE( vomecrty_bdy, vobtcrty_bdy )
+        IF (ln_vvl) DEALLOCATE(e3v)
 
         !--
         if     ( nfmt .eq. 191 .or. nfmt .eq. 193 ) then

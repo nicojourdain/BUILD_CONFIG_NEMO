@@ -27,18 +27,18 @@ IMPLICIT NONE
 !-- namelist parameters :
 namelist /general/ config, config_dir
 namelist /sss_resto/ nn_sss_yeari, nn_sss_yearf, sss_dir, sss_prefix, nn_sss_eosmatch, &
-&                   sss_suffix, file_sss_mask
-CHARACTER(LEN=50)                    :: config
+&                    sss_suffix, file_sss_mask, sss_sep1, sss_sep2
+CHARACTER(LEN=50)                    :: config, sss_sep1, sss_sep2
 CHARACTER(LEN=150)                   :: config_dir, sss_dir, sss_prefix, sss_suffix, file_sss_mask
 INTEGER                              :: nn_sss_yeari, nn_sss_yearf, nn_sss_eosmatch
 
-INTEGER                              :: status, mtime, dimID_x, dimID_y, mlon, mlat, kday, kmonth, kyear,   &
+INTEGER                              :: status, mtime, dimID_x, dimID_y, mx_GLO, my_GLO, kday, kmonth, kyear,   &
 &                                       vosaline_ID, time_counter_ID, nav_lon_ID, nav_lat_ID, fidSSS, mz,   &
 &                                       dimID_time_counter, time_ID, dimID_time, fidS, ai, aj, bi, bj, kfmt,&
 &                                       i, j, k, l, fidC, imin_ORCA12, jmin_ORCA12, iGLO, jGLO, dimID_z,    &
 &                                       nfmt, lon_ID, lat_ID, iREG, jREG, tmask_GLO_ID, ntest, ntest2,      &
 &                                       fidMSKREG, mx_REG, my_REG, mz_REG, fidMSKIN, tmask_REG_ID, iii, jjj,&
-&                                       kiter, rs, dij, im1, ip1, jm1, jp1, fidM
+&                                       kiter, rs, dij, im1, ip1, jm1, jp1, fidM, mz_GLO, nntrp
 CHARACTER(LEN=100)                           :: calendar, time_units
 CHARACTER(LEN=150)                           :: file_coord, file_in_SSS, file_REG_SSS, file_in_mask_REG, &
 &                                               file_in_coord_REG, file_in_gridS, command_str
@@ -46,10 +46,10 @@ INTEGER(KIND=4),ALLOCATABLE,DIMENSION(:)     :: list_fmt
 INTEGER(KIND=1),ALLOCATABLE,DIMENSION(:,:)   :: tmask_GLO, tmask_REG, missing, tmp_missing
 INTEGER(KIND=1),ALLOCATABLE,DIMENSION(:,:,:) :: tmask
 REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:)      :: nav_lon, nav_lat, nav_lon_REG, nav_lat_REG
-REAL(KIND=8),ALLOCATABLE,DIMENSION(:,:,:)    :: vosaline, vosaline_REG, tmp_vosaline_REG
+REAL(KIND=8),ALLOCATABLE,DIMENSION(:,:,:)    :: vosaline_GLO, vosaline_REG, tmp_vosaline_REG
 REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:,:,:)  :: vosaline_3d
 REAL(KIND=8),ALLOCATABLE,DIMENSION(:)        :: time
-LOGICAL                                      :: existfile, ln_2d, iout
+LOGICAL                                      :: existfile, ln_2d, iout, ll_climato
 
 !=================================================================================
 !- 0- Initialiartions
@@ -123,71 +123,42 @@ status = NF90_CLOSE(fidMSKREG); call erreur(status,.TRUE.,"end read fidMSKREG")
 !=================================================================================
 
 !- accepted input format :
-191 FORMAT(a,'/',i4.4,'/',a,'_',i4.4,'_',i2.2,'_',i2.2,'_',a,'.nc')  ! <sss_dir>/YYYY/<sss_prefix>_YYYY_MM_DD_<sss_suffix>.nc
-192 FORMAT(a,'/',i4.4,'/',a,'_',i4.4,'_',i2.2,'_',a,'.nc')           ! <sss_dir>/YYYY/<sss_prefix>_YYYY_MM_<sss_suffix>.nc
-193 FORMAT(a,'/',i4.4,'/',a,'_',i4.4,'_',i2.2,'_',i2.2,'.nc')        ! <sss_dir>/YYYY/<sss_prefix>_YYYY_MM_DD.nc
-194 FORMAT(a,'/',i4.4,'/',a,'_',i4.4,'_',i2.2,'.nc')                 ! <sss_dir>/YYYY/<sss_prefix>_YYYY_MM.nc
-195 FORMAT(a,'/',a,'_',i4.4,'_',i2.2,'_',i2.2,'_',a,'.nc')           ! <sss_dir>/<sss_prefix>_YYYY_MM_DD_<sss_suffix>.nc
-196 FORMAT(a,'/',a,'_',i4.4,'_',i2.2,'_',a,'.nc')                    ! <sss_dir>/<sss_prefix>_YYYY_MM_<sss_suffix>.nc
-197 FORMAT(a,'/',a,'_',i4.4,'_',i2.2,'_',i2.2,'.nc')                 ! <sss_dir>/<sss_prefix>_YYYY_MM_DD.nc
-198 FORMAT(a,'/',a,'_',i4.4,'_',i2.2,'.nc')                          ! <sss_dir>/<sss_prefix>_YYYY_MM.nc
-291 FORMAT(a,'/',i4.4,'/',a,'_',i4.4,i2.2,i2.2,'_',a,'.nc')          ! <sss_dir>/YYYY/<sss_prefix>_YYYYMMDD_<sss_suffix>.nc
-292 FORMAT(a,'/',i4.4,'/',a,'_',i4.4,i2.2,'_',a,'.nc')               ! <sss_dir>/YYYY/<sss_prefix>_YYYYMM_<sss_suffix>.nc
-293 FORMAT(a,'/',i4.4,'/',a,'_',i4.4,i2.2,i2.2,'.nc')                ! <sss_dir>/YYYY/<sss_prefix>_YYYYMMDD.nc
-294 FORMAT(a,'/',i4.4,'/',a,'_',i4.4,i2.2,'.nc')                     ! <sss_dir>/YYYY/<sss_prefix>_YYYYMM.nc
-295 FORMAT(a,'/',a,'_',i4.4,i2.2,i2.2,'_',a,'.nc')                   ! <sss_dir>/<sss_prefix>_YYYYMMDD_<sss_suffix>.nc
-296 FORMAT(a,'/',a,'_',i4.4,i2.2,'_',a,'.nc')                        ! <sss_dir>/<sss_prefix>_YYYYMM_<sss_suffix>.nc
-297 FORMAT(a,'/',a,'_',i4.4,i2.2,i2.2,'.nc')                         ! <sss_dir>/<sss_prefix>_YYYYMMDD.nc
-298 FORMAT(a,'/',a,'_',i4.4,i2.2,'.nc')                              ! <sss_dir>/<sss_prefix>_YYYYMM.nc
+191 FORMAT(a,'/',i4.4,'/',a,i4.4,a,i2.2,a,i2.2,a,'.nc')  ! <sss_dir>/YYYY/<sss_prefix>YYYY<sss_sep1>MM<sss_sep2>DD<sss_suffix>.nc  
+192 FORMAT(a,'/',i4.4,'/',a,i4.4,a,i2.2,a,'.nc')         ! <sss_dir>/YYYY/<sss_prefix>YYYY<sss_sep1>MM<sss_suffix>.nc  
+193 FORMAT(a,'/',a,i4.4,a,i2.2,a,i2.2,a,'.nc')           ! <sss_dir>/<sss_prefix>YYYY<sss_sep1>MM<sss_sep2>DD<sss_suffix>.nc  
+194 FORMAT(a,'/',a,i4.4,a,i2.2,a,'.nc')                  ! <sss_dir>/<sss_prefix>YYYY<sss_sep1>MM<sss_suffix>.nc 
+195 FORMAT(a,'/',a,'.nc')                                ! <sss_dir>/<sss_prefix>.nc
+
+ALLOCATE(list_fmt(5))
+list_fmt=(/191,192,193,194,195/)
+
+ll_climato = .false.
 
 kyear=nn_sss_yeari
 kmonth=1
 DO kday=1,31
 
-  ALLOCATE(list_fmt(16))
-  list_fmt=(/191,192,193,194,195,196,197,198,291,292,293,294,295,296,297,298/)
-
   do kfmt=1,size(list_fmt)
      nfmt=list_fmt(kfmt)
      SELECT CASE(nfmt)
         CASE(191)
-          write(file_in_SSS,191) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, kmonth, kday, TRIM(sss_suffix)
+          write(file_in_SSS,191) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, TRIM(sss_sep1), kmonth, TRIM(sss_sep2), kday, TRIM(sss_suffix)
         CASE(192)
-          write(file_in_SSS,192) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, kmonth, TRIM(sss_suffix) 
+          write(file_in_SSS,192) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, TRIM(sss_sep1), kmonth, TRIM(sss_suffix) 
         CASE(193)
-          write(file_in_SSS,193) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, kmonth, kday
-        CASE(194) 
-          write(file_in_SSS,194) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, kmonth
-        CASE(195) 
-          write(file_in_SSS,195) TRIM(sss_dir), TRIM(sss_prefix), kyear, kmonth, kday, TRIM(sss_suffix)
-        CASE(196) 
-          write(file_in_SSS,196) TRIM(sss_dir), TRIM(sss_prefix), kyear, kmonth, TRIM(sss_suffix)
-        CASE(197) 
-          write(file_in_SSS,197) TRIM(sss_dir), TRIM(sss_prefix), kyear, kmonth, kday
-        CASE(198)
-          write(file_in_SSS,198) TRIM(sss_dir), TRIM(sss_prefix), kyear, kmonth
-        CASE(291)
-          write(file_in_SSS,291) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, kmonth, kday, TRIM(sss_suffix)
-        CASE(292)
-          write(file_in_SSS,292) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, kmonth, TRIM(sss_suffix) 
-        CASE(293)
-          write(file_in_SSS,293) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, kmonth, kday
-        CASE(294) 
-          write(file_in_SSS,294) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, kmonth
-        CASE(295) 
-          write(file_in_SSS,295) TRIM(sss_dir), TRIM(sss_prefix), kyear, kmonth, kday, TRIM(sss_suffix)
-        CASE(296) 
-          write(file_in_SSS,296) TRIM(sss_dir), TRIM(sss_prefix), kyear, kmonth, TRIM(sss_suffix)
-        CASE(297) 
-          write(file_in_SSS,297) TRIM(sss_dir), TRIM(sss_prefix), kyear, kmonth, kday
-        CASE(298)
-          write(file_in_SSS,298) TRIM(sss_dir), TRIM(sss_prefix), kyear, kmonth
+          write(file_in_SSS,193) TRIM(sss_dir), TRIM(sss_prefix), kyear, TRIM(sss_sep1), kmonth, TRIM(sss_sep2), kday, TRIM(sss_suffix)
+        CASE(194)
+          write(file_in_SSS,194) TRIM(sss_dir), TRIM(sss_prefix), kyear, TRIM(sss_sep1), kmonth, TRIM(sss_suffix)
+        CASE(195)
+          write(file_in_SSS,195) TRIM(sss_dir), TRIM(sss_prefix)
+          ll_climato = .true.
         CASE DEFAULT 
           write(*,*) 'wrong nfmt value >>>>>> stop !'
           stop
      END SELECT
+     write(*,*) 'Looking for existence of ', TRIM(file_in_SSS)
      inquire(file=file_in_SSS, exist=existfile)
-     if ( existfile ) exit
+     if ( existfile ) then; write(*,*) 'BINGO !'; exit ; endif
   enddo !-kfmt
 
   IF ( existfile ) THEN
@@ -207,21 +178,21 @@ DO kday=1,31
     if ( status .ne. 0 ) ln_2d = .true.
 
     status = NF90_INQUIRE_DIMENSION(fidSSS,dimID_time,len=mtime)     ; call erreur(status,.TRUE.,"inq_dim_time")
-    status = NF90_INQUIRE_DIMENSION(fidSSS,dimID_x,len=mlon)         ; call erreur(status,.TRUE.,"inq_dim_x")
-    status = NF90_INQUIRE_DIMENSION(fidSSS,dimID_y,len=mlat)         ; call erreur(status,.TRUE.,"inq_dim_y")
+    status = NF90_INQUIRE_DIMENSION(fidSSS,dimID_x,len=mx_GLO)         ; call erreur(status,.TRUE.,"inq_dim_x")
+    status = NF90_INQUIRE_DIMENSION(fidSSS,dimID_y,len=my_GLO)         ; call erreur(status,.TRUE.,"inq_dim_y")
     if ( .not. ln_2d ) then
-      status = NF90_INQUIRE_DIMENSION(fidSSS,dimID_z,len=mz)
+      status = NF90_INQUIRE_DIMENSION(fidSSS,dimID_z,len=mz_GLO)
       call erreur(status,.TRUE.,"inq_dim_z")
-      if ( mz .eq. 1 ) then
+      if ( mz_GLO .eq. 1 ) then
         ln_2d = .true.
       else
         write(*,*) 'Reading sea surface salinity from 3-dimensional files'
       endif
     endif
 
-    write(*,*) 'dimensions :', mlon, mlat
+    write(*,*) 'dimensions :', mx_GLO, my_GLO
 
-    ALLOCATE( nav_lon(mlon,mlat), nav_lat(mlon,mlat) )
+    ALLOCATE( nav_lon(mx_GLO,my_GLO), nav_lat(mx_GLO,my_GLO) )
 
     status = NF90_INQ_VARID(fidSSS,"nav_lon",lon_ID)
     if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSSS,"lon",lon_ID)
@@ -255,8 +226,8 @@ status = NF90_INQ_DIMID(fidMSKIN,"z",dimID_z)
 if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidMSKIN,"depth",dimID_z)
 if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidMSKIN,"deptht",dimID_z)
 if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidMSKIN,"nav_lev",dimID_z)
-status = NF90_INQUIRE_DIMENSION(fidMSKIN,dimID_z,len=mz)
-ALLOCATE(  tmask(mlon,mlat,mz), tmask_GLO(mlon,mlat)  ) 
+status = NF90_INQUIRE_DIMENSION(fidMSKIN,dimID_z,len=mz_GLO)
+ALLOCATE(  tmask(mx_GLO,my_GLO,mz_GLO), tmask_GLO(mx_GLO,my_GLO)  ) 
 status = NF90_INQ_VARID(fidMSKIN,"tmask",tmask_GLO_ID); call erreur(status,.TRUE.,"inq_tmask_GLO_ID")
 status = NF90_GET_VAR(fidMSKIN,tmask_GLO_ID,tmask);     call erreur(status,.TRUE.,"getvar_tmask_GLO")
 tmask_GLO(:,:)=tmask(:,:,1)
@@ -280,37 +251,15 @@ DO kyear=nn_sss_yeari,nn_sss_yearf
 
       SELECT CASE(nfmt)
         CASE(191)
-          write(file_in_SSS,191) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, kmonth, kday, TRIM(sss_suffix)
+          write(file_in_SSS,191) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, TRIM(sss_sep1), kmonth, TRIM(sss_sep2), kday, TRIM(sss_suffix)
         CASE(192)
-          write(file_in_SSS,192) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, kmonth, TRIM(sss_suffix) 
+          write(file_in_SSS,192) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, TRIM(sss_sep1), kmonth, TRIM(sss_suffix) 
         CASE(193)
-          write(file_in_SSS,193) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, kmonth, kday
-        CASE(194) 
-          write(file_in_SSS,194) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, kmonth
-        CASE(195) 
-          write(file_in_SSS,195) TRIM(sss_dir), TRIM(sss_prefix), kyear, kmonth, kday, TRIM(sss_suffix)
-        CASE(196) 
-          write(file_in_SSS,196) TRIM(sss_dir), TRIM(sss_prefix), kyear, kmonth, TRIM(sss_suffix)
-        CASE(197) 
-          write(file_in_SSS,197) TRIM(sss_dir), TRIM(sss_prefix), kyear, kmonth, kday
-        CASE(198)
-          write(file_in_SSS,198) TRIM(sss_dir), TRIM(sss_prefix), kyear, kmonth
-        CASE(291)
-          write(file_in_SSS,291) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, kmonth, kday, TRIM(sss_suffix)
-        CASE(292)
-          write(file_in_SSS,292) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, kmonth, TRIM(sss_suffix) 
-        CASE(293)
-          write(file_in_SSS,293) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, kmonth, kday
-        CASE(294) 
-          write(file_in_SSS,294) TRIM(sss_dir), kyear, TRIM(sss_prefix), kyear, kmonth
-        CASE(295) 
-          write(file_in_SSS,295) TRIM(sss_dir), TRIM(sss_prefix), kyear, kmonth, kday, TRIM(sss_suffix)
-        CASE(296) 
-          write(file_in_SSS,296) TRIM(sss_dir), TRIM(sss_prefix), kyear, kmonth, TRIM(sss_suffix)
-        CASE(297) 
-          write(file_in_SSS,297) TRIM(sss_dir), TRIM(sss_prefix), kyear, kmonth, kday
-        CASE(298)
-          write(file_in_SSS,298) TRIM(sss_dir), TRIM(sss_prefix), kyear, kmonth
+          write(file_in_SSS,193) TRIM(sss_dir), TRIM(sss_prefix), kyear, TRIM(sss_sep1), kmonth, TRIM(sss_sep2), kday, TRIM(sss_suffix)
+        CASE(194)
+          write(file_in_SSS,194) TRIM(sss_dir), TRIM(sss_prefix), kyear, TRIM(sss_sep1), kmonth, TRIM(sss_suffix)
+        CASE(195)
+          write(file_in_SSS,195) TRIM(sss_dir), TRIM(sss_prefix)
         CASE DEFAULT 
           write(*,*) 'wrong nfmt value >>>>>> stop !'
           stop
@@ -320,21 +269,22 @@ DO kyear=nn_sss_yeari,nn_sss_yearf
       IF ( existfile ) THEN
 
         ! output file format :
-        if     ( nfmt .eq. 191 .or. nfmt .eq. 193 .or. nfmt .eq. 195 .or. nfmt .eq. 197 &
-        &   .or. nfmt .eq. 291 .or. nfmt .eq. 293 .or. nfmt .eq. 295 .or. nfmt .eq. 297 ) then
+        if     ( nfmt .eq. 191 .or. nfmt .eq. 193 ) then
           401 FORMAT(a,'/SSS/sss_',i4.4,'_',i2.2,'_',i2.2,'_',a,'.nc')
           write(file_REG_SSS,401) TRIM(config_dir), kyear, kmonth, kday, TRIM(config)
-        elseif ( nfmt .eq. 192 .or. nfmt .eq. 194 .or. nfmt .eq. 196 .or. nfmt .eq. 198 &
-        &   .or. nfmt .eq. 292 .or. nfmt .eq. 294 .or. nfmt .eq. 296 .or. nfmt .eq. 298 ) then
+        elseif ( nfmt .eq. 192 .or. nfmt .eq. 194 ) then
           402 FORMAT(a,'/SSS/sss_',i4.4,'_',i2.2,'_',a,'.nc')
           write(file_REG_SSS,402) TRIM(config_dir), kyear, kmonth, TRIM(config)
+        elseif ( nfmt .eq. 195 ) then
+          403 FORMAT(a,'/sss_climato_',a,'.nc')
+          write(file_REG_SSS,403) TRIM(config_dir), TRIM(config)
         else
           write(*,*) 'Do not forget to include new file format in the format definition for file_REG_SSS  >>>> stop'
           stop
         endif
 
-        ALLOCATE( vosaline(mlon,mlat,mtime)  )
-        if ( .not. ln_2d ) ALLOCATE( vosaline_3d(mlon,mlat,mz,mtime)  )
+        ALLOCATE( vosaline_GLO(mx_GLO,my_GLO,mtime)  )
+        if ( .not. ln_2d ) ALLOCATE( vosaline_3d(mx_GLO,my_GLO,mz_GLO,mtime)  )
         ALLOCATE( time(mtime) )
         
         !---------------------------------------
@@ -349,10 +299,10 @@ DO kyear=nn_sss_yeari,nn_sss_yearf
         
         status = NF90_GET_VAR(fidSSS,time_ID,time)                      ; call erreur(status,.TRUE.,"getvar_time")
         if ( ln_2d ) then
-          status = NF90_GET_VAR(fidSSS,vosaline_ID,vosaline)            ; call erreur(status,.TRUE.,"getvar_vosaline")
+          status = NF90_GET_VAR(fidSSS,vosaline_ID,vosaline_GLO)        ; call erreur(status,.TRUE.,"getvar_vosaline")
         else
           status = NF90_GET_VAR(fidSSS,vosaline_ID,vosaline_3d)         ; call erreur(status,.TRUE.,"getvar_vosaline")
-          vosaline(:,:,:) = vosaline_3d(:,:,1,:)
+          vosaline_GLO(:,:,:) = vosaline_3d(:,:,1,:)
           DEALLOCATE( vosaline_3d )
         endif
 
@@ -364,11 +314,11 @@ DO kyear=nn_sss_yeari,nn_sss_yearf
         !---------------------------------------
         ! Remove possible NaNs :
  
-        do i=1,mlon
-        do j=1,mlat
+        do i=1,mx_GLO
+        do j=1,my_GLO
         do l=1,mtime
-          if ( .not. vosaline(i,j,l) .lt. 100.0 .and. .not. vosaline(i,j,l) .gt. 0.1 ) then
-            vosaline(i,j,l) = 0.d0
+          if ( .not. vosaline_GLO(i,j,l) .lt. 100.0 .and. .not. vosaline_GLO(i,j,l) .gt. 0.1 ) then
+            vosaline_GLO(i,j,l) = 0.d0
           endif
         enddo
         enddo
@@ -378,13 +328,13 @@ DO kyear=nn_sss_yeari,nn_sss_yearf
         ! convert to conservative temperature if needed :
         if ( nn_sss_eosmatch .eq. 0 ) then
           write(*,*) 'Converting from EOS80 to TEOS10 ...'
-          do i=1,mlon
-          do j=1,mlat
+          do i=1,mx_GLO
+          do j=1,my_GLO
             do l=1,mtime
-              if ( vosaline(i,j,l) .gt. 1.0d-1 .and. vosaline(i,j,l) .lt. 1.0d2 ) then
-                vosaline(i,j,l) = gsw_sa_from_sp( DBLE(vosaline(i,j,l)), 1.d0, DBLE(nav_lon(i,j)), DBLE(nav_lat(i,j)) )
+              if ( vosaline_GLO(i,j,l) .gt. 1.0d-1 .and. vosaline_GLO(i,j,l) .lt. 1.0d2 ) then
+                vosaline_GLO(i,j,l) = gsw_sa_from_sp( DBLE(vosaline_GLO(i,j,l)), 1.d0, DBLE(nav_lon(i,j)), DBLE(nav_lat(i,j)) )
               else
-                vosaline(i,j,l) = 0.d0
+                vosaline_GLO(i,j,l) = 0.d0
               endif
             enddo
           enddo
@@ -410,7 +360,7 @@ DO kyear=nn_sss_yeari,nn_sss_yearf
           if ( iGLO .ge. 1 .and. jGLO .ge. 1 ) then
             if ( tmask_GLO(iGLO,jGLO) .eq. 1 ) then
               do l=1,mtime
-                vosaline_REG(iREG,jREG,l) = vosaline(iGLO,jGLO,l) * tmask_REG(iREG,jREG) 
+                vosaline_REG(iREG,jREG,l) = vosaline_GLO(iGLO,jGLO,l) * tmask_REG(iREG,jREG) 
               enddo
             elseif ( tmask_REG(iREG,jREG) .eq. 1 ) then ! unmasked REG but masked GLO
               missing(iREG,jREG) = 1
@@ -423,7 +373,8 @@ DO kyear=nn_sss_yeari,nn_sss_yearf
      
         ! Look for closest neighbours where we have missing values while tmask_REG=1:
         ntest2= NINT(sum(sum(1.0-FLOAT(tmask_REG(:,:)),2),1))
-        do kiter=1,MAX(mx_REG/ai,my_REG/aj)
+        nntrp = MAX(mx_REG/ai,my_REG/aj)
+        do kiter=1,nntrp
           ntest = NINT(sum(sum(FLOAT(missing),2),1))
           write(*,*) '  kiter = ', kiter
           write(*,*) '     nb of pts with missing value: ', ntest, ' for nb of land pts: ', ntest2
@@ -434,7 +385,7 @@ DO kyear=nn_sss_yeari,nn_sss_yearf
           do jREG=1,my_REG
             if ( missing(iREG,jREG) .eq. 1 ) then
               iout=.FALSE.
-              do rs=1,MAX(ai,aj),1
+              do rs=1,MAX(ai,aj)*(1+(nntrp-1)/3),1  ! rs=1,2,3 (3 times) then rs=1,2,3,4,5,6 (3 times, etc)
                   iii=iREG               ; jjj=jREG               
                   if ( tmask_REG(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
                   iii=MIN(iREG+rs,mx_REG); jjj=jREG               
@@ -461,7 +412,7 @@ DO kyear=nn_sss_yeari,nn_sss_yearf
                 tmp_missing(iREG,jREG) = 0
                 tmp_vosaline_REG(iREG,jREG,:) = vosaline_REG(iii,jjj,:)
                 exit
-              elseif ( kiter .eq. MAX(mx_REG/ai,my_REG/aj) ) then
+              elseif ( kiter .eq. nntrp ) then
                 write(*,953) iREG, jREG
                 953 FORMAT(' >>> ERROR for point (',2I5,')')
                 stop
@@ -589,15 +540,13 @@ DO kyear=nn_sss_yeari,nn_sss_yearf
         status = NF90_CLOSE(fidM) ; call erreur(status,.TRUE.,"close new SSS file")
 
         !--       
-        DEALLOCATE( vosaline, time )
+        DEALLOCATE( vosaline_GLO, time )
         DEALLOCATE( vosaline_REG )
 
         !--
-        if     ( nfmt .eq. 191 .or. nfmt .eq. 193 .or. nfmt .eq. 195 .or. nfmt .eq. 197 &
-        &   .or. nfmt .eq. 291 .or. nfmt .eq. 293 .or. nfmt .eq. 295 .or. nfmt .eq. 297 ) then
+        if     ( nfmt .eq. 191 .or. nfmt .eq. 193 ) then
           write(*,*) 'Looking for next existing day in this month/year'
-        elseif ( nfmt .eq. 192 .or. nfmt .eq. 194 .or. nfmt .eq. 196 .or. nfmt .eq. 198 &
-        &   .or. nfmt .eq. 292 .or. nfmt .eq. 294 .or. nfmt .eq. 296 .or. nfmt .eq. 298 ) then
+        elseif ( nfmt .eq. 192 .or. nfmt .eq. 194 .or. nfmt .eq. 195 ) then
           write(*,*) 'Only one file per month => switching to next month'
           exit
         else
