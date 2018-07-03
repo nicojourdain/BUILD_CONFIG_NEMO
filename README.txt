@@ -17,6 +17,11 @@ To download NEMO, you need to register on http://www.nemo-ocean.eu/user/register
 
 Last updates:
 
+ JUL 18 , N. Jourdain  - new scripts to interpolate bathy and ice draft from lon/lat or stereo data.
+                       - can now handle interannual runoff.
+                       - more flexible way to provide file names in the namelist.
+                       - tests for the AMUXL12 configuration (Amundsen Sea).
+
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 #########################################################################################################
