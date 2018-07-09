@@ -166,11 +166,11 @@ Last updates:
 	./submit.sh build_coordinates_bdy 01  ## -> creates the coordinate file for lateral boundaries
                                               ##    e.g. coordinates_bdy_WED12.nc
 
-        ./submit.sh extract_bdy_gridT 03 15   ## -> creates T,S bdy files and store them in a BDY folder
+        ./submit.sh extract_bdy_gridT 04 15   ## -> creates T,S bdy files and store them in a BDY folder
                                               ##    itself located in directory defined as config_dir
 
-        ./submit.sh extract_bdy_gridU 04 15   ## -> creates U   bdy files and store them in a BDY folder
-        ./submit.sh extract_bdy_gridV 04 15   ## -> creates V   bdy files and store them in a BDY folder
+        ./submit.sh extract_bdy_gridU 05 15   ## -> creates U   bdy files and store them in a BDY folder
+        ./submit.sh extract_bdy_gridV 05 15   ## -> creates V   bdy files and store them in a BDY folder
         ./submit.sh extract_bdy_icemod 01     ## -> creates ice bdy files and store them in a BDY folder
         ./submit.sh extract_bdy_ssh 01        ## -> creates SSH bdy files and store them in a BDY folder
 
@@ -183,7 +183,7 @@ Last updates:
 #########################################################################################################
 ## 6- Other files (SSS for restoring, runoff, chlorophyll)
 
-	./submit.sh extract_SSS_restoring 01 15  ## -> creates SSS files and store them in a SSS folder
+	./submit.sh extract_SSS_restoring 03 15  ## -> creates SSS files and store them in a SSS folder
         ./concatenate_yearly_SSS.sh              ## Edit this file first.
                                                  ## -> concatenate the bdy files into yearly files
 

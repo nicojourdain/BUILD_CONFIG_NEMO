@@ -19,8 +19,8 @@ ln_coarse_bdy         = .true.                                              ! tr
 file_in_bathy_bdy     = '/store/njourd/ORCA025.L75/ORCA025.L75-I/bathy_meter.nc' ! Bathy on the grid corresponding to the lateral boundary conditions (e.g. ORCA025).
 ln_isfcav             = .true.                                              ! true if the domain includes ice shelves.
 ! Choose the domain bounds on global grid that is extracted (e.g. eORCA12; WARNING: will be rounded to closest point of the coarse grid if ln_coarse_bdy = true) :
-nn_imin_extract       = 1773
-nn_imax_extract       = 2438
+nn_imin_extract       = 1776
+nn_imax_extract       = 2425
 nn_jmin_extract       =   33
 nn_jmax_extract       =  593
 ! Choose latitude and longitude near which you know that the two grids match
@@ -51,8 +51,12 @@ nn_init               =    2   !  1 -> initial state is an extraction from the c
                                !  2 -> initial state from coarser resolution [ if ln_coarse_bdy = true ]     
 file_in_mask_extract  = '/scratch/shared/egige60/input/nemo_ORCA025.L75/mask_ORCA025.L75_GNJ001.nc'  ! Global/large-scale file, according to nn_init 
                                                                                                      ! (contains tmask, nav_lat, nav_lon, nav_lev)
+!file_in_T             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720225-19720301.nc' ! Temperature (same grid as file_in_mask_extract)
+!file_in_T             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/2002/ORCA025.L75-GNJ002_5d_gridT_20020225-20020301.nc' ! Temperature (same grid as file_in_mask_extract)
 file_in_T             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720101-19720105.nc' ! Temperature (same grid as file_in_mask_extract)
 !file_in_T             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/2002/ORCA025.L75-GNJ002_5d_gridT_20020101-20020105.nc' ! Temperature (same grid as file_in_mask_extract)
+!file_in_S             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720225-19720301.nc' ! Salinity    (same grid as file_in_mask_extract)
+!file_in_S             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/2002/ORCA025.L75-GNJ002_5d_gridT_20020225-20020301.nc' ! Salinity    (same grid as file_in_mask_extract)
 file_in_S             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720101-19720105.nc' ! Salinity    (same grid as file_in_mask_extract)
 !file_in_S             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/2002/ORCA025.L75-GNJ002_5d_gridT_20020101-20020105.nc' ! Salinity    (same grid as file_in_mask_extract)
 nn_eosmatch           =   0    ! match between model equ. of state and istate equ. of state :
@@ -122,7 +126,7 @@ file_data_mask        = '/scratch/shared/egige60/input/nemo_ORCA025.L75/mask_ORC
 file_data_zgr         = '/scratch/shared/egige60/input/nemo_ORCA025.L75/mesh_zgr_ORCA025.L75_GNJ001.nc'   ! Vertical mesh sizes (for btp vel.)
                                                                                                           ! (contains e3u_0 or e3u and e3v_0 or e3v)
 file_data_hgr         = '/scratch/shared/egige60/input/nemo_ORCA025.L75/mesh_hgr_ORCA025.L75_GNJ001.nc'   ! Horizontal mesh sizes (for btp vel.)
-nn_yeari              =  2006   ! initial year for BDYs
+nn_yeari              =  1972   ! initial year for BDYs
 nn_yearf              =  2016   ! final year for BDYs
 nn_bdy_eosmatch       =   0     ! match between model equ. of state and BDY equ. of state :
                                 !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80

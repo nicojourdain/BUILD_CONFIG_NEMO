@@ -388,7 +388,7 @@ DO kyear=nn_yeari,nn_yearf
         enddo
 
         !---------------------------------------
-        ! Fill values on bdyT :
+        ! Fill values on bdyU :
         ! (we ensure transport conservation in case grids are 
         ! slightly stretched with respect to each other)    
         ! NB: no mask used here, i.e. we assume that velocities = 0 at masked points... 

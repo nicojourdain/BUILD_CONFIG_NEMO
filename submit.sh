@@ -6,7 +6,10 @@
 #
 #################################################################################
 
-rm -f tmptxp.sh
+# Random number :
+RAND=$(( ( RANDOM % 10000 )  + 1 ))
+
+rm -f tmptxp_${RAND}.sh
 
 if [ ! -n "$1" ]; then
   echo "Usage: `basename $0` file_to_execute  [hh] [mem]                    "
@@ -40,7 +43,7 @@ echo "mem=${mem}Gb"
 if [ `hostname | cut -d"." -f2` == "occigen" ]; then
 
 echo "host is occigen"
-cat > tmptxp.sh << EOF
+cat > tmptxp_${RAND}.sh << EOF
 #!/bin/bash
 #SBATCH -C HSW24
 #SBATCH --nodes=1
@@ -57,7 +60,7 @@ EOF
 elif [ `hostname | cut -c 1-3` == "ada" ]; then
 
 echo "host is adapp"
-cat > tmptxp.sh << EOF
+cat > tmptxp_${RAND}.sh << EOF
 # @ job_type = serial
 # @ requirements = (Feature == "prepost")
 # @ wall_clock_limit = ${walltime}
@@ -72,7 +75,7 @@ EOF
 else
 
 echo "default host"
-echo '#!/bin/bash' > tmptxp.sh
+echo '#!/bin/bash' > tmptxp_${RAND}.sh
 echo " "
 echo "WARNING: You may need to add a specific header in submit.sh if `hostname` enables batch jobs"
 echo " "
@@ -80,18 +83,18 @@ echo " "
 fi
 #=====
 
-echo "./$1" >> tmptxp.sh
+echo "./$1" >> tmptxp_${RAND}.sh
 
-chmod +x tmptxp.sh
+chmod +x tmptxp_${RAND}.sh
 
 echo "Launching $1 on  `hostname`"
 
 if [ `hostname | cut -d"." -f2` == "occigen" ]; then
-  sbatch ./tmptxp.sh
+  sbatch ./tmptxp_${RAND}.sh
 elif [ `hostname | cut -c 1-3` == "ada" ]; then
-  llsubmit ./tmptxp.sh
+  llsubmit ./tmptxp_${RAND}.sh
 else
-  ./tmptxp.sh
+  ./tmptxp_${RAND}.sh
 fi
 
-rm -f tmptxp.sh
+rm -f tmptxp_${RAND}.sh
