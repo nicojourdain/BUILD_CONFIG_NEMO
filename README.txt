@@ -134,7 +134,7 @@ Last updates:
         a) if the dataset is on a lon/lat grid :
         ./submit.sh extract_bathy_special_lonlat 03 30
 
-        b) if the dataset is on a stereographic grid : 
+        b) if the dataset is on a stereographic grid (use 60Gb instead of 30 for BedMachine): 
         ./submit.sh extract_bathy_special_stereo 03 30
 
 #########################################################################################################

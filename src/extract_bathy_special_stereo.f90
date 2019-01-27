@@ -215,26 +215,27 @@ write(*,*) 'Reading ice shelf draft in ', TRIM(file_spe_isf_draft)
 
 status = NF90_OPEN(TRIM(file_spe_isf_draft),0,fidSTEREO2); call erreur(status,.TRUE.,"read isf_draft STEREO") 
 status = NF90_INQ_VARID(fidSTEREO2,"ice_draft",isf_draft_STEREO_ID)
-if ( status .eq. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"draft",isf_draft_STEREO_ID)
-if ( status .eq. 0 ) then
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"draft",isf_draft_STEREO_ID)
+if ( status .ne. 0 ) then
   ! if ice draft not found, looking for surface and thickness :
   write(*,*) '  ... no ice-draft => reading thickness and surface height'
   ALLOCATE( surface_STEREO(mx_STEREO,my_STEREO) )
   status = NF90_INQ_VARID(fidSTEREO2,"thickness",thickness_STEREO_ID)
-  if ( status .eq. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"thick",thickness_STEREO_ID)
-  if ( status .eq. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"THICK",thickness_STEREO_ID)
-  if ( status .eq. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"THICKNESS",thickness_STEREO_ID)
+  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"thick",thickness_STEREO_ID)
+  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"THICK",thickness_STEREO_ID)
+  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"THICKNESS",thickness_STEREO_ID)
   call erreur(status,.TRUE.,"read thickness STEREO")
   status = NF90_INQ_VARID(fidSTEREO2,"surface",surface_STEREO_ID)
-  if ( status .eq. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"surf",surface_STEREO_ID)
-  if ( status .eq. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"SURF",surface_STEREO_ID)
-  if ( status .eq. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"SURFACE",surface_STEREO_ID)
+  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"surf",surface_STEREO_ID)
+  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"SURF",surface_STEREO_ID)
+  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"SURFACE",surface_STEREO_ID)
   call erreur(status,.TRUE.,"read surface STEREO")
   status = NF90_GET_VAR(fidSTEREO2,thickness_STEREO_ID,isf_draft_STEREO); call erreur(status,.TRUE.,"getvar_thickness_STEREO")
   status = NF90_GET_VAR(fidSTEREO2,surface_STEREO_ID,surface_STEREO); call erreur(status,.TRUE.,"getvar_surface_STEREO")
   isf_draft_STEREO(:,:) = surface_STEREO(:,:) - isf_draft_STEREO(:,:)
   DEALLOCATE( surface_STEREO )
 else
+  write(*,*) '  ... reading ice draft'
   status = NF90_GET_VAR(fidSTEREO2,isf_draft_STEREO_ID,isf_draft_STEREO); call erreur(status,.TRUE.,"getvar_isf_draft_STEREO")
 endif
 status = NF90_CLOSE(fidSTEREO2); call erreur(status,.TRUE.,"End read isf_draft STEREO")     
