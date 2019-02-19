@@ -38,7 +38,7 @@ INTEGER                              :: fidA, status, dimID_xbv, dimID_xbu, dimI
 &                                       glamu_ID, e2t_ID, e1t_ID, gphit_ID, glamt_ID, nbrv_ID, nbjv_ID, nbiv_ID,&
 &                                       nbru_ID, nbju_ID, nbiu_ID, nbrt_ID, nbjt_ID, nbit_ID, fidM, dimID_x,    &
 &                                       dimID_y, k, kt, ku, kv, kt0, ku0, kv0, mx, my, kkbdy, k1, k2, ndouble
-CHARACTER(LEN=150)                   :: file_in, file_out                     
+CHARACTER(LEN=150)                   :: file_in_coord_REG, file_out                     
 INTEGER*4,ALLOCATABLE,DIMENSION(:,:) :: nbrv, nbjv, nbiv, nbru, nbju, nbiu, nbrt, nbjt, nbit    
 INTEGER*4,ALLOCATABLE,DIMENSION(:,:) :: nbjv_tmp, nbiv_tmp, nbju_tmp, nbiu_tmp, nbjt_tmp, nbit_tmp    
 REAL*4,ALLOCATABLE,DIMENSION(:,:)    :: e1t_bdy, e2t_bdy, e1u_bdy, e2u_bdy, e1v_bdy, e2v_bdy,                   &
@@ -79,7 +79,7 @@ IF (nn_bdy_north .gt. 0) READ (UNIT=1, NML=bdy_north)
 IF (nn_bdy_south .gt. 0) READ (UNIT=1, NML=bdy_south)
 CLOSE(1)
 
-write(file_in,101) TRIM(config_dir), TRIM(config)
+write(file_in_coord_REG,101) TRIM(config_dir), TRIM(config)
 101 FORMAT(a,'/coordinates_',a,'.nc')
 write(file_out,102) TRIM(config_dir), TRIM(config)
 102 FORMAT(a,'/coordinates_bdy_',a,'.nc')
@@ -88,12 +88,16 @@ write(file_out,102) TRIM(config_dir), TRIM(config)
 ! 1- Read coordinates of the entire domain
 !=================================================================================
 
-write(*,*) 'Reading ', TRIM(file_in)
+write(*,*) 'Reading ', TRIM(file_in_coord_REG)
 
-status = NF90_OPEN(TRIM(file_in),0,fidA) ; call erreur(status,.TRUE.,"open coordinates") 
+status = NF90_OPEN(TRIM(file_in_coord_REG),0,fidA) ; call erreur(status,.TRUE.,"open coordinates") 
 
-status = NF90_INQ_DIMID(fidA,"x",dimID_x) ; call erreur(status,.TRUE.,"inq_dimID_x")
-status = NF90_INQ_DIMID(fidA,"y",dimID_y) ; call erreur(status,.TRUE.,"inq_dimID_y")
+status = NF90_INQ_DIMID(fidA,"x",dimID_x)
+if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidA,"X",dimID_x) 
+call erreur(status,.TRUE.,"inq_dimID_x")
+status = NF90_INQ_DIMID(fidA,"y",dimID_y)
+if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidA,"Y",dimID_y)
+call erreur(status,.TRUE.,"inq_dimID_y")
 
 status = NF90_INQUIRE_DIMENSION(fidA,dimID_x,len=mx) ; call erreur(status,.TRUE.,"inq_dim_x")
 status = NF90_INQUIRE_DIMENSION(fidA,dimID_y,len=my) ; call erreur(status,.TRUE.,"inq_dim_y")

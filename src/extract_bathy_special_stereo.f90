@@ -249,8 +249,12 @@ write(*,*) 'Reading REGIONAL lon,lat in ', TRIM(file_in_coord_REG)
 
 status = NF90_OPEN(TRIM(file_in_coord_REG),0,fidCOORDreg); call erreur(status,.TRUE.,"read coord input")
 
-status = NF90_INQ_DIMID(fidCOORDreg,"x",dimID_x) ; call erreur(status,.TRUE.,"inq_dimID_x")
-status = NF90_INQ_DIMID(fidCOORDreg,"y",dimID_y) ; call erreur(status,.TRUE.,"inq_dimID_y")
+status = NF90_INQ_DIMID(fidCOORDreg,"x",dimID_x)
+if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidCOORDreg,"X",dimID_x)
+call erreur(status,.TRUE.,"inq_dimID_x")
+status = NF90_INQ_DIMID(fidCOORDreg,"y",dimID_y)
+if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidCOORDreg,"Y",dimID_y)
+call erreur(status,.TRUE.,"inq_dimID_y")
                                                      
 status = NF90_INQUIRE_DIMENSION(fidCOORDreg,dimID_y,len=my_REG); call erreur(status,.TRUE.,"inq_dim_y_REG")
 status = NF90_INQUIRE_DIMENSION(fidCOORDreg,dimID_x,len=mx_REG); call erreur(status,.TRUE.,"inq_dim_x_REG")
