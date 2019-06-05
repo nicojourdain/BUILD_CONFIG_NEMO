@@ -216,6 +216,7 @@ write(*,*) 'Reading ice shelf draft in ', TRIM(file_spe_isf_draft)
 status = NF90_OPEN(TRIM(file_spe_isf_draft),0,fidSTEREO2); call erreur(status,.TRUE.,"read isf_draft STEREO") 
 status = NF90_INQ_VARID(fidSTEREO2,"ice_draft",isf_draft_STEREO_ID)
 if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"draft",isf_draft_STEREO_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"ice_base_topography",isf_draft_STEREO_ID)
 if ( status .ne. 0 ) then
   ! if ice draft not found, looking for surface and thickness :
   write(*,*) '  ... no ice-draft => reading thickness and surface height'
@@ -902,6 +903,10 @@ elseif ( TRIM(config) == 'AMUXL12' ) then
     Bathymetry_isf_REG(1:2*npts,:) = Bathymetry_REG(1:2*npts,:)
     isf_draft_REG     (mx_REG-2*npts+1:mx_REG,:) = 0.0
     Bathymetry_isf_REG(mx_REG-2*npts+1:mx_REG,:) = Bathymetry_REG(mx_REG-2*npts+1:mx_REG,:)
+
+    ! remove a narrow channel in the halo :
+    Bathymetry_isf_REG(681:682,144:149)=0.e0
+    isf_draft_REG(681:682,144:149)=0.e0
 
 endif
 
