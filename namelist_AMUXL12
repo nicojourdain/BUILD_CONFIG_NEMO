@@ -41,7 +41,8 @@ file_spe_bathy      = '/store/njourd/DATA/DATA_BATHYMETRY/BedMachineAntarctica-2
 !file_spe_bathy      = '/store/njourd/DATA/DATA_BATHYMETRY/bedrock_topography_RTopo-2.0.1_Millan_new_Getz_450m.nc'
 !file_spe_bathy      = '/store/njourd/DATA/DATA_BATHYMETRY/bedrock_topography_RTopo-2.0.1_on_450m_stereo.nc'
 !-
-file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/BedMachineAntarctica-2018-12-22.nc'
+file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/BedMachineAntarctica-2018-12-22_RTopo-2.0.1_ice_draft.nc'
+!file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/BedMachineAntarctica-2018-12-22.nc'
 !file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/RTopo-2.0.1_30sec_ice_base_topography.nc'
 !file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/ice_base_topography_RTopo-2.0.1_Millan_450m.nc'
 !file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/ice_base_topography_RTopo-2.0.1_Millan_new_Getz_450m.nc'
@@ -53,12 +54,12 @@ nn_init               =    2   !  1 -> initial state is an extraction from the c
                                !  2 -> initial state from coarser resolution [ if ln_coarse_bdy = true ]     
 file_in_mask_extract  = '/scratch/shared/egige60/input/nemo_ORCA025.L75/mask_ORCA025.L75_GNJ001.nc'  ! Global/large-scale file, according to nn_init 
                                                                                                      ! (contains tmask, nav_lat, nav_lon, nav_lev)
-!file_in_T             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720225-19720301.nc' ! Temperature (same grid as file_in_mask_extract)
-file_in_T             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/2002/ORCA025.L75-GNJ002_5d_gridT_20020225-20020301.nc' ! Temperature (same grid as file_in_mask_extract)
+file_in_T             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720225-19720301.nc' ! Temperature (same grid as file_in_mask_extract)
+!file_in_T             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/2002/ORCA025.L75-GNJ002_5d_gridT_20020225-20020301.nc' ! Temperature (same grid as file_in_mask_extract)
 !file_in_T             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720101-19720105.nc' ! Temperature (same grid as file_in_mask_extract)
 !file_in_T             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/2002/ORCA025.L75-GNJ002_5d_gridT_20020101-20020105.nc' ! Temperature (same grid as file_in_mask_extract)
-!file_in_S             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720225-19720301.nc' ! Salinity    (same grid as file_in_mask_extract)
-file_in_S             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/2002/ORCA025.L75-GNJ002_5d_gridT_20020225-20020301.nc' ! Salinity    (same grid as file_in_mask_extract)
+file_in_S             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720225-19720301.nc' ! Salinity    (same grid as file_in_mask_extract)
+!file_in_S             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/2002/ORCA025.L75-GNJ002_5d_gridT_20020225-20020301.nc' ! Salinity    (same grid as file_in_mask_extract)
 !file_in_S             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720101-19720105.nc' ! Salinity    (same grid as file_in_mask_extract)
 !file_in_S             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/2002/ORCA025.L75-GNJ002_5d_gridT_20020101-20020105.nc' ! Salinity    (same grid as file_in_mask_extract)
 nn_eosmatch           =   0    ! match between model equ. of state and istate equ. of state :

@@ -905,8 +905,14 @@ elseif ( TRIM(config) == 'AMUXL12' ) then
     Bathymetry_isf_REG(mx_REG-2*npts+1:mx_REG,:) = Bathymetry_REG(mx_REG-2*npts+1:mx_REG,:)
 
     ! remove a narrow channel in the halo :
-    Bathymetry_isf_REG(681:682,144:149)=0.e0
-    isf_draft_REG(681:682,144:149)=0.e0
+    Bathymetry_isf_REG(680:682,144:149)=0.e0
+    isf_draft_REG(680:682,144:149)=0.e0
+ 
+    ! remove ice shelves on islands and de-facto icebergs:
+    isf_draft_REG(435:455,139:165)=0.e0
+    isf_draft_REG(435:468,127:139)=0.e0
+    isf_draft_REG(435:470,116:127)=0.e0
+    isf_draft_REG(435:478,103:116)=0.e0
 
 endif
 
