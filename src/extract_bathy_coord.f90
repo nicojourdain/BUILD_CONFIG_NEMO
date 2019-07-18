@@ -210,7 +210,7 @@ if ( ln_coarse_bdy ) then
   
     write(*,*) 'Reference point for grid match :', rn_lonref, rn_latref
  
-    distmin=10.0
+    distmin=1000.0
     do ki=1,mx_CRS
     do kj=1,my_CRS
       dist = sqrt( ( nav_lat_CRS(ki,kj) - rn_latref )**2  + ( nav_lon_CRS(ki,kj) - rn_lonref )**2 )
