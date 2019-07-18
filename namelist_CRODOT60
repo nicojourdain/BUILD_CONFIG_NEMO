@@ -7,22 +7,22 @@
 
 !-------------------------------------------------------------------------------------------------------------------------------
 &general
-config     = 'AMUXL12'                                    ! config name, e.g. 'WED12', 'AMU12', etc
-config_dir = '/scratch/shared/egige60/input/nemo_AMUXL12' ! dir where new netcdf files will be stored
+config     = 'CRODOT60'                                    ! config name, e.g. 'WED12', 'AMU12', etc
+config_dir = '/scratch/shared/egige60/input/nemo_CRODOT60' ! dir where new netcdf files will be stored
 /
 !--------------------------------------------------------------------------------------------
 &griddata
-file_in_bathy_extract = '/store/njourd/ORCA12/bathymetry_ORCA12_V3.3.nc'              ! Bathy on the grid from which we extract the regional domain (e.g. eORCA12).
-file_in_coord_extract = '/store/njourd/ORCA12/coordinates_ORCA_R12_lbclnk_no_z.nc'    ! Coordinates of grid from which we extract regional domain (e.g. eORCA12).
-ln_coarse_bdy         = .true.                                              ! true if coarser simulation is applied along 
-                                                                            !       the boundaries (then fill file_in_bathy_bdy)
-file_in_bathy_bdy     = '/store/njourd/ORCA025.L75/ORCA025.L75-I/bathy_meter.nc' ! Bathy on the grid corresponding to the lateral boundary conditions (e.g. ORCA025).
+file_in_bathy_extract = '/store/njourd/AMUXS60/bathy_meter_AMUXS60.nc'    ! Bathy on the grid from which we extract the regional domain (e.g. eORCA12).
+file_in_coord_extract = '/store/njourd/AMUXS60/coordinates_AMUXS60.nc'    ! Coordinates of grid from which we extract regional domain (e.g. eORCA12).
+ln_coarse_bdy         = .true.                                            ! true if coarser simulation is applied along 
+                                                                          !       the boundaries (then fill file_in_bathy_bdy)
+file_in_bathy_bdy     = '/scratch/shared/egige60/input/nemo_AMUXL12/bathy_meter_AMUXL12_BedMachineAntarctica-2019-05-24.nc' ! Bathy on the grid corresponding to the lateral boundary conditions (e.g. ORCA025).
 ln_isfcav             = .true.                                              ! true if the domain includes ice shelves.
 ! Choose the domain bounds on global grid that is extracted (e.g. eORCA12; WARNING: will be rounded to closest point of the coarse grid if ln_coarse_bdy = true) :
-nn_imin_extract       = 1744  ! previously tried 1776
-nn_imax_extract       = 2425
-nn_jmin_extract       =   33
-nn_jmax_extract       =  593
+nn_imin_extract       = 151
+nn_imax_extract       = 509
+nn_jmin_extract       = 275
+nn_jmax_extract       = 549
 ! Choose latitude and longitude near which you know that the two grids match
 ! (used to find the relationship between the two grids)
 rn_latref             = -44.0

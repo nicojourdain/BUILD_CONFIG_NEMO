@@ -1,9 +1,9 @@
 #!/bin/bash
 
-CONFIG="AMUXL12"
+CONFIG="AMUXL025"
 BDY_DIR="$SHAREDELMER/input/nemo_${CONFIG}/BDY"
 YEARi=1972
-YEARf=2016
+YEARf=2017
 
 #----------------------------------------------------------------------------
 
