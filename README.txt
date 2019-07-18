@@ -118,6 +118,9 @@ Last updates:
 #########################################################################################################
 ## 3-- Build the bathymetry (and ice shelf draft if needed) and coordinates files for the regional domain.
 
+        NB: if file_in_bathy_extract and file_in_coords_extract do not exist, create them using the 
+            NEMO TOOL called "NESTING" (see user guide).
+
         ./submit.sh extract_bathy_coord 01  ## -> should create the bathy and coordinate files,
                                             ##    bathy_meter_${CONFIG}.nc and coordinates_${CONFIG}.nc
                                             ##    (stored in directory defined as config_dir in the namelist)
