@@ -222,6 +222,7 @@ if ( status .ne. 0 ) then
   write(*,*) '  ... no ice-draft => reading thickness and surface height'
   ALLOCATE( surface_STEREO(mx_STEREO,my_STEREO) )
   status = NF90_INQ_VARID(fidSTEREO2,"thickness",thickness_STEREO_ID)
+  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"thi",thickness_STEREO_ID)
   if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"thick",thickness_STEREO_ID)
   if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"THICK",thickness_STEREO_ID)
   if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"THICKNESS",thickness_STEREO_ID)
@@ -925,6 +926,24 @@ elseif ( TRIM(config) == 'AMUXL025' ) then
     ! remove a narrow channel in the halo :
     Bathymetry_isf_REG(229,48:50)=0.e0
     isf_draft_REG(229,48:50)=0.e0
+
+elseif ( TRIM(config) == 'CRODOT60' ) then
+
+    ! no isf over a safety zone (2*npts wide halo) from the eastern and western BDY :
+    isf_draft_REG     (1:2*npts,:) = 0.0
+    Bathymetry_isf_REG(1:2*npts,:) = Bathymetry_REG(1:2*npts,:)
+    isf_draft_REG     (mx_REG-2*npts+1:mx_REG,:) = 0.0
+    Bathymetry_isf_REG(mx_REG-2*npts+1:mx_REG,:) = Bathymetry_REG(mx_REG-2*npts+1:mx_REG,:)
+
+    ! put ice in the shear margin of Crosson:
+    do iREG=260,271
+    do jREG=158,202
+      isf_draft_REG(iREG,jREG) = MAX(10.5,isf_draft_REG(iREG,jREG))
+    enddo
+    enddo
+
+    ! prevent weird narrow cavities:
+    isf_draft_REG(263:275,221:230)=Bathymetry_isf_REG(263:275,221:230)-Bathymetry_REG(263:275,221:230)
 
 endif
 
