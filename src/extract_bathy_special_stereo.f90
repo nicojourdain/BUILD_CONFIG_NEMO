@@ -228,6 +228,7 @@ if ( status .ne. 0 ) then
   if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"THICKNESS",thickness_STEREO_ID)
   call erreur(status,.TRUE.,"read thickness STEREO")
   status = NF90_INQ_VARID(fidSTEREO2,"surface",surface_STEREO_ID)
+  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"srf",surface_STEREO_ID)
   if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"surf",surface_STEREO_ID)
   if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"SURF",surface_STEREO_ID)
   if ( status .ne. 0 ) status = NF90_INQ_VARID(fidSTEREO2,"SURFACE",surface_STEREO_ID)
