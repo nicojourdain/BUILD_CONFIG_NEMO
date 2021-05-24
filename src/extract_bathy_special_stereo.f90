@@ -916,7 +916,7 @@ elseif ( TRIM(config) == 'AMUXL12' ) then
     isf_draft_REG(435:470,116:127)=0.e0
     isf_draft_REG(435:478,103:116)=0.e0
 
-elseif ( TRIM(config) == 'AMUXL025' ) then
+elseif ( TRIM(config(1:8)) == 'AMUXL025' ) then
 
     ! no isf over a safety zone (2*npts wide halo) from the eastern and western BDY :
     isf_draft_REG     (1:2*npts,:) = 0.0

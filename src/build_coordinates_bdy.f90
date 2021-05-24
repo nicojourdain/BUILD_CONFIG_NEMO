@@ -5,9 +5,11 @@ program modif
 ! Used to build netcdf coordinate file for BDY
 !
 ! hisotry: - Feb. 2017: use of namelist
+!          - May  2021: remove 3 consecutive land points (useful for land-processor masking in NEMO4)
 !
 ! 0- Initializations
-! 1- Read coordinates of the entire domain
+! 1a- Read coordinates of the entire domain
+! 1b- Read mask of the entire domain
 ! 2- Calculate BDY dimensions
 ! 3- Exctract coordinates along BDY
 ! 4- Write BDY coordinates in a netcdf file
@@ -37,8 +39,10 @@ INTEGER                              :: fidA, status, dimID_xbv, dimID_xbu, dimI
 &                                       mxbt, myb, e2v_ID, e1v_ID, gphiv_ID, glamv_ID, e2u_ID, e1u_ID, gphiu_ID,&
 &                                       glamu_ID, e2t_ID, e1t_ID, gphit_ID, glamt_ID, nbrv_ID, nbjv_ID, nbiv_ID,&
 &                                       nbru_ID, nbju_ID, nbiu_ID, nbrt_ID, nbjt_ID, nbit_ID, fidM, dimID_x,    &
-&                                       dimID_y, k, kt, ku, kv, kt0, ku0, kv0, mx, my, kkbdy, k1, k2, ndouble
-CHARACTER(LEN=150)                   :: file_in_coord_REG, file_out                     
+&                                       dimID_y, k, kt, ku, kv, kt0, ku0, kv0, mx, my, kkbdy, k1, k2, ndouble,  &
+&                                       fidJ, vmaskutil_ID, umaskutil_ID, tmaskutil_ID
+CHARACTER(LEN=150)                   :: file_in_coord_REG, file_in_mask_REG, file_out                     
+INTEGER*1,ALLOCATABLE,DIMENSION(:,:) :: vmaskutil, umaskutil, tmaskutil
 INTEGER*4,ALLOCATABLE,DIMENSION(:,:) :: nbrv, nbjv, nbiv, nbru, nbju, nbiu, nbrt, nbjt, nbit    
 INTEGER*4,ALLOCATABLE,DIMENSION(:,:) :: nbjv_tmp, nbiv_tmp, nbju_tmp, nbiu_tmp, nbjt_tmp, nbit_tmp    
 REAL*4,ALLOCATABLE,DIMENSION(:,:)    :: e1t_bdy, e2t_bdy, e1u_bdy, e2u_bdy, e1v_bdy, e2v_bdy,                   &
@@ -47,8 +51,7 @@ REAL*4,ALLOCATABLE,DIMENSION(:,:)    :: e1t, e2t, e1u, e2u, e1v, e2v, gphit, gla
 
 !=================================================================================
 ! 0- Initializations 
-!=================================================================================
-
+!=============================================================================mask
 !- default values :
 nn_bdy_east  = 0
 nn_bdy_west  = 0
@@ -81,11 +84,13 @@ CLOSE(1)
 
 write(file_in_coord_REG,101) TRIM(config_dir), TRIM(config)
 101 FORMAT(a,'/coordinates_',a,'.nc')
-write(file_out,102) TRIM(config_dir), TRIM(config)
-102 FORMAT(a,'/coordinates_bdy_',a,'.nc')
+write(file_in_mask_REG,102) TRIM(config_dir), TRIM(config)
+102 FORMAT(a,'/mesh_mask_',a,'.nc')
+write(file_out,103) TRIM(config_dir), TRIM(config)
+103 FORMAT(a,'/coordinates_bdy_',a,'.nc')
 
 !=================================================================================
-! 1- Read coordinates of the entire domain
+! 1a- Read coordinates of the entire domain
 !=================================================================================
 
 write(*,*) 'Reading ', TRIM(file_in_coord_REG)
@@ -138,6 +143,28 @@ status = NF90_GET_VAR(fidA,glamv_ID,glamv) ; call erreur(status,.TRUE.,"getvar_g
 status = NF90_CLOSE(fidA) ; call erreur(status,.TRUE.,"close file")     
 
 !=================================================================================
+! 1b- Read mask of the entire domain
+!=================================================================================
+
+write(*,*) 'Reading ', TRIM(file_in_mask_REG)
+
+status = NF90_OPEN(TRIM(file_in_mask_REG),0,fidJ) ; call erreur(status,.TRUE.,"open coordinates") 
+
+ALLOCATE(  tmaskutil(mx,my)  )
+ALLOCATE(  umaskutil(mx,my)  )
+ALLOCATE(  vmaskutil(mx,my)  )
+
+status = NF90_INQ_VARID(fidJ,"tmaskutil",tmaskutil_ID)     ; call erreur(status,.TRUE.,"inq_tmaskutil_ID")
+status = NF90_INQ_VARID(fidJ,"umaskutil",umaskutil_ID)     ; call erreur(status,.TRUE.,"inq_umaskutil_ID")
+status = NF90_INQ_VARID(fidJ,"vmaskutil",vmaskutil_ID)     ; call erreur(status,.TRUE.,"inq_vmaskutil_ID")
+
+status = NF90_GET_VAR(fidJ,tmaskutil_ID,tmaskutil)     ; call erreur(status,.TRUE.,"getvar_tmaskutil")
+status = NF90_GET_VAR(fidJ,umaskutil_ID,umaskutil)     ; call erreur(status,.TRUE.,"getvar_umaskutil")
+status = NF90_GET_VAR(fidJ,vmaskutil_ID,vmaskutil)     ; call erreur(status,.TRUE.,"getvar_vmaskutil")
+
+status = NF90_CLOSE(fidJ) ; call erreur(status,.TRUE.,"close file")     
+
+!=================================================================================
 ! 2- Calculate BDY dimensions
 !=================================================================================
 
@@ -185,122 +212,172 @@ ALLOCATE(  nbiv_tmp(mxbv,myb), nbjv_tmp(mxbv,myb)  )
 
 !=================================================================================
 ! 3- Exctract coordinates along BDY:
+!    NB: from NEMO4, removing any point with 3 consecutive land values
+!        (t/u/vmaskutil=0)
 !=================================================================================
 
 write(*,*) 'Exctracting coordinates along BDY...'
 
-kt=0;  kt0=0
-ku=0;  ku0=0
-kv=0;  kv0=0
+kt=0
+ku=0
+kv=0
 
 do kkbdy=1,nn_bdy_east
   do k=j1_bdy_east(kkbdy),j2_bdy_east(kkbdy)
-    nbit_tmp(kt0+k-j1_bdy_east(kkbdy)+1,1)=ii_bdy_east(kkbdy)
-    nbjt_tmp(kt0+k-j1_bdy_east(kkbdy)+1,1)=k
     kt=kt+1
+    if ( SUM(tmaskutil(ii_bdy_east(kkbdy),MAX(k-1,1):MIN(k+1,my))).ne.0 ) then
+      nbit_tmp(kt,1)=ii_bdy_east(kkbdy)
+      nbjt_tmp(kt,1)=k
+    else
+      nbit_tmp(kt,1)=999999
+      nbjt_tmp(kt,1)=999999
+    endif
   enddo
   do k=j1_bdy_east(kkbdy),j2_bdy_east(kkbdy)
-    nbiu_tmp(ku0+k-j1_bdy_east(kkbdy)+1,1)=ii_bdy_east(kkbdy)-1
-    nbju_tmp(ku0+k-j1_bdy_east(kkbdy)+1,1)=k
     ku=ku+1
+    if ( SUM(umaskutil(ii_bdy_east(kkbdy)-1,MAX(k-1,1):MIN(k+1,my))).ne.0 ) then
+      nbiu_tmp(ku,1)=ii_bdy_east(kkbdy)-1
+      nbju_tmp(ku,1)=k
+    else
+      nbiu_tmp(ku,1)=999999
+      nbju_tmp(ku,1)=999999
+    endif
   enddo
   !do k=j1_bdy_east(kkbdy),j2_bdy_east(kkbdy)-1
   do k=MAX(1,j1_bdy_east(kkbdy)-1),j2_bdy_east(kkbdy)
-    nbiv_tmp(kv0+k-MAX(1,j1_bdy_east(kkbdy)-1)+1,1)=ii_bdy_east(kkbdy)
-    nbjv_tmp(kv0+k-MAX(1,j1_bdy_east(kkbdy)-1)+1,1)=k
-    write(*,*) '@@ ', kv0+k-j1_bdy_east(kkbdy)+1, ii_bdy_east(kkbdy), k
     kv=kv+1
+    if ( SUM(vmaskutil(ii_bdy_east(kkbdy),MAX(k-1,1):MIN(k+1,my))).ne.0 ) then
+      nbiv_tmp(kv,1)=ii_bdy_east(kkbdy)
+      nbjv_tmp(kv,1)=k
+    else
+      nbiv_tmp(kv,1)=999999
+      nbjv_tmp(kv,1)=999999
+    endif
   enddo
-  kt0=kt
-  ku0=ku
-  kv0=kv
 enddo
 
 do kkbdy=1,nn_bdy_west
   do k=j1_bdy_west(kkbdy),j2_bdy_west(kkbdy)
-    nbit_tmp(kt0+k-j1_bdy_west(kkbdy)+1,1)=ii_bdy_west(kkbdy)
-    nbjt_tmp(kt0+k-j1_bdy_west(kkbdy)+1,1)=k
     kt=kt+1
+    if ( SUM(tmaskutil(ii_bdy_west(kkbdy),MAX(k-1,1):MIN(k+1,my))).ne.0 ) then
+      nbit_tmp(kt,1)=ii_bdy_west(kkbdy)
+      nbjt_tmp(kt,1)=k
+    else
+      nbit_tmp(kt,1)=999999
+      nbjt_tmp(kt,1)=999999
+    endif
   enddo
   do k=j1_bdy_west(kkbdy),j2_bdy_west(kkbdy)
-    nbiu_tmp(ku0+k-j1_bdy_west(kkbdy)+1,1)=ii_bdy_west(kkbdy)
-    nbju_tmp(ku0+k-j1_bdy_west(kkbdy)+1,1)=k
     ku=ku+1
+    if ( SUM(umaskutil(ii_bdy_west(kkbdy),MAX(k-1,1):MIN(k+1,my))).ne.0 ) then
+      nbiu_tmp(ku,1)=ii_bdy_west(kkbdy)
+      nbju_tmp(ku,1)=k
+    else
+      nbiu_tmp(ku,1)=999999
+      nbju_tmp(ku,1)=999999
+    endif
   enddo
   !do k=j1_bdy_west(kkbdy),j2_bdy_west(kkbdy)-1
   do k=MAX(1,j1_bdy_west(kkbdy)-1),j2_bdy_west(kkbdy)
-    nbiv_tmp(kv0+k-MAX(1,j1_bdy_west(kkbdy)-1)+1,1)=ii_bdy_west(kkbdy)
-    nbjv_tmp(kv0+k-MAX(1,j1_bdy_west(kkbdy)-1)+1,1)=k
-    write(*,*) '@@ ', kv0+k-j1_bdy_west(kkbdy)+1, ii_bdy_west(kkbdy), k
     kv=kv+1
+    if ( SUM(vmaskutil(ii_bdy_west(kkbdy),MAX(k-1,1):MIN(k+1,my))).ne.0 ) then
+      nbiv_tmp(kv,1)=ii_bdy_west(kkbdy)
+      nbjv_tmp(kv,1)=k
+    else
+      nbiv_tmp(kv,1)=999999
+      nbjv_tmp(kv,1)=999999
+    endif
   enddo
-  kt0=kt
-  ku0=ku
-  kv0=kv
 enddo
 
 do kkbdy=1,nn_bdy_north
   do k=i1_bdy_north(kkbdy),i2_bdy_north(kkbdy)
-    nbit_tmp(kt0+k-i1_bdy_north(kkbdy)+1,1)=k
-    nbjt_tmp(kt0+k-i1_bdy_north(kkbdy)+1,1)=jj_bdy_north(kkbdy)
     kt=kt+1
+    if ( SUM(tmaskutil(MAX(k-1,1):MIN(k+1,mx),jj_bdy_north(kkbdy))).ne.0 ) then
+      nbit_tmp(kt,1)=k
+      nbjt_tmp(kt,1)=jj_bdy_north(kkbdy)
+    else
+      nbit_tmp(kt,1)=999999
+      nbjt_tmp(kt,1)=999999
+    endif
   enddo
   !do k=i1_bdy_north(kkbdy),i2_bdy_north(kkbdy)-1
   do k=MAX(1,i1_bdy_north(kkbdy)-1),i2_bdy_north(kkbdy)
-    nbiu_tmp(ku0+k-MAX(1,i1_bdy_north(kkbdy)-1)+1,1)=k
-    nbju_tmp(ku0+k-MAX(1,i1_bdy_north(kkbdy)-1)+1,1)=jj_bdy_north(kkbdy)
     ku=ku+1
+    if ( SUM(umaskutil(MAX(k-1,1):MIN(k+1,mx),jj_bdy_north(kkbdy))).ne.0 ) then
+      nbiu_tmp(ku,1)=k
+      nbju_tmp(ku,1)=jj_bdy_north(kkbdy)
+    else
+      nbiu_tmp(ku,1)=999999
+      nbju_tmp(ku,1)=999999
+    endif
   enddo
   do k=i1_bdy_north(kkbdy),i2_bdy_north(kkbdy)
-    nbiv_tmp(kv0+k-i1_bdy_north(kkbdy)+1,1)=k
-    nbjv_tmp(kv0+k-i1_bdy_north(kkbdy)+1,1)=jj_bdy_north(kkbdy)-1
-    write(*,*) '@@ ', kv0+k-i1_bdy_north(kkbdy)+1, k, jj_bdy_north(kkbdy)-1
     kv=kv+1
+    if ( SUM(vmaskutil(MAX(k-1,1):MIN(k+1,mx),jj_bdy_north(kkbdy)-1)).ne.0 ) then
+      nbiv_tmp(kv,1)=k
+      nbjv_tmp(kv,1)=jj_bdy_north(kkbdy)-1
+    else
+      nbiv_tmp(kv,1)=999999
+      nbjv_tmp(kv,1)=999999
+    endif
   enddo
-  kt0=kt
-  ku0=ku
-  kv0=kv
 enddo
 
 do kkbdy=1,nn_bdy_south
   do k=i1_bdy_south(kkbdy),i2_bdy_south(kkbdy)
-    nbit_tmp(kt0+k-i1_bdy_south(kkbdy)+1,1)=k
-    nbjt_tmp(kt0+k-i1_bdy_south(kkbdy)+1,1)=jj_bdy_south(kkbdy)
     kt=kt+1
+    if ( SUM(tmaskutil(MAX(k-1,1):MIN(k+1,mx),jj_bdy_south(kkbdy))).ne.0 ) then
+      nbit_tmp(kt,1)=k
+      nbjt_tmp(kt,1)=jj_bdy_south(kkbdy)
+    else
+      nbit_tmp(kt,1)=999999
+      nbjt_tmp(kt,1)=999999
+    endif
   enddo
   !do k=i1_bdy_south(kkbdy),i2_bdy_south(kkbdy)-1
   do k=MAX(1,i1_bdy_south(kkbdy)-1),i2_bdy_south(kkbdy)
-    nbiu_tmp(ku0+k-MAX(1,i1_bdy_south(kkbdy)-1)+1,1)=k
-    nbju_tmp(ku0+k-MAX(1,i1_bdy_south(kkbdy)-1)+1,1)=jj_bdy_south(kkbdy)
     ku=ku+1
+    if ( SUM(umaskutil(MAX(k-1,1):MIN(k+1,mx),jj_bdy_south(kkbdy))).ne.0 ) then
+      nbiu_tmp(ku,1)=k
+      nbju_tmp(ku,1)=jj_bdy_south(kkbdy)
+    else
+      nbiu_tmp(ku,1)=999999
+      nbju_tmp(ku,1)=999999
+    endif
   enddo
   do k=i1_bdy_south(kkbdy),i2_bdy_south(kkbdy)
-    nbiv_tmp(kv0+k-i1_bdy_south(kkbdy)+1,1)=k
-    nbjv_tmp(kv0+k-i1_bdy_south(kkbdy)+1,1)=jj_bdy_south(kkbdy)
-    write(*,*) '@@ ', kv0+k-i1_bdy_south(kkbdy)+1, k, jj_bdy_south(kkbdy)
     kv=kv+1
+    if ( SUM(vmaskutil(MAX(k-1,1):MIN(k+1,mx),jj_bdy_south(kkbdy))).ne.0 ) then
+      nbiv_tmp(kv,1)=k
+      nbjv_tmp(kv,1)=jj_bdy_south(kkbdy)
+    else
+      nbiv_tmp(kv,1)=999999
+      nbjv_tmp(kv,1)=999999
+    endif
   enddo
-  kt0=kt
-  ku0=ku
-  kv0=kv
 enddo
 
 !--
 ! Check for locations defined two times (useful for complex boundaries)
 ! And remove them and adjust dimensions :
 
-write(*,*) 'Check for double values on grid T'
+write(*,*) 'Check for double values or triple land points on grid T'
 
 ndouble=0
 do k1=1,mxbt-1
-  do k2=k1+1,mxbt
-    if ( nbit_tmp(k1,1).eq.nbit_tmp(k2,1) .and. nbjt_tmp(k1,1).eq.nbjt_tmp(k2,1) ) then
-      ndouble=ndouble+1
-      nbit_tmp(k1,1) = 999999
-      nbjt_tmp(k1,1) = 999999
-      write(*,*) 'adjusting ', ndouble, k1, k2, nbit_tmp(k2,1), nbjt_tmp(k2,1)
-    endif
-  enddo
+  if ( nbit_tmp(k1,1) .eq. 999999 .and. nbjt_tmp(k1,1) .eq. 999999 ) then ! triple land point
+    ndouble=ndouble+1
+  else
+    do k2=k1+1,mxbt
+      if ( nbit_tmp(k1,1).eq.nbit_tmp(k2,1) .and. nbjt_tmp(k1,1).eq.nbjt_tmp(k2,1) ) then
+        ndouble=ndouble+1
+        nbit_tmp(k1,1) = 999999
+        nbjt_tmp(k1,1) = 999999
+        write(*,*) 'adjusting ', ndouble, k1, k2, nbit_tmp(k2,1), nbjt_tmp(k2,1)
+      endif
+    enddo
+  endif
 enddo
 ALLOCATE( nbit(mxbt-ndouble,myb), nbjt(mxbt-ndouble,myb) )
 kt0=0
@@ -314,17 +391,21 @@ enddo
 !DEALLOCATE( nbit_tmp, nbjt_tmp )
 mxbt=mxbt-ndouble
 
-write(*,*) 'Check for double values on grid U'
+write(*,*) 'Check for double values or triple land points on grid U'
 ndouble=0
 do k1=1,mxbu-1
-  do k2=k1+1,mxbu
-    if ( nbiu_tmp(k1,1).eq.nbiu_tmp(k2,1) .and. nbju_tmp(k1,1).eq.nbju_tmp(k2,1) ) then
-      ndouble=ndouble+1
-      nbiu_tmp(k1,1) = 999999
-      nbju_tmp(k1,1) = 999999
-      write(*,*) 'adjusting ', ndouble, k1, k2, nbiu_tmp(k2,1), nbju_tmp(k2,1)
-    endif
-  enddo
+  if ( nbiu_tmp(k1,1) .eq. 999999 .and. nbju_tmp(k1,1) .eq. 999999 ) then ! triple land point
+    ndouble=ndouble+1
+  else
+    do k2=k1+1,mxbu
+      if ( nbiu_tmp(k1,1).eq.nbiu_tmp(k2,1) .and. nbju_tmp(k1,1).eq.nbju_tmp(k2,1) ) then
+        ndouble=ndouble+1
+        nbiu_tmp(k1,1) = 999999
+        nbju_tmp(k1,1) = 999999
+        write(*,*) 'adjusting ', ndouble, k1, k2, nbiu_tmp(k2,1), nbju_tmp(k2,1)
+      endif
+    enddo
+  endif
 enddo
 ALLOCATE( nbiu(mxbu-ndouble,myb), nbju(mxbu-ndouble,myb) )
 ku0=0
@@ -338,17 +419,21 @@ enddo
 !DEALLOCATE( nbiu_tmp, nbju_tmp )
 mxbu=mxbu-ndouble
 
-write(*,*) 'Check for double values on grid V'
+write(*,*) 'Check for double values or triple land points on grid V'
 ndouble=0
 do k1=1,mxbv-1
-  do k2=k1+1,mxbv
-    if ( nbiv_tmp(k1,1).eq.nbiv_tmp(k2,1) .and. nbjv_tmp(k1,1).eq.nbjv_tmp(k2,1) ) then
-      ndouble=ndouble+1
-      nbiv_tmp(k1,1) = 999999
-      nbjv_tmp(k1,1) = 999999
-      write(*,*) 'adjusting ', ndouble, k1, k2, nbiv_tmp(k2,1), nbjv_tmp(k2,1)
-    endif
-  enddo
+  if ( nbiv_tmp(k1,1) .eq. 999999 .and. nbjv_tmp(k1,1) .eq. 999999 ) then ! triple land point
+    ndouble=ndouble+1
+  else
+    do k2=k1+1,mxbv
+      if ( nbiv_tmp(k1,1).eq.nbiv_tmp(k2,1) .and. nbjv_tmp(k1,1).eq.nbjv_tmp(k2,1) ) then
+        ndouble=ndouble+1
+        nbiv_tmp(k1,1) = 999999
+        nbjv_tmp(k1,1) = 999999
+        write(*,*) 'adjusting ', ndouble, k1, k2, nbiv_tmp(k2,1), nbjv_tmp(k2,1)
+      endif
+    enddo
+  endif
 enddo
 ALLOCATE( nbiv(mxbv-ndouble,myb), nbjv(mxbv-ndouble,myb) )
 kv0=0

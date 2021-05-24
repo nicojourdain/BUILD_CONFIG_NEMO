@@ -110,7 +110,9 @@ status = NF90_CLOSE(fidC)                         ; call erreur(status,.TRUE.,"e
 write(*,*) 'Reading regional mask in ', TRIM(file_in_mask_REG)
 status = NF90_OPEN(TRIM(file_in_mask_REG),0,fidMSKREG); call erreur(status,.TRUE.,"read regional mask") 
 !-
-status = NF90_INQ_DIMID(fidMSKREG,"z",dimID_z); call erreur(status,.TRUE.,"inq_dimID_z_REG")
+status = NF90_INQ_DIMID(fidMSKREG,"z",dimID_z)
+if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidMSKREG,"nav_lev",dimID_z)
+call erreur(status,.TRUE.,"inq_dimID_z_REG")
 status = NF90_INQ_DIMID(fidMSKREG,"y",dimID_y); call erreur(status,.TRUE.,"inq_dimID_y_REG")
 status = NF90_INQ_DIMID(fidMSKREG,"x",dimID_x); call erreur(status,.TRUE.,"inq_dimID_x_REG")
 !-

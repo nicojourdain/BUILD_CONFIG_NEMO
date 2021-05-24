@@ -183,8 +183,12 @@ status = NF90_OPEN(TRIM(file_mesh_mask),0,fidG) ; call erreur(status,.TRUE.,"rea
                                                            
 status = NF90_INQ_DIMID(fidG,"x",dimIDG_x) ; call erreur(status,.TRUE.,"inq_dimIDG_x")
 status = NF90_INQ_DIMID(fidG,"y",dimIDG_y) ; call erreur(status,.TRUE.,"inq_dimIDG_y")
-status = NF90_INQ_DIMID(fidG,"z",dimIDG_z) ; call erreur(status,.TRUE.,"inq_dimIDG_z")
-status = NF90_INQ_DIMID(fidG,"t",dimIDG_t) ; call erreur(status,.TRUE.,"inq_dimIDG_t")
+status = NF90_INQ_DIMID(fidG,"z",dimIDG_z)
+if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidG,"nav_lev",dimIDG_z)
+call erreur(status,.TRUE.,"inq_dimIDG_z")
+status = NF90_INQ_DIMID(fidG,"t",dimIDG_t)
+if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidG,"time_counter",dimIDG_t)
+call erreur(status,.TRUE.,"inq_dimIDG_t")
                                                                
 status = NF90_INQUIRE_DIMENSION(fidG,dimIDG_x,len=mxG) ; call erreur(status,.TRUE.,"inq_dim_x")
 status = NF90_INQUIRE_DIMENSION(fidG,dimIDG_y,len=myG) ; call erreur(status,.TRUE.,"inq_dim_y")
