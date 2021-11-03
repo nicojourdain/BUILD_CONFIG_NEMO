@@ -1,9 +1,9 @@
 #!/bin/bash
 
-CONFIG="AMUXL025"
+CONFIG="AMUXL025.L75"
 SSS_DIR="$SHAREDELMER/input/nemo_${CONFIG}/SSS"
-YEARi=1983
-YEARf=1983
+YEARi=1972
+YEARf=1973
 
 #----------------------------------------------------------------------------
 

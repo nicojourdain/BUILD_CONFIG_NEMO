@@ -195,6 +195,15 @@ do jREG=1,my_REG
 enddo
 enddo
 
+write(*,*) lonreg(1,1), latreg(1,1)
+iGLO=NINT(FLOAT(1+imin_ORCA12-1-bi)/ai)
+jGLO=NINT(FLOAT(1+jmin_ORCA12-1-bj)/aj)
+write(*,*) nav_lon(iGLO,jGLO), nav_lat(iGLO,jGLO)
+
+write(*,*) 'max scale_bot : ', MAXVAL(scale_bot), MAXVAL(scale_bot_REG)
+write(*,*) 'max scale_cri : ', MAXVAL(scale_cri), MAXVAL(scale_cri_REG)
+write(*,*) 'max mixing_pyc : ', MAXVAL(mixing_pyc), MAXVAL(mixing_pyc_REG)
+
 !- Smoothing (i.e. bi-linear interpolation) :
 dij=INT(MAX(ai,aj)*0.5)
 write(*,*) 'Smoothing over plus and minus :', dij, ' pts'

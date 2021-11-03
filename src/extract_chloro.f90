@@ -138,8 +138,12 @@ status = NF90_OPEN(TRIM(file_in_mask_REG),0,fidMSH) ; call erreur(status,.TRUE.,
 
 status = NF90_INQ_DIMID(fidMSH,"x",dimID_x) ; call erreur(status,.TRUE.,"inq_dimID_x")
 status = NF90_INQ_DIMID(fidMSH,"y",dimID_y) ; call erreur(status,.TRUE.,"inq_dimID_y")
-status = NF90_INQ_DIMID(fidMSH,"z",dimID_z) ; call erreur(status,.TRUE.,"inq_dimID_z")
-status = NF90_INQ_DIMID(fidMSH,"t",dimID_t) ; call erreur(status,.TRUE.,"inq_dimID_t")
+status = NF90_INQ_DIMID(fidMSH,"z",dimID_z)
+if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidMSH,"nav_lev",dimID_z)
+call erreur(status,.TRUE.,"inq_dimID_z")
+status = NF90_INQ_DIMID(fidMSH,"t",dimID_t)
+if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidMSH,"time_counter",dimID_t)
+call erreur(status,.TRUE.,"inq_dimID_t")
 
 status = NF90_INQUIRE_DIMENSION(fidMSH,dimID_x,len=mx_REG) ; call erreur(status,.TRUE.,"inq_dim_x")
 status = NF90_INQUIRE_DIMENSION(fidMSH,dimID_y,len=my_REG) ; call erreur(status,.TRUE.,"inq_dim_y")
