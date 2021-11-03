@@ -10,7 +10,7 @@ LDFLAGS :=
 
 # occigen :
 #NETCDF_INCDIR := /opt/software/occigen/libraries/netcdf/4.4.0_fortran-4.4.2/hdf5/1.8.17/intel/17.0/openmpi/intel/2.0.1/include
-ETCDF_INCDIR := /opt/software/occigen/spack/linux-rhel7-x86_64/intel-19.0.4/netcdf-4.6.3-ilty/include
+NETCDF_INCDIR := /opt/software/occigen/spack/linux-rhel7-x86_64/intel-19.0.4/netcdf-4.6.3-ilty/include
 NETCDF_LIBDIR :=
 NETCDF_LIBS := -lnetcdf -lnetcdff
 

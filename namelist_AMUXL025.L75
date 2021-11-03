@@ -1,0 +1,209 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! N. Jourdain, IGE-CNRS, Feb. 2017
+!
+! namelist for pre-processing NEMO simulations
+!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!-------------------------------------------------------------------------------------------------------------------------------
+&general
+config     = 'AMUXL025.L75'                                    ! config name, e.g. 'WED12', 'AMU12', etc
+config_dir = '/scratch/shared/egige60/njourd/input/nemo_AMUXL025.L75' ! dir where new netcdf files will be stored
+/
+!--------------------------------------------------------------------------------------------
+&griddata
+file_in_bathy_extract = '/store/njourd/ORCA025.L75/ORCA025.L75-I/bathy_meter.nc'    ! Bathy on the grid from which we extract the regional domain (e.g. eORCA12).
+file_in_coord_extract = '/store/njourd/ORCA025.L75/ORCA025.L75-I/coordinates.nc'    ! Coordinates of grid from which we extract regional domain (e.g. eORCA12).
+ln_coarse_bdy         = .true.                                               ! true if coarser simulation is applied along 
+                                                                             !       the boundaries (then fill file_in_bathy_bdy)
+file_in_bathy_bdy     = '/store/njourd/ORCA025.L75/ORCA025.L75-I/bathy_meter.nc' ! Bathy on the grid corresponding to the lateral boundary conditions (e.g. ORCA025).
+ln_isfcav             = .true.                                              ! true if the domain includes ice shelves.
+! Choose the domain bounds on global grid that is extracted (e.g. eORCA12; WARNING: will be rounded to closest point of the coarse grid if ln_coarse_bdy = true) :
+nn_imin_extract       =  582 
+nn_imax_extract       =  810
+nn_jmin_extract       =   12
+nn_jmax_extract       =  199
+! Choose latitude and longitude near which you know that the two grids match
+! (used to find the relationship between the two grids)
+rn_latref             = -44.0
+rn_lonref             = -90.0
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&bathy_special
+!- Only used with optional extract_bathy_special_lonlat.f90 or extract_bathy_special_stereo.f90 (to interpolate bathymetry from a dataset)
+ln_dateline         = .false.    ! .true. if the domain includes the dateline (not tested),
+                                 ! .false if the domain includes the Greenwich Meridian
+nn_perio            = 0          ! = 1 if the regional domain is periodic (not tested), =0 otherwise.
+!-
+file_spe_bathy      = '/store/njourd/DATA/DATA_BATHYMETRY/BedMachineAntarctica-2020-10-08.nc'
+!file_spe_bathy      = '/store/njourd/DATA/DATA_BATHYMETRY/RTopo-2.0.1_30sec_bedrock_topography.nc'
+!file_spe_bathy      = '/store/njourd/DATA/DATA_BATHYMETRY/bedrock_topography_RTopo-2.0.1_Millan_450m.nc'
+!file_spe_bathy      = '/store/njourd/DATA/DATA_BATHYMETRY/bedrock_topography_RTopo-2.0.1_Millan_new_Getz_450m.nc'
+!file_spe_bathy      = '/store/njourd/DATA/DATA_BATHYMETRY/bedrock_topography_RTopo-2.0.1_on_450m_stereo.nc'
+!-
+file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/BedMachineAntarctica-2020-10-08.nc'
+!file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/RTopo-2.0.1_30sec_ice_base_topography.nc'
+!file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/ice_base_topography_RTopo-2.0.1_Millan_450m.nc'
+!file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/ice_base_topography_RTopo-2.0.1_Millan_new_Getz_450m.nc'
+!file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/ice_base_topography_RTopo-2.0.1_on_450m_stereo.nc'
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&init
+nn_init               =    2   !  1 -> initial state is an extraction from the corresponding global/large-scale grid [ if ln_coarse_bdy = false ]
+                               !  2 -> initial state from coarser resolution [ if ln_coarse_bdy = true ]     
+file_in_mask_extract  = '/scratch/shared/egige60/njourd/input/nemo_ORCA025.L75/mask_ORCA025.L75_GNJ001.nc'  ! Global/large-scale file, according to nn_init 
+                                                                                                     ! (contains tmask, nav_lat, nav_lon, nav_lev)
+!file_in_T             = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_GNJ002/1995/ORCA025.L75-GNJ002_5d_gridT_19950225-19950301.nc' ! Temperature (same grid as file_in_mask_extract)
+file_in_T             = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720225-19720301.nc' ! Temperature (same grid as file_in_mask_extract)
+!file_in_S             = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_GNJ002/1995/ORCA025.L75-GNJ002_5d_gridT_19950225-19950301.nc' ! Salinity    (same grid as file_in_mask_extract)
+file_in_S             = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720225-19720301.nc' ! Salinity    (same grid as file_in_mask_extract)
+nn_eosmatch           =   0    ! match between model equ. of state and istate equ. of state :
+                               !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
+                               !    = 1, same equation of state everywhere
+nn_iter               =   80   ! [optional] nb of iteration for closest neighbour (default=5)
+nn_rsmax              =    5   ! [optional] nb of points to look for horizontally closest neighbour (in one iteration) 
+nn_rzmax              =    1   ! [optional] nb of points to look for vertically closest neighbour (in one iteration, after horizontal search)
+rn_temp               = -1.0   ! default temperature (if no close neighbour after nn_iter iterations)
+rn_sal                = 34.5   ! default salinity    (if no close neighbour after nn_iter iterations)
+nn_smooth             =    9   ! size of the box for running mean (=1 for no smoothing, 3,5,7,... for more smoothing)
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&bdy
+nn_bdy_east           =    1    ! number of along-Y segments constituting the EASTERN boundary
+nn_bdy_west           =    1    ! number of along-Y segments constituting the WESTERN boundary
+nn_bdy_north          =    1    ! number of along-X segments constituting the NORTHERN boundary
+nn_bdy_south          =    0    ! number of along-X segments constituting the SOUTHERN boundary
+nn_harm               =   18    ! number of tidal harmonics to prescribe along the boundaries (0 if no tides in use)
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&bdy_east
+ii_bdy_east(1)        =  230    ! i-index for eastern boundary (ocean T-pt, standard = mx-1)
+j1_bdy_east(1)        =    2    ! lowest  j-index for eastern boundary (ocean T-pt, standard = 2)
+j2_bdy_east(1)        =  189    ! highest j-index for eastern boundary (ocean T-pt, standard = my-1)
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&bdy_west
+ii_bdy_west(1)        =    2    ! i-index for western boundary (ocean T-pt, standard = 2)
+j1_bdy_west(1)        =    2    ! lowest  j-index for western boundary (ocean T-pt, standard = 2)
+j2_bdy_west(1)        =  189    ! highest j-index for western boundary (ocean T-pt, standard = my-1)
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&bdy_north
+i1_bdy_north(1)       =    3    ! lowest  i-index for northern boundary (ocean T-pt, standard = 2, or = 3 if full bdy_west)
+i2_bdy_north(1)       =  229    ! highest i-index for northern boundary (ocean T-pt, standard = mx-1, or = mx-2 if full bdy_east)
+jj_bdy_north(1)       =  189    ! j-index for northern boundary (ocean T-pt, standard = my-1)
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&bdy_south
+i1_bdy_south(1)       =    0    ! lowest  i-index for southern boundary (ocean T-pt, standard = 2, or = 3 if full bdy_west)
+i2_bdy_south(1)       =    0    ! highest i-index for southern boundary (ocean T-pt, standard = mx-1, or = mx-2 if full bdy_east)
+jj_bdy_south(1)       =    0    ! j-index for southern boundary (ocean T-pt, standard = 2)
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&bdy_data
+! Dataset used as lateral boundary conditions (same grid as file_in_mask_extract and as file_in_bathy_bdy if it is used)
+! The dataset is assumed to be in files of one of the following types (YYYY is 4-digit year, MM 2-digit month and DD 2-digit day):
+!
+!        <data_dir>/YYYY/<data_prefix>YYYY<sep1>MM<sep2>DD<data_suffix>.nc
+! or:    <data_dir>/YYYY/<data_prefix>YYYY<sep1>MM<data_suffix>.nc
+! or:    <data_dir>/<data_prefix>YYYY<sep1>MM<sep2>DD<data_suffix>.nc
+! or:    <data_dir>/<data_prefix>YYYY<sep1>MM<data_suffix>.nc
+!
+data_dir              = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_GNJ002/links'
+data_prefix           = 'ORCA025.L75-GNJ002_5d_'
+sep1                  = ''
+sep2                  = ''
+data_suffix_T         = '_gridT' ! suffix for temperature
+data_suffix_S         = '_gridT' ! suffix for salinity
+data_suffix_U         = '_gridU' ! suffix for zonal velocity
+data_suffix_V         = '_gridV' ! suffix for meridional velocity
+data_suffix_ssh       = '_gridT' ! suffix for SSH
+data_suffix_ice       = '_icemod'! suffix for sea ice variables
+file_data_mask        = '/scratch/shared/egige60/njourd/input/nemo_ORCA025.L75/mask_ORCA025.L75_GNJ001.nc'       ! Mask for global/large-scale file
+                                                                                                          ! (contains umask, vmask)
+file_data_zgr         = '/scratch/shared/egige60/njourd/input/nemo_ORCA025.L75/mesh_zgr_ORCA025.L75_GNJ001.nc'   ! Vertical mesh sizes (for btp vel.)
+                                                                                                          ! (contains e3u_0 or e3u and e3v_0 or e3v)
+file_data_hgr         = '/scratch/shared/egige60/njourd/input/nemo_ORCA025.L75/mesh_hgr_ORCA025.L75_GNJ001.nc'   ! Horizontal mesh sizes (for btp vel.)
+nn_yeari              =  1972   ! initial year for BDYs
+nn_yearf              =  1973   ! final year for BDYs
+nn_bdy_eosmatch       =   0     ! match between model equ. of state and BDY equ. of state :
+                                !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
+                                !    = 1, same equation of state everywhere
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&bdy_tide
+tide_dir              = '/store/CT1/egi6035/njourd/DATA/FES2012'
+! name of the nn_harm tidal constituents :
+harm( 1)              = 'M2  '  ! name of 1st tidal constituent (4 characters)
+harm( 2)              = 'S2  '  ! name of 2nd tidal constituent (4 characters)
+harm( 3)              = 'K1  '  !   "           "         "
+harm( 4)              = 'O1  '  !   "           "         "
+harm( 5)              = 'N2  '  !   "           "         "
+harm( 6)              = 'K2  '
+harm( 7)              = 'P1  '
+harm( 8)              = 'Q1  '
+harm( 9)              = 'S1  '
+harm(10)              = '2N2 '
+harm(11)              = 'Mu2 '
+harm(12)              = 'Nu2 '
+harm(13)              = 'L2  '
+harm(14)              = 'Mtm '
+harm(15)              = 'Mm  '
+harm(16)              = 'Mf  '
+harm(17)              = 'T2  '
+harm(18)              = 'M4  '
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&sss_resto
+! Dataset used as lateral boundary conditions (same grid as file_in_mask_extract and as file_in_bathy_bdy if it is used)
+! The sss dataset is assumed to be in files of one of the following types (YYYY is 4-digit year, MM 2-digit month and DD 2-digit day):
+!
+!        <sss_dir>/YYYY/<sss_prefix>YYYY<sss_sep1>MM<sss_sep2>DD<sss_suffix>.nc
+! or:    <sss_dir>/YYYY/<sss_prefix>YYYY<sss_sep1>MM<sss_suffix>.nc
+! or:    <sss_dir>/<sss_prefix>YYYY<sss_sep1>MM<sss_sep2>DD<sss_suffix>.nc
+! or:    <sss_dir>/<sss_prefix>YYYY<sss_sep1>MM<sss_suffix>.nc
+! or:    <sss_dir>/<sss_prefix>.nc        [ for climatology ]
+!
+sss_dir              = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_GNJ002/links'
+sss_prefix           = 'ORCA025.L75-GNJ002_5d_'
+sss_sep1             = ''
+sss_sep2             = ''
+sss_suffix           = '_gridT'
+nn_sss_yeari         = 1972    ! First year to proceed
+nn_sss_yearf         = 2017    ! Last year to proceed
+nn_sss_eosmatch      = 0       ! match between model equ. of state and SSS restoring file :
+                               !    = 0, regional config in TEOS-10 but SSS file in EOS-80
+                               !    = 1, same equation of state everywhere
+file_sss_mask        = '/scratch/shared/egige60/njourd/input/nemo_ORCA025.L75/mask_ORCA025.L75_GNJ001.nc'   ! Mask for global/large-scale file
+                                                                                                     ! (contains tmask)
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&runoff
+! Dataset used as lateral boundary conditions (same grid as file_in_mask_extract and as file_in_bathy_bdy if it is used)
+! The sss dataset is assumed to be in files of one of the following types (YYYY is 4-digit year, MM 2-digit month and DD 2-digit day):
+!
+!        <rrr_dir>/YYYY/<rrr_prefix>YYYY<rrr_sep1>MM<rrr_sep2>DD<rrr_suffix>.nc
+! or:    <rrr_dir>/YYYY/<rrr_prefix>YYYY<rrr_sep1>MM<rrr_suffix>.nc
+! or:    <rrr_dir>/<rrr_prefix>YYYY<rrr_sep1>MM<rrr_sep2>DD<rrr_suffix>.nc
+! or:    <rrr_dir>/<rrr_prefix>YYYY<rrr_sep1>MM<rrr_suffix>.nc
+! or:    <rrr_dir>/<rrr_prefix>.nc        [ for climatology ]
+!
+rrr_dir              = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_GNJ002/links'
+rrr_prefix           = 'ORCA025.L75-GNJ002_5d_'
+rrr_sep1             = ''
+rrr_sep2             = ''
+rrr_suffix           = '_icb'
+nn_rrr_yeari         = 1972    ! First year to proceed
+nn_rrr_yearf         = 1973    ! Last year to proceed
+nn_band              = 50   ! Thickness of the band along the coast where we don't do SSS restoring (in nb of grid pts)
+file_mask_runoff     = '/scratch/shared/egige60/njourd/input/nemo_ORCA025.L75/mask_ORCA025.L75_GNJ001.nc'    ! mask for global/large-scale file
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&chloro
+file_chloro_in       = '/store/njourd/ORCA025/chlaseawifs_c1m-99-05_smooth_ORCA_R025.nc'  ! runoff for global/large-scale file
+rn_chla              = 0.30   ! default CHLA (to fill places in the regional domain uncovered in the global file)
+/
+!-------------------------------------------------------------------------------------------------------------------------------
+&zdfiwm
+file_zdfiwm_in       = '/store/njourd/INPUT_NEWTMX/ORCA025/zdfiwm_ORCA025.nc'
+/
