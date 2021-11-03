@@ -158,12 +158,12 @@ ALLOCATE(  lonreg(mx_REG,my_REG)  )
 ALLOCATE(  latreg(mx_REG,my_REG)  ) 
 
 status = NF90_INQ_VARID(fidMSH,"tmask",tmask_ID)     ; call erreur(status,.TRUE.,"inq_tmask_ID")
-status = NF90_INQ_VARID(fidMSH,"nav_lon",nav_lon_ID) ; call erreur(status,.TRUE.,"inq_nav_lon_ID")
-status = NF90_INQ_VARID(fidMSH,"nav_lat",nav_lat_ID) ; call erreur(status,.TRUE.,"inq_nav_lat_ID")
+status = NF90_INQ_VARID(fidMSH,"glamt",nav_lon_ID)   ; call erreur(status,.TRUE.,"inq_glamt_ID")
+status = NF90_INQ_VARID(fidMSH,"gphit",nav_lat_ID)   ; call erreur(status,.TRUE.,"inq_gphit_ID")
 
 status = NF90_GET_VAR(fidMSH,tmask_ID,tmask)         ; call erreur(status,.TRUE.,"getvar_tmask")
-status = NF90_GET_VAR(fidMSH,nav_lon_ID,lonreg)      ; call erreur(status,.TRUE.,"getvar_nav_lon")
-status = NF90_GET_VAR(fidMSH,nav_lat_ID,latreg)      ; call erreur(status,.TRUE.,"getvar_nav_lat")
+status = NF90_GET_VAR(fidMSH,nav_lon_ID,lonreg)      ; call erreur(status,.TRUE.,"getvar_glamt")
+status = NF90_GET_VAR(fidMSH,nav_lat_ID,latreg)      ; call erreur(status,.TRUE.,"getvar_gphit")
 
 tmask_REG(:,:)=tmask(:,:,1,1)
 DEALLOCATE(tmask)
