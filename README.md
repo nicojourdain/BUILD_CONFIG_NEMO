@@ -21,14 +21,17 @@ Before you start, make sure your system has the following:
 
 ### History
 
-* NOV 21 , N. Jourdain :
-	- modifications and tests (ongoing) with NEMO-4.2-RC.
+* NOV 2021 , N. Jourdain :
+	- modifications and tests for AMUXL025.L75 (ongoing) with NEMO-4.2-RC.
 
-* JUL 18 , N. Jourdain : 
+* JUL 2018 , N. Jourdain : 
 	- new scripts to interpolate bathy and ice draft from lon/lat or stereo data.
 	- can now handle interannual runoff.
 	- more flexible way to provide file names in the namelist.
 	- tests for the AMUXL12 configuration (Amundsen Sea).
+
+* FEB 2017, N. Jourdain :
+	- Initial version.
 
 ### User guide
 
