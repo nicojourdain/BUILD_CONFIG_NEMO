@@ -175,28 +175,28 @@ mxbv=0
 do kkbdy=1,nn_bdy_east
   mxbt=mxbt+j2_bdy_east(kkbdy)-j1_bdy_east(kkbdy)+1
   mxbu=mxbu+j2_bdy_east(kkbdy)-j1_bdy_east(kkbdy)+1
-  !mxbv=mxbv+j2_bdy_east(kkbdy)-j1_bdy_east(kkbdy)
-  mxbv=mxbv+j2_bdy_east(kkbdy)-j1_bdy_east(kkbdy)+MIN(2,j1_bdy_east(kkbdy))
+  mxbv=mxbv+j2_bdy_east(kkbdy)-j1_bdy_east(kkbdy)
+  !WED12: mxbv=mxbv+j2_bdy_east(kkbdy)-j1_bdy_east(kkbdy)+MIN(2,j1_bdy_east(kkbdy))
 enddo
 
 do kkbdy=1,nn_bdy_west
   mxbt=mxbt+j2_bdy_west(kkbdy)-j1_bdy_west(kkbdy)+1
   mxbu=mxbu+j2_bdy_west(kkbdy)-j1_bdy_west(kkbdy)+1
-  !mxbv=mxbv+j2_bdy_west(kkbdy)-j1_bdy_west(kkbdy)
-  mxbv=mxbv+j2_bdy_west(kkbdy)-j1_bdy_west(kkbdy)+MIN(2,j1_bdy_west(kkbdy))
+  mxbv=mxbv+j2_bdy_west(kkbdy)-j1_bdy_west(kkbdy)
+  ! WED12: mxbv=mxbv+j2_bdy_west(kkbdy)-j1_bdy_west(kkbdy)+MIN(2,j1_bdy_west(kkbdy))
 enddo
 
 do kkbdy=1,nn_bdy_north
   mxbt=mxbt+i2_bdy_north(kkbdy)-i1_bdy_north(kkbdy)+1
-  !mxbu=mxbu+i2_bdy_north(kkbdy)-i1_bdy_north(kkbdy)
-  mxbu=mxbu+i2_bdy_north(kkbdy)-i1_bdy_north(kkbdy)+MIN(2,i1_bdy_north(kkbdy))
+  mxbu=mxbu+i2_bdy_north(kkbdy)-i1_bdy_north(kkbdy)
+  !WED12: mxbu=mxbu+i2_bdy_north(kkbdy)-i1_bdy_north(kkbdy)+MIN(2,i1_bdy_north(kkbdy))
   mxbv=mxbv+i2_bdy_north(kkbdy)-i1_bdy_north(kkbdy)+1
 enddo
 
 do kkbdy=1,nn_bdy_south
   mxbt=mxbt+i2_bdy_south(kkbdy)-i1_bdy_south(kkbdy)+1
-  !mxbu=mxbu+i2_bdy_south(kkbdy)-i1_bdy_south(kkbdy)
-  mxbu=mxbu+i2_bdy_south(kkbdy)-i1_bdy_south(kkbdy)+MIN(2,i1_bdy_south(kkbdy))
+  mxbu=mxbu+i2_bdy_south(kkbdy)-i1_bdy_south(kkbdy)
+  !WED12: mxbu=mxbu+i2_bdy_south(kkbdy)-i1_bdy_south(kkbdy)+MIN(2,i1_bdy_south(kkbdy))
   mxbv=mxbv+i2_bdy_south(kkbdy)-i1_bdy_south(kkbdy)+1
 enddo
 
@@ -243,8 +243,8 @@ do kkbdy=1,nn_bdy_east
       nbju_tmp(ku,1)=999999
     endif
   enddo
-  !do k=j1_bdy_east(kkbdy),j2_bdy_east(kkbdy)-1
-  do k=MAX(1,j1_bdy_east(kkbdy)-1),j2_bdy_east(kkbdy)
+  do k=j1_bdy_east(kkbdy),j2_bdy_east(kkbdy)-1
+  !WED12: do k=MAX(1,j1_bdy_east(kkbdy)-1),j2_bdy_east(kkbdy)
     kv=kv+1
     if ( SUM(vmaskutil(ii_bdy_east(kkbdy),MAX(k-1,1):MIN(k+1,my))).ne.0 ) then
       nbiv_tmp(kv,1)=ii_bdy_east(kkbdy)
@@ -277,8 +277,8 @@ do kkbdy=1,nn_bdy_west
       nbju_tmp(ku,1)=999999
     endif
   enddo
-  !do k=j1_bdy_west(kkbdy),j2_bdy_west(kkbdy)-1
-  do k=MAX(1,j1_bdy_west(kkbdy)-1),j2_bdy_west(kkbdy)
+  do k=j1_bdy_west(kkbdy),j2_bdy_west(kkbdy)-1
+  !WED12: do k=MAX(1,j1_bdy_west(kkbdy)-1),j2_bdy_west(kkbdy)
     kv=kv+1
     if ( SUM(vmaskutil(ii_bdy_west(kkbdy),MAX(k-1,1):MIN(k+1,my))).ne.0 ) then
       nbiv_tmp(kv,1)=ii_bdy_west(kkbdy)
@@ -301,8 +301,8 @@ do kkbdy=1,nn_bdy_north
       nbjt_tmp(kt,1)=999999
     endif
   enddo
-  !do k=i1_bdy_north(kkbdy),i2_bdy_north(kkbdy)-1
-  do k=MAX(1,i1_bdy_north(kkbdy)-1),i2_bdy_north(kkbdy)
+  do k=i1_bdy_north(kkbdy),i2_bdy_north(kkbdy)-1
+  !WED12: do k=MAX(1,i1_bdy_north(kkbdy)-1),i2_bdy_north(kkbdy)
     ku=ku+1
     if ( SUM(umaskutil(MAX(k-1,1):MIN(k+1,mx),jj_bdy_north(kkbdy))).ne.0 ) then
       nbiu_tmp(ku,1)=k
@@ -335,8 +335,8 @@ do kkbdy=1,nn_bdy_south
       nbjt_tmp(kt,1)=999999
     endif
   enddo
-  !do k=i1_bdy_south(kkbdy),i2_bdy_south(kkbdy)-1
-  do k=MAX(1,i1_bdy_south(kkbdy)-1),i2_bdy_south(kkbdy)
+  do k=i1_bdy_south(kkbdy),i2_bdy_south(kkbdy)-1
+  !WED12: do k=MAX(1,i1_bdy_south(kkbdy)-1),i2_bdy_south(kkbdy)
     ku=ku+1
     if ( SUM(umaskutil(MAX(k-1,1):MIN(k+1,mx),jj_bdy_south(kkbdy))).ne.0 ) then
       nbiu_tmp(ku,1)=k
