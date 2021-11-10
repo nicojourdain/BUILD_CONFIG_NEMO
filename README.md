@@ -35,6 +35,6 @@ Before you start, make sure your system has the following:
 
 ### User guide
 
-The previous toolbox user guide (written for NEMO-3.6) can be found [here](http://github.com/nicojourdain/BUILD_CONFIG_NEMO/blob/master/README_OLD.txt).
+The detailed toolbox user guide (NEMO-3.6 version) can be found [here](http://github.com/nicojourdain/BUILD_CONFIG_NEMO/blob/master/README_details.txt).
 
 A comprehensive example of use for NEMO4-XIOS2 can be found [here](http://nicojourdain.github.io/students_dir/students_nemo4_occigen) (see in particular section 5 that makes use of the present toolbox).
