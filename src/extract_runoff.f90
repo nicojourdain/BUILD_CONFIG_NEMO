@@ -324,10 +324,10 @@ DO kyear=nn_rrr_yeari,nn_rrr_yearf
                 runoff_REG(iREG,jREG,l) = runoff_GLO(iGLO,jGLO,l) * tmask_REG(iREG,jREG)
               enddo
             else
-              runoff_REG(iREG,jREG,:) = 0.0 
+              runoff_REG(iREG,jREG,:) = 0.e0 
             endif
           else
-            runoff_REG(iREG,jREG,:) = 0.0
+            runoff_REG(iREG,jREG,:) = 0.e0
           endif
         enddo
         enddo
@@ -407,8 +407,8 @@ DO kyear=nn_rrr_yeari,nn_rrr_yearf
         call erreur(status,.TRUE.,"def_var_socoefr_ID")
         
         status = NF90_PUT_ATT(fidM,runoff_ID,"associate","time_counter, y, x")  ; call erreur(status,.TRUE.,"put_att_runoff_ID")
-        status = NF90_PUT_ATT(fidM,runoff_ID,"missing_value",0.)                ; call erreur(status,.TRUE.,"put_att_runoff_ID")
-        status = NF90_PUT_ATT(fidM,runoff_ID,"_FillValue",0.)                   ; call erreur(status,.TRUE.,"put_att_runoff_ID")
+        !status = NF90_PUT_ATT(fidM,runoff_ID,"missing_value",0.)                ; call erreur(status,.TRUE.,"put_att_runoff_ID")
+        !status = NF90_PUT_ATT(fidM,runoff_ID,"_FillValue",0.)                   ; call erreur(status,.TRUE.,"put_att_runoff_ID")
         status = NF90_PUT_ATT(fidM,runoff_ID,"units","kg/m2/s")                 ; call erreur(status,.TRUE.,"put_att_runoff_ID")
         status = NF90_PUT_ATT(fidM,runoff_ID,"long_name","runoff")              ; call erreur(status,.TRUE.,"put_att_runoff_ID")
         status = NF90_PUT_ATT(fidM,socoefr_ID,"units","-")                      ; call erreur(status,.TRUE.,"put_att_socoefr_ID")
