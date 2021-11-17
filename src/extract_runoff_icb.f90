@@ -436,6 +436,8 @@ DO kyear=nn_rrr_yeari,nn_rrr_yearf
         call erreur(status,.TRUE.,"def_var_time_counter_ID")
         status = NF90_DEF_VAR(fidM,"runoff",NF90_FLOAT,(/dimID_x,dimID_y,dimID_time/),runoff_ID)
         call erreur(status,.TRUE.,"def_var_runoff_ID")
+        status = NF90_DEF_VAR(fidM,"icb_melt",NF90_FLOAT,(/dimID_x,dimID_y,dimID_time/),icb_melt_ID)
+        call erreur(status,.TRUE.,"def_var_icb_melt_ID")
         status = NF90_DEF_VAR(fidM,"socoefr",NF90_FLOAT,(/dimID_x,dimID_y/),socoefr_ID)
         call erreur(status,.TRUE.,"def_var_socoefr_ID")
         
