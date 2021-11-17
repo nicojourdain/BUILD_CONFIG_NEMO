@@ -281,6 +281,7 @@ DO kyear=nn_rrr_yeari,nn_rrr_yearf
         endif
 
         ALLOCATE( runoff_GLO(mx_GLO,my_GLO,mtime)  )
+        ALLOCATE( icb_melt_GLO(mx_GLO,my_GLO,mtime)  )
         ALLOCATE( time(mtime) )
         
         !--------------------------------------------
