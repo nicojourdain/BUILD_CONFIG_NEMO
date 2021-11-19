@@ -1,14 +1,16 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! N. Jourdain, IGE-CNRS, Feb. 2017
+! N. Jourdain, IGE-CNRS, Nov. 2021
 !
 ! namelist for pre-processing NEMO simulations
+!
+! The new regional configuration is called the CHILD domain/grid (e.g. 'AMUXL025.L75').
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !-------------------------------------------------------------------------------------------------------------------------------
 &general
-config     = 'AMUXL025.L75'                                    ! config name, e.g. 'WED12', 'AMU12', etc
-config_dir = '/scratch/shared/egige60/njourd/input/nemo_AMUXL025.L75' ! dir where new netcdf files will be stored
+config     = 'AMUXL025.L75'                                           ! CHILD config name, e.g. 'WED12', 'AMU12', etc
+config_dir = '/scratch/shared/egige60/njourd/input/nemo_AMUXL025.L75' ! directory where new netcdf files will be stored
 /
 !--------------------------------------------------------------------------------------------
 &griddata
@@ -16,8 +18,8 @@ file_in_bathy_extract = '/store/njourd/ORCA025.L75/ORCA025.L75-I/bathy_meter.nc'
 file_in_coord_extract = '/store/njourd/ORCA025.L75/ORCA025.L75-I/coordinates.nc'    ! Coordinates of grid from which we extract regional domain (e.g. eORCA12).
 ln_coarse_bdy         = .true.                                               ! true if coarser simulation is applied along 
                                                                              !       the boundaries (then fill file_in_bathy_bdy)
-file_in_bathy_bdy     = '/store/njourd/ORCA025.L75/ORCA025.L75-I/bathy_meter.nc' ! Bathy on the grid corresponding to the lateral boundary conditions (e.g. ORCA025).
-ln_isfcav             = .true.                                              ! true if the domain includes ice shelves.
+file_in_bathy_bdy     = '/store/njourd/ORCA025.L75/ORCA025.L75-I/bathy_meter.nc' ! Bathy on the PARENT grid, i.e. corresponding to the lateral boundary conditions (e.g. ORCA025).
+ln_isfcav             = .true.                                               ! true if the domain includes ice shelves.
 ! Choose the domain bounds on global grid that is extracted (e.g. eORCA12; WARNING: will be rounded to closest point of the coarse grid if ln_coarse_bdy = true) :
 nn_imin_extract       =  582 
 nn_imax_extract       =  810
@@ -36,27 +38,24 @@ ln_dateline         = .false.    ! .true. if the domain includes the dateline (n
 nn_perio            = 0          ! = 1 if the regional domain is periodic (not tested), =0 otherwise.
 !-
 file_spe_bathy      = '/store/njourd/DATA/DATA_BATHYMETRY/BedMachineAntarctica-2020-10-08.nc'
-!file_spe_bathy      = '/store/njourd/DATA/DATA_BATHYMETRY/RTopo-2.0.1_30sec_bedrock_topography.nc'
-!file_spe_bathy      = '/store/njourd/DATA/DATA_BATHYMETRY/bedrock_topography_RTopo-2.0.1_Millan_450m.nc'
-!file_spe_bathy      = '/store/njourd/DATA/DATA_BATHYMETRY/bedrock_topography_RTopo-2.0.1_Millan_new_Getz_450m.nc'
-!file_spe_bathy      = '/store/njourd/DATA/DATA_BATHYMETRY/bedrock_topography_RTopo-2.0.1_on_450m_stereo.nc'
 !-
 file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/BedMachineAntarctica-2020-10-08.nc'
-!file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/RTopo-2.0.1_30sec_ice_base_topography.nc'
-!file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/ice_base_topography_RTopo-2.0.1_Millan_450m.nc'
-!file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/ice_base_topography_RTopo-2.0.1_Millan_new_Getz_450m.nc'
-!file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/ice_base_topography_RTopo-2.0.1_on_450m_stereo.nc'
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &init
-nn_init               =    2   !  1 -> initial state is an extraction from the corresponding global/large-scale grid [ if ln_coarse_bdy = false ]
-                               !  2 -> initial state from coarser resolution [ if ln_coarse_bdy = true ]     
-file_in_mask_extract  = '/scratch/shared/egige60/njourd/input/nemo_ORCA025.L75/mask_ORCA025.L75_GNJ001.nc'  ! Global/large-scale file, according to nn_init 
-                                                                                                     ! (contains tmask, nav_lat, nav_lon, nav_lev)
-!file_in_T             = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_GNJ002/1995/ORCA025.L75-GNJ002_5d_gridT_19950225-19950301.nc' ! Temperature (same grid as file_in_mask_extract)
-file_in_T             = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720225-19720301.nc' ! Temperature (same grid as file_in_mask_extract)
-!file_in_S             = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_GNJ002/1995/ORCA025.L75-GNJ002_5d_gridT_19950225-19950301.nc' ! Salinity    (same grid as file_in_mask_extract)
-file_in_S             = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720225-19720301.nc' ! Salinity    (same grid as file_in_mask_extract)
+!-
+! PARENT mask file, according to nn_init (contains tmask, nav_lat, nav_lon, nav_lev) :
+file_in_mask_extract  = '/scratch/shared/egige60/njourd/input/nemo_ORCA025.L75/mask_ORCA025.L75_GNJ001.nc'
+!-
+! PARENT temperature file (same grid as file_in_mask_extract):
+file_in_T             = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720225-19720301.nc'
+!-
+! PARENT salinity file (same grid as file_in_mask_extract) :
+file_in_S             = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720225-19720301.nc'
+!-
+! PARENT sea ice file (only used by extract_istate_sea_ice.f90) :
+file_in_SI            = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_icemod_19720225-19720301.nc'
+!-
 nn_eosmatch           =   0    ! match between model equ. of state and istate equ. of state :
                                !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
                                !    = 1, same equation of state everywhere
@@ -194,7 +193,7 @@ rrr_sep1             = ''
 rrr_sep2             = ''
 rrr_suffix           = '_icb'
 nn_rrr_yeari         = 1972    ! First year to proceed
-nn_rrr_yearf         = 1973    ! Last year to proceed
+nn_rrr_yearf         = 2018    ! Last year to proceed
 nn_band              = 50   ! Thickness of the band along the coast where we don't do SSS restoring (in nb of grid pts)
 file_mask_runoff     = '/scratch/shared/egige60/njourd/input/nemo_ORCA025.L75/mask_ORCA025.L75_GNJ001.nc'    ! mask for global/large-scale file
 /
