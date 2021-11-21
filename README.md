@@ -118,13 +118,13 @@ ls -al $WORKDIR/input/nemo_${CONFIG}/mesh_mask_${CONFIG}.nc
 To exctract the CHILD initial state (temperature and salinity) from the PARENT simulation, fill the ```&init``` section of the namelist:
 ```bash 
 ./submit.sh extract_istate_TS 01
-ls -al $WORKDIR/input/nemo_${CONFIG}/init_TS_${CONFIG}.nc  # check after completion of extract_istate_TS
+ls -al $WORKDIR/input/nemo_${CONFIG}/istate_TS_${CONFIG}.nc  # check after completion of extract_istate_TS
 ```
 
 If you also need an initial state for sea ice (concentration, ice thickness, snow thickness):
 ```bash 
 ./submit.sh extract_istate_sea_ice 01
-ls -al $WORKDIR/input/nemo_${CONFIG}/init_sea_ice_${CONFIG}.nc  # check after completion of extract_istate_sea_ice
+ls -al $WORKDIR/input/nemo_${CONFIG}/istate_sea_ice_${CONFIG}.nc  # check after completion of extract_istate_sea_ice
 ```
 
 ##### 6- Create the lateral boundary conditions (u, v, T, S, SSH, sea-ice)
