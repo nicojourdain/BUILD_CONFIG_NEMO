@@ -173,7 +173,7 @@ DO kday=1,31
 
   IF ( existfile ) THEN
 
-    write(*,*) 'Reading T,S input dimensions in ', TRIM(file_in_RNF)
+    write(*,*) 'Reading runoff input dimensions in ', TRIM(file_in_RNF)
     status = NF90_OPEN(TRIM(file_in_RNF),0,fidRNF)          ; call erreur(status,.TRUE.,"read first")
 
     status = NF90_INQ_DIMID(fidRNF,"time_counter",dimID_time) ; call erreur(status,.TRUE.,"inq_dimID_time")

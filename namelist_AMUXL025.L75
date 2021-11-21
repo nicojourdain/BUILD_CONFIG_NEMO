@@ -3,7 +3,15 @@
 !
 ! namelist for pre-processing NEMO simulations
 !
-! The new regional configuration is called the CHILD domain/grid (e.g. 'AMUXL025.L75').
+! The new regional configuration is called the CHILD configuration (e.g. 'AMUXL12.L75').
+!
+! It will be forced laterally by a PARENT configuration (e.g. ORCA025.L75) that is also used
+! to extract the CHILD initial state and make consistent bathymetries at the boundaries.
+!
+! We currently use a global grid to extract the CHILD coordinates, it is referred to as the EXT grid.
+!
+! Example: 
+! AMUXL12.L75 (CHILD) grid extracted form ORCA12.L75 (EXT), but AMUXL12.L75 simulation embedded in ORCA025.L75 (PARENT) 
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -14,12 +22,12 @@ config_dir = '/scratch/shared/egige60/njourd/input/nemo_AMUXL025.L75' ! director
 /
 !--------------------------------------------------------------------------------------------
 &griddata
-file_in_bathy_extract = '/store/njourd/ORCA025.L75/ORCA025.L75-I/bathy_meter.nc'    ! Bathy on the grid from which we extract the regional domain (e.g. eORCA12).
-file_in_coord_extract = '/store/njourd/ORCA025.L75/ORCA025.L75-I/coordinates.nc'    ! Coordinates of grid from which we extract regional domain (e.g. eORCA12).
-ln_coarse_bdy         = .true.                                               ! true if coarser simulation is applied along 
-                                                                             !       the boundaries (then fill file_in_bathy_bdy)
-file_in_bathy_bdy     = '/store/njourd/ORCA025.L75/ORCA025.L75-I/bathy_meter.nc' ! Bathy on the PARENT grid, i.e. corresponding to the lateral boundary conditions (e.g. ORCA025).
-ln_isfcav             = .true.                                               ! true if the domain includes ice shelves.
+file_in_bathy_extract = '/store/njourd/ORCA025.L75/ORCA025.L75-I/bathy_meter.nc'    ! Bathy on the EXT grid from which we extract the regional domain (e.g. ORCA12).
+file_in_coord_extract = '/store/njourd/ORCA025.L75/ORCA025.L75-I/coordinates.nc'    ! Coordinates of EXT grid from which we extract regional domain (e.g. ORCA12).
+ln_coarse_bdy         = .true.          ! true to have the PARENT (coarser) bathymetry along lateral boundaries (then fill file_in_bathy_bdy) 
+file_in_bathy_bdy     = '/store/njourd/ORCA025.L75/ORCA025.L75-I/bathy_meter.nc'    ! Bathy on the PARENT grid, i.e. corresponding to the lateral 
+                                                                                    ! boundary conditions (e.g. ORCA025).
+ln_isfcav             = .true.          ! true if the domain includes ice shelves.
 ! Choose the domain bounds on global grid that is extracted (e.g. eORCA12; WARNING: will be rounded to closest point of the coarse grid if ln_coarse_bdy = true) :
 nn_imin_extract       =  582 
 nn_imax_extract       =  810
@@ -53,7 +61,7 @@ file_in_T             = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_
 ! PARENT salinity file (same grid as file_in_mask_extract) :
 file_in_S             = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720225-19720301.nc'
 !-
-! PARENT sea ice file (only used by extract_istate_sea_ice.f90) :
+! PARENT sea ice file (only used by extract_istate_sea_ice.f90, put e.g. 'NOT USED' if no sea ice) :
 file_in_SI            = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_icemod_19720225-19720301.nc'
 !-
 nn_eosmatch           =   0    ! match between model equ. of state and istate equ. of state :
@@ -123,8 +131,8 @@ file_data_mask        = '/scratch/shared/egige60/njourd/input/nemo_ORCA025.L75/m
 file_data_zgr         = '/scratch/shared/egige60/njourd/input/nemo_ORCA025.L75/mesh_zgr_ORCA025.L75_GNJ001.nc'   ! Vertical mesh sizes (for btp vel.)
                                                                                                           ! (contains e3u_0 or e3u and e3v_0 or e3v)
 file_data_hgr         = '/scratch/shared/egige60/njourd/input/nemo_ORCA025.L75/mesh_hgr_ORCA025.L75_GNJ001.nc'   ! Horizontal mesh sizes (for btp vel.)
-nn_yeari              =  1972   ! initial year for BDYs
-nn_yearf              =  1973   ! final year for BDYs
+nn_yeari              =  1974   ! initial year for BDYs
+nn_yearf              =  2018   ! final year for BDYs
 nn_bdy_eosmatch       =   0     ! match between model equ. of state and BDY equ. of state :
                                 !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
                                 !    = 1, same equation of state everywhere

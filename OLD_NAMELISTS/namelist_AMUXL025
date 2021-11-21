@@ -69,6 +69,26 @@ rn_sal                = 34.5   ! default salinity    (if no close neighbour afte
 nn_smooth             =    9   ! size of the box for running mean (=1 for no smoothing, 3,5,7,... for more smoothing)
 /
 !-------------------------------------------------------------------------------------------------------------------------------
+&init_sea_ice
+nn_init               =    2   !  1 -> initial state is an extraction from the corresponding global/large-scale grid [ if ln_coarse_bdy = false ]
+                               !  2 -> initial state from coarser resolution [ if ln_coarse_bdy = true ]
+file_in_mask_extract  = '/scratch/shared/egige60/input/nemo_ORCA025.L75/mask_ORCA025.L75_GNJ001.nc'  ! Global/large-scale file, according to nn_init
+                                                                                                     ! (contains tmask, nav_lat, nav_lon, nav_lev)
+!file_in_T             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/1995/ORCA025.L75-GNJ002_5d_gridT_19950225-19950301.nc' ! Temperature (same grid as file_in_mask_extract)
+file_in_T             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720225-19720301.nc' ! Temperature (same grid as file_in_mask_extract)
+!file_in_S             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/1995/ORCA025.L75-GNJ002_5d_gridT_19950225-19950301.nc' ! Salinity    (same grid as file_in_mask_extract)
+file_in_S             = '/scratch/shared/egige60/output/nemo_ORCA025.L75_GNJ002/1972/ORCA025.L75-GNJ002_5d_gridT_19720225-19720301.nc' ! Salinity    (same grid as file_in_mask_extract)
+nn_eosmatch           =   0    ! match between model equ. of state and istate equ. of state :
+                               !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
+                               !    = 1, same equation of state everywhere
+nn_iter               =   80   ! [optional] nb of iteration for closest neighbour (default=5)
+nn_rsmax              =    5   ! [optional] nb of points to look for horizontally closest neighbour (in one iteration)
+nn_rzmax              =    1   ! [optional] nb of points to look for vertically closest neighbour (in one iteration, after horizontal search)
+rn_temp               = -1.0   ! default temperature (if no close neighbour after nn_iter iterations)
+rn_sal                = 34.5   ! default salinity    (if no close neighbour after nn_iter iterations)
+nn_smooth             =    9   ! size of the box for running mean (=1 for no smoothing, 3,5,7,... for more smoothing)
+/
+!-------------------------------------------------------------------------------------------------------------------------------
 &bdy
 nn_bdy_east           =    1    ! number of along-Y segments constituting the EASTERN boundary
 nn_bdy_west           =    1    ! number of along-Y segments constituting the WESTERN boundary

@@ -470,10 +470,10 @@ CHARACTER(LEN=*), INTENT(in)            :: chaine
 CHARACTER(LEN=80)                       :: message
 !
 IF ( iret .NE. 0 ) THEN
-WRITE(*,*) 'ROUTINE: ', TRIM(chaine)
-WRITE(*,*) 'ERREUR: ', iret
+WRITE(*,*) 'MESSAGE: ', TRIM(chaine)
+WRITE(*,*) 'ERROR: ', iret
 message=NF90_STRERROR(iret)
-WRITE(*,*) 'CA VEUT DIRE:',TRIM(message)
+WRITE(*,*) 'WHICH MEANS:',TRIM(message)
 IF ( lstop ) STOP
 ENDIF
 !
