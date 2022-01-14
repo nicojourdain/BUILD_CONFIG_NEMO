@@ -323,9 +323,16 @@ if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"lon",nav_lon_ID)
 if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"longitude",nav_lon_ID)
 call erreur(status,.TRUE.,"inq_nav_lon_ID_CRS")
 
-status = NF90_INQ_VARID(fidCRS,"Bathymetry",Bathymetry_ID); call erreur(status,.TRUE.,"inq_Bathymetry_ID_CRS")
+!NB: here we try to read two bathymetry variables: one without ice shelf cavities ("Bathymetry")
+!    and, if ln_isfcav is true,  one with ice shelf cavities ("Bathymetry_isf").
+!    If no "Bathymetry_isf" is found, we use a single bathymetry variable.
+status = NF90_INQ_VARID(fidCRS,"Bathymetry",Bathymetry_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"bathymetry",Bathymetry_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"bathy_metry",Bathymetry_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"bathy",Bathymetry_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"Bathy",Bathymetry_ID)
+call erreur(status,.TRUE.,"inq_Bathymetry_ID_CRS")
 status = NF90_GET_VAR(fidCRS,Bathymetry_ID,Bathymetry_CRS); call erreur(status,.TRUE.,"getvar_Bathymetry_CRS")
-
 if ( ln_isfcav ) then
   status = NF90_INQ_VARID(fidCRS,"Bathymetry_isf",Bathymetry_isf_ID)
   if ( status .eq. 0 ) then
@@ -334,10 +341,18 @@ if ( ln_isfcav ) then
     Bathymetry_isf_CRS(:,:) = Bathymetry_CRS(:,:)
   endif
   status = NF90_INQ_VARID(fidCRS,"isf_draft",isf_draft_ID)
+  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"isfdraft",isf_draft_ID)
+  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"draft",isf_draft_ID)
+  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"ice_shelf_draft",isf_draft_ID)
+  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"Ice_shelf_draft",isf_draft_ID)
+  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"ice_shelf_base",isf_draft_ID)
   if ( status .eq. 0 ) then
     status = NF90_GET_VAR(fidCRS,isf_draft_ID,isf_draft_CRS); call erreur(status,.TRUE.,"getvar_isf_draft_CRS")
   else
     isf_draft_CRS(:,:) = 0.e0
+     write(*,*) 'WARNING: no ice shelf draft found. Allowed names are :'
+     write(*,*) '         "isf_draft", "isfdraft", "draft", "ice_shelf_draft", "Ice_shelf_draft", "ice_shelf_base"'
+     write(*,*) '         >>>>> ASSUMING ice_draft = 0 for the COARSE data'
   endif
 endif
 
