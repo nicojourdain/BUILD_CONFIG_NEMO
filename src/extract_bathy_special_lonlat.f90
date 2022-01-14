@@ -312,7 +312,6 @@ isf_draft_CHLD      (:,:) = 0.e0
 Bathymetry_CHLD     (:,:) = 0.e0
 
 do iCHLD=1,mx_CHLD
-write(*,*) 'iCHLD = ', iCHLD
 do jCHLD=1,my_CHLD
 
   if ( nn_perio .eq. 1 ) then !- periodic

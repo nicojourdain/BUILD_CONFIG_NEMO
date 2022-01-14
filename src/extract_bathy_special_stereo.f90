@@ -156,7 +156,6 @@ lon_0    = deg2rad * lon_0
 ALLOCATE( lat_STEREO(mx_STEREO,my_STEREO), zlon_STEREO(mx_STEREO,my_STEREO) )
 
 do iSTEREO=1,mx_STEREO
-write(*,*) iSTEREO
 do jSTEREO=1,my_STEREO
 
   if ( pm .lt. 0.0 ) then
