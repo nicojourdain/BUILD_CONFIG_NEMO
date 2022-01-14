@@ -3,17 +3,18 @@ program modif
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! N. Jourdain, IGE-CNRS, Jan. 2017
 !
-! Script to extract the bathymetry from a stereographic dataset (e.g. BEDMAP).
+! Script to extract the bathymetry of the child domain (CHLD) from a stereographic dataset
+! (e.g. BEDMAP, BedMachine).
 !
 ! The bathymetry along the boundaries (over a NINT(ai*1.5)-pts halo) is the same as in the
-! dataset used as lateral boundary conditions (referred to as "CRS").
+! dataset used as lateral boundary conditions (referred to as "PAR" for parent).
 !
 ! 0- Initializations 
 ! 1- Read stereographic bathymetry and ice shelf draft
-! 2- Read grid correspondance with GLO (i.e. extraction coordinates)
-! 3- Read coarse bathymetry ("CRS") used for consistent bathymetry along boundaries
-! 4- Calculate bathy/isf draft on the REG grid
-! 5- Writing new REG bathymetry file
+! 2- Read grid correspondance with EXT (i.e. extraction coordinates)
+! 3- Read coarse bathymetry ("PAR") used for consistent bathymetry along boundaries
+! 4- Calculate bathy/isf draft on the CHLD grid
+! 5- Writing new CHLD bathymetry file
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -37,7 +38,7 @@ REAL(KIND=4)                          :: rn_latref, rn_lonref
 INTEGER :: fidSTEREO1, fidSTEREO2, x_ID, y_ID, my_STEREO, mx_STEREO, bedrock_topography_ID, lat_ID, lon_ID, &
 &          bathy_STEREO_ID, isf_draft_STEREO_ID, rq, thickness_STEREO_ID, surface_STEREO_ID
 
-REAL*8 :: a, e, lat_c, pm, lon_0, lon_STEREO, chi, m_c, t_c, t, x, y, res_STEREO, res_REG
+REAL*8 :: a, e, lat_c, pm, lon_0, lon_STEREO, chi, m_c, t_c, t, x, y, res_STEREO, res_CHLD
 
 REAL*4,ALLOCATABLE,DIMENSION(:) :: x_STEREO, y_STEREO
 
@@ -45,18 +46,18 @@ REAL*4,ALLOCATABLE,DIMENSION(:,:) :: bathy_STEREO, isf_draft_STEREO, surface_STE
 
 
 !-- local variables :
-INTEGER :: fidGLO, fidCRS, fidM, status, dimID_y, dimID_x, nav_lat_ID, nav_lon_ID, isf_draft_ID, Bathymetry_isf_ID, Bathymetry_ID,    &
-&          my_GLO, mx_GLO,  my_CRS, mx_CRS,  my_REG, mx_REG, imin_GLO, imax_GLO, jmin_GLO, jmax_GLO, npts, jtmp, ai, aj, bi, bj,      &
-&          fidCOORDreg, fidCOORDpar, minlon, maxlon, minlat, maxlat, imin_STEREO, imax_STEREO, jmin_STEREO, jmax_STEREO, iREG, jREG,  &
-&          iSTEREO, jSTEREO, iREGm1, iREGp1, jREGm1, jREGp1, kk, mx_tmp, my_tmp, i0, j0, rs, imin_STEREO2, imax_STEREO2, Nbox,        &
+INTEGER :: fidEXT, fidPAR, fidM, status, dimID_y, dimID_x, nav_lat_ID, nav_lon_ID, isf_draft_ID, Bathymetry_isf_ID, Bathymetry_ID,    &
+&          my_EXT, mx_EXT,  my_PAR, mx_PAR,  my_CHLD, mx_CHLD, imin_EXT, imax_EXT, jmin_EXT, jmax_EXT, npts, jtmp, ai, aj, bi, bj,      &
+&          fidCOORDreg, fidCOORDpar, minlon, maxlon, minlat, maxlat, imin_STEREO, imax_STEREO, jmin_STEREO, jmax_STEREO, iCHLD, jCHLD,  &
+&          iSTEREO, jSTEREO, iCHLDm1, iCHLDp1, jCHLDm1, jCHLDp1, kk, mx_tmp, my_tmp, i0, j0, rs, imin_STEREO2, imax_STEREO2, Nbox,        &
 &          jmin_STEREO2, jmax_STEREO2
 
-CHARACTER(LEN=150) :: file_bathy_out, file_in_coord_REG
+CHARACTER(LEN=150) :: file_bathy_out, file_in_coord_CHLD
 
 INTEGER, ALLOCATABLE,DIMENSION(:,:) :: nn
 
-REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:) :: gphit_REG, glamt_REG, zglamt_REG, isf_draft_REG, Bathymetry_isf_REG, Bathymetry_REG, &
-&                                          Bathymetry_CRS, Bathymetry_isf_CRS, isf_draft_CRS, Bathymetry_0, Bathymetry_isf_0, isf_draft_0
+REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:) :: gphit_CHLD, glamt_CHLD, zglamt_CHLD, isf_draft_CHLD, Bathymetry_isf_CHLD, Bathymetry_CHLD, &
+&                                          Bathymetry_PAR, Bathymetry_isf_PAR, isf_draft_PAR, Bathymetry_0, Bathymetry_isf_0, isf_draft_0
 
 INTEGER(KIND=4), ALLOCATABLE, DIMENSION(:) :: imin, imax, jmin, jmax
 
@@ -83,7 +84,7 @@ write(file_bathy_out,101) TRIM(config_dir), TRIM(config)
 101 FORMAT(a,'/bathy_meter_',a,'.nc')
 
 ! name of regional coordinates file (output file) :
-write(file_in_coord_REG,102) TRIM(config_dir), TRIM(config)
+write(file_in_coord_CHLD,102) TRIM(config_dir), TRIM(config)
 102 FORMAT(a,'/coordinates_',a,'.nc')
 
 eps = 1.d-9
@@ -245,12 +246,12 @@ status = NF90_CLOSE(fidSTEREO2); call erreur(status,.TRUE.,"End read isf_draft S
 
 
 !=================================================================================
-! 2- Read grid correspondance with GLO (i.e. extraction coordinates)
+! 2- Read grid correspondance with EXT (i.e. extraction coordinates)
 !=================================================================================
 
-write(*,*) 'Reading REGIONAL lon,lat in ', TRIM(file_in_coord_REG)
+write(*,*) 'Reading CHLDIONAL lon,lat in ', TRIM(file_in_coord_CHLD)
 
-status = NF90_OPEN(TRIM(file_in_coord_REG),0,fidCOORDreg); call erreur(status,.TRUE.,"read coord input")
+status = NF90_OPEN(TRIM(file_in_coord_CHLD),0,fidCOORDreg); call erreur(status,.TRUE.,"read coord input")
 
 status = NF90_INQ_DIMID(fidCOORDreg,"x",dimID_x)
 if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidCOORDreg,"X",dimID_x)
@@ -259,38 +260,38 @@ status = NF90_INQ_DIMID(fidCOORDreg,"y",dimID_y)
 if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidCOORDreg,"Y",dimID_y)
 call erreur(status,.TRUE.,"inq_dimID_y")
                                                      
-status = NF90_INQUIRE_DIMENSION(fidCOORDreg,dimID_y,len=my_REG); call erreur(status,.TRUE.,"inq_dim_y_REG")
-status = NF90_INQUIRE_DIMENSION(fidCOORDreg,dimID_x,len=mx_REG); call erreur(status,.TRUE.,"inq_dim_x_REG")
+status = NF90_INQUIRE_DIMENSION(fidCOORDreg,dimID_y,len=my_CHLD); call erreur(status,.TRUE.,"inq_dim_y_CHLD")
+status = NF90_INQUIRE_DIMENSION(fidCOORDreg,dimID_x,len=mx_CHLD); call erreur(status,.TRUE.,"inq_dim_x_CHLD")
 
-ALLOCATE(  gphit_REG (mx_REG,my_REG)  )
-ALLOCATE(  glamt_REG (mx_REG,my_REG)  )
-ALLOCATE( zglamt_REG (mx_REG,my_REG)  )
+ALLOCATE(  gphit_CHLD (mx_CHLD,my_CHLD)  )
+ALLOCATE(  glamt_CHLD (mx_CHLD,my_CHLD)  )
+ALLOCATE( zglamt_CHLD (mx_CHLD,my_CHLD)  )
 
-status = NF90_INQ_VARID(fidCOORDreg,"gphit",nav_lat_ID); call erreur(status,.TRUE.,"inq_gphit_REG_ID")
-status = NF90_INQ_VARID(fidCOORDreg,"glamt",nav_lon_ID); call erreur(status,.TRUE.,"inq_glamt_REG_ID")
+status = NF90_INQ_VARID(fidCOORDreg,"gphit",nav_lat_ID); call erreur(status,.TRUE.,"inq_gphit_CHLD_ID")
+status = NF90_INQ_VARID(fidCOORDreg,"glamt",nav_lon_ID); call erreur(status,.TRUE.,"inq_glamt_CHLD_ID")
 
-status = NF90_GET_VAR(fidCOORDreg,nav_lat_ID,gphit_REG); call erreur(status,.TRUE.,"getvar_gphit_REG")
-status = NF90_GET_VAR(fidCOORDreg,nav_lon_ID,glamt_REG); call erreur(status,.TRUE.,"getvar_glamt_REG")
+status = NF90_GET_VAR(fidCOORDreg,nav_lat_ID,gphit_CHLD); call erreur(status,.TRUE.,"getvar_gphit_CHLD")
+status = NF90_GET_VAR(fidCOORDreg,nav_lon_ID,glamt_CHLD); call erreur(status,.TRUE.,"getvar_glamt_CHLD")
 
 status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "ai", ai); call erreur(status,.TRUE.,"read att1")
 status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "bi", bi); call erreur(status,.TRUE.,"read att2")
 status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "aj", aj); call erreur(status,.TRUE.,"read att3")
 status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "bj", bj); call erreur(status,.TRUE.,"read att4")
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "imin_extraction", imin_GLO); call erreur(status,.TRUE.,"read att5")
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "jmin_extraction", jmin_GLO); call erreur(status,.TRUE.,"read att6")
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "imax_extraction", imax_GLO); call erreur(status,.TRUE.,"read att7")
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "jmax_extraction", jmax_GLO); call erreur(status,.TRUE.,"read att8")
+status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "imin_extraction", imin_EXT); call erreur(status,.TRUE.,"read att5")
+status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "jmin_extraction", jmin_EXT); call erreur(status,.TRUE.,"read att6")
+status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "imax_extraction", imax_EXT); call erreur(status,.TRUE.,"read att7")
+status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "jmax_extraction", jmax_EXT); call erreur(status,.TRUE.,"read att8")
 
 status = NF90_CLOSE(fidCOORDreg); call erreur(status,.TRUE.,"end read fidCOORDreg")
 
-zglamt_REG(:,:)=glamt_REG(:,:)
+zglamt_CHLD(:,:)=glamt_CHLD(:,:)
 if ( ln_dateline ) then
-  where( glamt_REG(:,:) .lt. 0.e0 )
-    zglamt_REG(:,:)=glamt_REG(:,:)+360.e0
+  where( glamt_CHLD(:,:) .lt. 0.e0 )
+    zglamt_CHLD(:,:)=glamt_CHLD(:,:)+360.e0
   endwhere
 else
-  where( glamt_REG(:,:) .gt. 180.e0 )
-    zglamt_REG(:,:)=glamt_REG(:,:)-360.e0
+  where( glamt_CHLD(:,:) .gt. 180.e0 )
+    zglamt_CHLD(:,:)=glamt_CHLD(:,:)-360.e0
   endwhere
 endif
 
@@ -300,63 +301,63 @@ endif
 
 write(*,*) 'Reading coarse bathymetry for consistent boundaries: ', TRIM(file_in_bathy_bdy)
 
-status = NF90_OPEN(TRIM(file_in_bathy_bdy),0,fidCRS); call erreur(status,.TRUE.,"read_coarse_bathymetry") 
+status = NF90_OPEN(TRIM(file_in_bathy_bdy),0,fidPAR); call erreur(status,.TRUE.,"read_coarse_bathymetry") 
 
-status = NF90_INQ_DIMID(fidCRS,"y",dimID_y); call erreur(status,.TRUE.,"inq_dimID_y_CRS")
-status = NF90_INQ_DIMID(fidCRS,"x",dimID_x); call erreur(status,.TRUE.,"inq_dimID_x_CRS")
+status = NF90_INQ_DIMID(fidPAR,"y",dimID_y); call erreur(status,.TRUE.,"inq_dimID_y_PAR")
+status = NF90_INQ_DIMID(fidPAR,"x",dimID_x); call erreur(status,.TRUE.,"inq_dimID_x_PAR")
 
-status = NF90_INQUIRE_DIMENSION(fidCRS,dimID_y,len=my_CRS); call erreur(status,.TRUE.,"inq_dim_y_CRS")
-status = NF90_INQUIRE_DIMENSION(fidCRS,dimID_x,len=mx_CRS); call erreur(status,.TRUE.,"inq_dim_x_CRS")
+status = NF90_INQUIRE_DIMENSION(fidPAR,dimID_y,len=my_PAR); call erreur(status,.TRUE.,"inq_dim_y_PAR")
+status = NF90_INQUIRE_DIMENSION(fidPAR,dimID_x,len=mx_PAR); call erreur(status,.TRUE.,"inq_dim_x_PAR")
 
-ALLOCATE(  Bathymetry_CRS (mx_CRS,my_CRS)  ) 
+ALLOCATE(  Bathymetry_PAR (mx_PAR,my_PAR)  ) 
 if ( ln_isfcav ) then
-  ALLOCATE(  Bathymetry_isf_CRS (mx_CRS,my_CRS)  )
-  ALLOCATE(  isf_draft_CRS (mx_CRS,my_CRS)  )
+  ALLOCATE(  Bathymetry_isf_PAR (mx_PAR,my_PAR)  )
+  ALLOCATE(  isf_draft_PAR (mx_PAR,my_PAR)  )
 endif
 
-status = NF90_INQ_VARID(fidCRS,"nav_lat",nav_lat_ID)
-if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"lat",nav_lat_ID)
-if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"latitude",nav_lat_ID)
-call erreur(status,.TRUE.,"inq_nav_lat_ID_CRS")
-status = NF90_INQ_VARID(fidCRS,"nav_lon",nav_lon_ID)
-if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"lon",nav_lon_ID)
-if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"longitude",nav_lon_ID)
-call erreur(status,.TRUE.,"inq_nav_lon_ID_CRS")
+status = NF90_INQ_VARID(fidPAR,"nav_lat",nav_lat_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidPAR,"lat",nav_lat_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidPAR,"latitude",nav_lat_ID)
+call erreur(status,.TRUE.,"inq_nav_lat_ID_PAR")
+status = NF90_INQ_VARID(fidPAR,"nav_lon",nav_lon_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidPAR,"lon",nav_lon_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidPAR,"longitude",nav_lon_ID)
+call erreur(status,.TRUE.,"inq_nav_lon_ID_PAR")
 
 !NB: here we try to read two bathymetry variables: one without ice shelf cavities ("Bathymetry")
 !    and, if ln_isfcav is true,  one with ice shelf cavities ("Bathymetry_isf").
 !    If no "Bathymetry_isf" is found, we use a single bathymetry variable.
-status = NF90_INQ_VARID(fidCRS,"Bathymetry",Bathymetry_ID)
-if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"bathymetry",Bathymetry_ID)
-if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"bathy_metry",Bathymetry_ID)
-if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"bathy",Bathymetry_ID)
-if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"Bathy",Bathymetry_ID)
-call erreur(status,.TRUE.,"inq_Bathymetry_ID_CRS")
-status = NF90_GET_VAR(fidCRS,Bathymetry_ID,Bathymetry_CRS); call erreur(status,.TRUE.,"getvar_Bathymetry_CRS")
+status = NF90_INQ_VARID(fidPAR,"Bathymetry",Bathymetry_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidPAR,"bathymetry",Bathymetry_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidPAR,"bathy_metry",Bathymetry_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidPAR,"bathy",Bathymetry_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidPAR,"Bathy",Bathymetry_ID)
+call erreur(status,.TRUE.,"inq_Bathymetry_ID_PAR")
+status = NF90_GET_VAR(fidPAR,Bathymetry_ID,Bathymetry_PAR); call erreur(status,.TRUE.,"getvar_Bathymetry_PAR")
 if ( ln_isfcav ) then
-  status = NF90_INQ_VARID(fidCRS,"Bathymetry_isf",Bathymetry_isf_ID)
+  status = NF90_INQ_VARID(fidPAR,"Bathymetry_isf",Bathymetry_isf_ID)
   if ( status .eq. 0 ) then
-    status = NF90_GET_VAR(fidCRS,Bathymetry_isf_ID,Bathymetry_isf_CRS); call erreur(status,.TRUE.,"getvar_Bathymetry_isf_CRS")
+    status = NF90_GET_VAR(fidPAR,Bathymetry_isf_ID,Bathymetry_isf_PAR); call erreur(status,.TRUE.,"getvar_Bathymetry_isf_PAR")
   else
-    Bathymetry_isf_CRS(:,:) = Bathymetry_CRS(:,:)
+    Bathymetry_isf_PAR(:,:) = Bathymetry_PAR(:,:)
   endif
-  status = NF90_INQ_VARID(fidCRS,"isf_draft",isf_draft_ID)
-  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"isfdraft",isf_draft_ID)
-  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"draft",isf_draft_ID)
-  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"ice_shelf_draft",isf_draft_ID)
-  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"Ice_shelf_draft",isf_draft_ID)
-  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidCRS,"ice_shelf_base",isf_draft_ID)
+  status = NF90_INQ_VARID(fidPAR,"isf_draft",isf_draft_ID)
+  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidPAR,"isfdraft",isf_draft_ID)
+  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidPAR,"draft",isf_draft_ID)
+  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidPAR,"ice_shelf_draft",isf_draft_ID)
+  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidPAR,"Ice_shelf_draft",isf_draft_ID)
+  if ( status .ne. 0 ) status = NF90_INQ_VARID(fidPAR,"ice_shelf_base",isf_draft_ID)
   if ( status .eq. 0 ) then
-    status = NF90_GET_VAR(fidCRS,isf_draft_ID,isf_draft_CRS); call erreur(status,.TRUE.,"getvar_isf_draft_CRS")
+    status = NF90_GET_VAR(fidPAR,isf_draft_ID,isf_draft_PAR); call erreur(status,.TRUE.,"getvar_isf_draft_PAR")
   else
-    isf_draft_CRS(:,:) = 0.e0
+    isf_draft_PAR(:,:) = 0.e0
      write(*,*) 'WARNING: no ice shelf draft found. Allowed names are :'
      write(*,*) '         "isf_draft", "isfdraft", "draft", "ice_shelf_draft", "Ice_shelf_draft", "ice_shelf_base"'
      write(*,*) '         >>>>> ASSUMING ice_draft = 0 for the COARSE data'
   endif
 endif
 
-status = NF90_CLOSE(fidCRS); call erreur(status,.TRUE.,"close_coarse_bathy_file")
+status = NF90_CLOSE(fidPAR); call erreur(status,.TRUE.,"close_coarse_bathy_file")
 
 !===================================================================
 ! put COARSE grid in a npts-pts halo (+ transition in another halo)
@@ -365,29 +366,29 @@ npts=CEILING(ai*1.5)
 write(*,*) 'put COARSE grid bathymetry in a npts-pts halo, with npts = ', npts
 
 !=================================================================================
-! 4- Calculate bathy/isf draft on the REG grid :
+! 4- Calculate bathy/isf draft on the CHLD grid :
 !=================================================================================
 
 write(*,*) 'Calculating bathymetry on the regional grid...'
     
-ALLOCATE(  nn                 (mx_REG,my_REG)  )
-ALLOCATE(  isf_draft_REG      (mx_REG,my_REG)  )
-ALLOCATE(  Bathymetry_isf_REG (mx_REG,my_REG)  )
-ALLOCATE(  Bathymetry_REG     (mx_REG,my_REG)  )
-ALLOCATE(  isf_draft_0        (mx_REG,my_REG)  )
-ALLOCATE(  Bathymetry_isf_0   (mx_REG,my_REG)  )
-ALLOCATE(  Bathymetry_0       (mx_REG,my_REG)  )
+ALLOCATE(  nn                 (mx_CHLD,my_CHLD)  )
+ALLOCATE(  isf_draft_CHLD      (mx_CHLD,my_CHLD)  )
+ALLOCATE(  Bathymetry_isf_CHLD (mx_CHLD,my_CHLD)  )
+ALLOCATE(  Bathymetry_CHLD     (mx_CHLD,my_CHLD)  )
+ALLOCATE(  isf_draft_0        (mx_CHLD,my_CHLD)  )
+ALLOCATE(  Bathymetry_isf_0   (mx_CHLD,my_CHLD)  )
+ALLOCATE(  Bathymetry_0       (mx_CHLD,my_CHLD)  )
   
 nn(:,:) = 0 
-Bathymetry_isf_REG (:,:) = 0.e0
-isf_draft_REG      (:,:) = 0.e0
-Bathymetry_REG     (:,:) = 0.e0
+Bathymetry_isf_CHLD (:,:) = 0.e0
+isf_draft_CHLD      (:,:) = 0.e0
+Bathymetry_CHLD     (:,:) = 0.e0
 
-res_REG = a * deg2rad * ABS( gphit_REG(1,2) - gphit_REG(1,1) ) 
+res_CHLD = a * deg2rad * ABS( gphit_CHLD(1,2) - gphit_CHLD(1,1) ) 
 res_STEREO = ABS( y_STEREO(2) - y_STEREO(1) )
-rq = MIN( mx_STEREO , MIN( my_STEREO, 20 * CEILING( res_REG / res_STEREO ) ) )
+rq = MIN( mx_STEREO , MIN( my_STEREO, 20 * CEILING( res_CHLD / res_STEREO ) ) )
 write(*,*) ' '
-write(*,*) 'Once a correspondance (iSTEREO,jSTEREO) on the stereographic grid is found for (iREG,jREG),'
+write(*,*) 'Once a correspondance (iSTEREO,jSTEREO) on the stereographic grid is found for (iCHLD,jCHLD),'
 write(*,*) ' the next stereographic point of the regional grid is searched in a square of'
 write(*,*) ' radius ', rq, ' around (iSTEREO,jSTEREO).'
 write(*,*) ' '
@@ -397,56 +398,56 @@ imax_STEREO2 = mx_STEREO
 jmin_STEREO2 = 1
 jmax_STEREO2 = my_STEREO
 
-do iREG=1,mx_REG
-!write(*,*) 'iREG = ', iREG
-do jREG=1,my_REG
+do iCHLD=1,mx_CHLD
+!write(*,*) 'iCHLD = ', iCHLD
+do jCHLD=1,my_CHLD
 
   if ( nn_perio .eq. 1 ) then !- periodic
-    if    ( iREG+1 .gt. mx_REG ) then
-      iREGp1 = 3
-      iREGm1 = iREG - 1
-    elseif ( iREG-1 .lt. 1     ) then
-      iREGp1 = iREG + 1
-      iREGm1 = mx_REG-2
+    if    ( iCHLD+1 .gt. mx_CHLD ) then
+      iCHLDp1 = 3
+      iCHLDm1 = iCHLD - 1
+    elseif ( iCHLD-1 .lt. 1     ) then
+      iCHLDp1 = iCHLD + 1
+      iCHLDm1 = mx_CHLD-2
     else
-      iREGp1 = iREG + 1
-      iREGm1 = iREG - 1
+      iCHLDp1 = iCHLD + 1
+      iCHLDm1 = iCHLD - 1
     endif
   elseif ( nn_perio .eq. 0 ) then
-    if    ( iREG+1 .gt. mx_REG ) then
-      iREGp1 = iREG
-      iREGm1 = iREG - 1
-    elseif ( iREG-1 .lt. 1     ) then
-      iREGp1 = iREG + 1
-      iREGm1 = iREG
+    if    ( iCHLD+1 .gt. mx_CHLD ) then
+      iCHLDp1 = iCHLD
+      iCHLDm1 = iCHLD - 1
+    elseif ( iCHLD-1 .lt. 1     ) then
+      iCHLDp1 = iCHLD + 1
+      iCHLDm1 = iCHLD
     else
-      iREGp1 = iREG + 1
-      iREGm1 = iREG - 1
+      iCHLDp1 = iCHLD + 1
+      iCHLDm1 = iCHLD - 1
     endif
   else
     write(*,*) '~!@#$%^* nn_perio must be either 0 or 1 >>>>> stop !!'
     stop
   endif
   !-
-  if    ( jREG+1 .gt. my_REG ) then
-    jREGp1 = jREG
-    jREGm1 = jREG - 1
-  elseif ( iREG-1 .lt. 1     ) then
-    jREGp1 = jREG + 1
-    jREGm1 = jREG
+  if    ( jCHLD+1 .gt. my_CHLD ) then
+    jCHLDp1 = jCHLD
+    jCHLDm1 = jCHLD - 1
+  elseif ( iCHLD-1 .lt. 1     ) then
+    jCHLDp1 = jCHLD + 1
+    jCHLDm1 = jCHLD
   else
-    jREGp1 = jREG + 1
-    jREGm1 = jREG - 1
+    jCHLDp1 = jCHLD + 1
+    jCHLDm1 = jCHLD - 1
   endif
   !-
-  iREGm1 = MAX( MIN( iREGm1, mx_REG ), 1 )
-  iREGp1 = MAX( MIN( iREGp1, mx_REG ), 1 )
-  jREGm1 = MAX( MIN( jREGm1, my_REG ), 1 )
-  jREGp1 = MAX( MIN( jREGp1, my_REG ), 1 )
+  iCHLDm1 = MAX( MIN( iCHLDm1, mx_CHLD ), 1 )
+  iCHLDp1 = MAX( MIN( iCHLDp1, mx_CHLD ), 1 )
+  jCHLDm1 = MAX( MIN( jCHLDm1, my_CHLD ), 1 )
+  jCHLDp1 = MAX( MIN( jCHLDp1, my_CHLD ), 1 )
   !-
 
   ! restrict search for corresponding points on the stereographic grid (RAZ after a column)
-  if ( ( jREG .eq. 1 ) .or. ( nn_perio .eq. 1 .and. ( iREG .lt. 11 .or. iREG .gt. mx_REG - 10 ) ) ) then
+  if ( ( jCHLD .eq. 1 ) .or. ( nn_perio .eq. 1 .and. ( iCHLD .lt. 11 .or. iCHLD .gt. mx_CHLD - 10 ) ) ) then
     imin_STEREO = 1
     imax_STEREO = mx_STEREO
     jmin_STEREO = 1
@@ -462,22 +463,22 @@ do jREG=1,my_REG
   do jSTEREO=jmin_STEREO,jmax_STEREO
  
     !-NB: we don't care too much about i=1 and i=mx (same for j) because it is masked anyway...    
-    if (       zlon_STEREO(iSTEREO,jSTEREO) .ge. zglamt_REG(iREG,jREG) - 0.5*(zglamt_REG(iREG,jREG)-zglamt_REG(iREGm1,jREG)) &
-    &    .and. zlon_STEREO(iSTEREO,jSTEREO) .lt. zglamt_REG(iREG,jREG) + 0.5*(zglamt_REG(iREGp1,jREG)-zglamt_REG(iREG,jREG)) &
-    &    .and.  lat_STEREO(iSTEREO,jSTEREO) .ge.  gphit_REG(iREG,jREG) - 0.5*( gphit_REG(iREG,jREG)- gphit_REG(iREG,jREGm1)) &
-    &    .and.  lat_STEREO(iSTEREO,jSTEREO) .lt.  gphit_REG(iREG,jREG) + 0.5*( gphit_REG(iREG,jREGp1)- gphit_REG(iREG,jREG)) ) then
+    if (       zlon_STEREO(iSTEREO,jSTEREO) .ge. zglamt_CHLD(iCHLD,jCHLD) - 0.5*(zglamt_CHLD(iCHLD,jCHLD)-zglamt_CHLD(iCHLDm1,jCHLD)) &
+    &    .and. zlon_STEREO(iSTEREO,jSTEREO) .lt. zglamt_CHLD(iCHLD,jCHLD) + 0.5*(zglamt_CHLD(iCHLDp1,jCHLD)-zglamt_CHLD(iCHLD,jCHLD)) &
+    &    .and.  lat_STEREO(iSTEREO,jSTEREO) .ge.  gphit_CHLD(iCHLD,jCHLD) - 0.5*( gphit_CHLD(iCHLD,jCHLD)- gphit_CHLD(iCHLD,jCHLDm1)) &
+    &    .and.  lat_STEREO(iSTEREO,jSTEREO) .lt.  gphit_CHLD(iCHLD,jCHLD) + 0.5*( gphit_CHLD(iCHLD,jCHLDp1)- gphit_CHLD(iCHLD,jCHLD)) ) then
 
-      if ( nn(iREG,jREG) .eq. 0 ) then
+      if ( nn(iCHLD,jCHLD) .eq. 0 ) then
         imin_STEREO2 = mx_STEREO ! starting value for the MIN
         imax_STEREO2 = 1         ! starting value for the MAX
         jmin_STEREO2 = my_STEREO
         jmax_STEREO2 = 1
       endif
 
-      Bathymetry_isf_REG (iREG,jREG) = Bathymetry_isf_REG (iREG,jREG) - bathy_STEREO     (iSTEREO,jSTEREO)
-      isf_draft_REG      (iREG,jREG) = isf_draft_REG      (iREG,jREG) - isf_draft_STEREO (iSTEREO,jSTEREO)
+      Bathymetry_isf_CHLD (iCHLD,jCHLD) = Bathymetry_isf_CHLD (iCHLD,jCHLD) - bathy_STEREO     (iSTEREO,jSTEREO)
+      isf_draft_CHLD      (iCHLD,jCHLD) = isf_draft_CHLD      (iCHLD,jCHLD) - isf_draft_STEREO (iSTEREO,jSTEREO)
 
-      nn(iREG,jREG) = nn(iREG,jREG) + 1
+      nn(iCHLD,jCHLD) = nn(iCHLD,jCHLD) + 1
 
       imin_STEREO2 = MIN( imin_STEREO2, iSTEREO - rq )
       imax_STEREO2 = MAX( imax_STEREO2, iSTEREO + rq )
@@ -495,11 +496,11 @@ enddo
 !-----
 
 where ( nn(:,:) .ge. 1 )
-  Bathymetry_isf_REG (:,:) = Bathymetry_isf_REG (:,:) / nn(:,:)
-  isf_draft_REG      (:,:) = isf_draft_REG      (:,:) / nn(:,:)
+  Bathymetry_isf_CHLD (:,:) = Bathymetry_isf_CHLD (:,:) / nn(:,:)
+  isf_draft_CHLD      (:,:) = isf_draft_CHLD      (:,:) / nn(:,:)
 elsewhere
-  Bathymetry_isf_REG (:,:) = 99999999.9
-  isf_draft_REG      (:,:) = 99999999.9
+  Bathymetry_isf_CHLD (:,:) = 99999999.9
+  isf_draft_CHLD      (:,:) = 99999999.9
 endwhere
 
 !-----
@@ -507,84 +508,84 @@ endwhere
 ! Only look for first neighbour
 ! needs to be adapted if many missing points
 
-do iREG=1,mx_REG
-do jREG=1,my_REG
+do iCHLD=1,mx_CHLD
+do jCHLD=1,my_CHLD
 
-  if ( nn(iREG,jREG) .eq. 0 ) then
-
-    do rs=1,10
-      if ( nn_perio .eq. 1 ) then !- periodic
-        if    ( iREG+rs .gt. mx_REG ) then
-          iREGp1 = 2+rs
-        else
-          iREGp1 = iREG + rs
-        endif
-      elseif ( nn_perio .eq. 0 ) then
-        if    ( iREG+rs .gt. mx_REG ) then
-          iREGp1 = mx_REG
-          exit ! with nn(iREGp1,jREG)=0
-        else
-          iREGp1 = iREG + rs
-        endif
-      endif
-      if ( nn(iREGp1,jREG) .ne. 0 ) exit ! with nn(iREGp1,jREG)>0
-    enddo
+  if ( nn(iCHLD,jCHLD) .eq. 0 ) then
 
     do rs=1,10
       if ( nn_perio .eq. 1 ) then !- periodic
-        if ( iREG-rs .lt. 1     ) then
-          iREGm1 = mx_REG-rs-1
+        if    ( iCHLD+rs .gt. mx_CHLD ) then
+          iCHLDp1 = 2+rs
         else
-          iREGm1 = iREG - rs
+          iCHLDp1 = iCHLD + rs
         endif
       elseif ( nn_perio .eq. 0 ) then
-        if ( iREG-rs .lt. 1     ) then
-          iREGm1 = 1
-          exit ! with nn(iREGm1,jREG)=0
+        if    ( iCHLD+rs .gt. mx_CHLD ) then
+          iCHLDp1 = mx_CHLD
+          exit ! with nn(iCHLDp1,jCHLD)=0
         else
-          iREGm1 = iREG - rs
+          iCHLDp1 = iCHLD + rs
         endif
       endif
-      if ( nn(iREGm1,jREG) .gt. 0 ) exit ! with nn(iREGm1,jREG)>0
+      if ( nn(iCHLDp1,jCHLD) .ne. 0 ) exit ! with nn(iCHLDp1,jCHLD)>0
     enddo
 
     do rs=1,10
-      if    ( jREG+rs .gt. my_REG ) then
-        jREGp1 = my_REG
-        exit ! with nn(iREG,jREGp1)=0
-      else
-        jREGp1 = jREG + rs
+      if ( nn_perio .eq. 1 ) then !- periodic
+        if ( iCHLD-rs .lt. 1     ) then
+          iCHLDm1 = mx_CHLD-rs-1
+        else
+          iCHLDm1 = iCHLD - rs
+        endif
+      elseif ( nn_perio .eq. 0 ) then
+        if ( iCHLD-rs .lt. 1     ) then
+          iCHLDm1 = 1
+          exit ! with nn(iCHLDm1,jCHLD)=0
+        else
+          iCHLDm1 = iCHLD - rs
+        endif
       endif
-      if ( nn(iREG,jREGp1) .gt. 0 ) exit ! with nn(iREG,jREGp1)>0
+      if ( nn(iCHLDm1,jCHLD) .gt. 0 ) exit ! with nn(iCHLDm1,jCHLD)>0
     enddo
 
     do rs=1,10
-      if    ( jREG-rs .lt. 1 ) then
-        jREGm1 = 1
-        exit ! with nn(iREG,jREGm1)=0
+      if    ( jCHLD+rs .gt. my_CHLD ) then
+        jCHLDp1 = my_CHLD
+        exit ! with nn(iCHLD,jCHLDp1)=0
       else
-        jREGm1 = jREG - rs
+        jCHLDp1 = jCHLD + rs
       endif
-      if ( nn(iREG,jREGm1) .gt. 0 ) exit ! with nn(iREG,jREGm1)>0
+      if ( nn(iCHLD,jCHLDp1) .gt. 0 ) exit ! with nn(iCHLD,jCHLDp1)>0
     enddo
 
-    Bathymetry_isf_REG(iREG,jREG) = (   nn(iREGm1,jREG  ) * (iREGp1-iREG) * Bathymetry_isf_REG(iREGm1,jREG  )   &
-    &                                 + nn(iREGp1,jREG  ) * (iREG-iREGm1) * Bathymetry_isf_REG(iREGp1,jREG  )   &
-    &                                 + nn(iREG  ,jREGm1) * (jREGp1-jREG) * Bathymetry_isf_REG(iREG  ,jREGm1)   &
-    &                                 + nn(iREG  ,jREGp1) * (jREG-jREGm1) * Bathymetry_isf_REG(iREG  ,jREGp1) ) &
-    &                             / (   nn(iREGm1,jREG  ) * (iREGp1-iREG)                                       &
-    &                                 + nn(iREGp1,jREG  ) * (iREG-iREGm1)                                       &
-    &                                 + nn(iREG  ,jREGm1) * (jREGp1-jREG)                                       &
-    &                                 + nn(iREG  ,jREGp1) * (jREG-jREGm1)                                     )
+    do rs=1,10
+      if    ( jCHLD-rs .lt. 1 ) then
+        jCHLDm1 = 1
+        exit ! with nn(iCHLD,jCHLDm1)=0
+      else
+        jCHLDm1 = jCHLD - rs
+      endif
+      if ( nn(iCHLD,jCHLDm1) .gt. 0 ) exit ! with nn(iCHLD,jCHLDm1)>0
+    enddo
 
-    isf_draft_REG(iREG,jREG) = (   nn(iREGm1,jREG  ) * (iREGp1-iREG) * isf_draft_REG(iREGm1,jREG  )   &
-    &                            + nn(iREGp1,jREG  ) * (iREG-iREGm1) * isf_draft_REG(iREGp1,jREG  )   &
-    &                            + nn(iREG  ,jREGm1) * (jREGp1-jREG) * isf_draft_REG(iREG  ,jREGm1)   &
-    &                            + nn(iREG  ,jREGp1) * (jREG-jREGm1) * isf_draft_REG(iREG  ,jREGp1) ) &
-    &                        / (   nn(iREGm1,jREG  ) * (iREGp1-iREG)                                       &
-    &                            + nn(iREGp1,jREG  ) * (iREG-iREGm1)                                       &
-    &                            + nn(iREG  ,jREGm1) * (jREGp1-jREG)                                       &
-    &                            + nn(iREG  ,jREGp1) * (jREG-jREGm1)                                     )
+    Bathymetry_isf_CHLD(iCHLD,jCHLD) = (   nn(iCHLDm1,jCHLD  ) * (iCHLDp1-iCHLD) * Bathymetry_isf_CHLD(iCHLDm1,jCHLD  )   &
+    &                                 + nn(iCHLDp1,jCHLD  ) * (iCHLD-iCHLDm1) * Bathymetry_isf_CHLD(iCHLDp1,jCHLD  )   &
+    &                                 + nn(iCHLD  ,jCHLDm1) * (jCHLDp1-jCHLD) * Bathymetry_isf_CHLD(iCHLD  ,jCHLDm1)   &
+    &                                 + nn(iCHLD  ,jCHLDp1) * (jCHLD-jCHLDm1) * Bathymetry_isf_CHLD(iCHLD  ,jCHLDp1) ) &
+    &                             / (   nn(iCHLDm1,jCHLD  ) * (iCHLDp1-iCHLD)                                       &
+    &                                 + nn(iCHLDp1,jCHLD  ) * (iCHLD-iCHLDm1)                                       &
+    &                                 + nn(iCHLD  ,jCHLDm1) * (jCHLDp1-jCHLD)                                       &
+    &                                 + nn(iCHLD  ,jCHLDp1) * (jCHLD-jCHLDm1)                                     )
+
+    isf_draft_CHLD(iCHLD,jCHLD) = (   nn(iCHLDm1,jCHLD  ) * (iCHLDp1-iCHLD) * isf_draft_CHLD(iCHLDm1,jCHLD  )   &
+    &                            + nn(iCHLDp1,jCHLD  ) * (iCHLD-iCHLDm1) * isf_draft_CHLD(iCHLDp1,jCHLD  )   &
+    &                            + nn(iCHLD  ,jCHLDm1) * (jCHLDp1-jCHLD) * isf_draft_CHLD(iCHLD  ,jCHLDm1)   &
+    &                            + nn(iCHLD  ,jCHLDp1) * (jCHLD-jCHLDm1) * isf_draft_CHLD(iCHLD  ,jCHLDp1) ) &
+    &                        / (   nn(iCHLDm1,jCHLD  ) * (iCHLDp1-iCHLD)                                       &
+    &                            + nn(iCHLDp1,jCHLD  ) * (iCHLD-iCHLDm1)                                       &
+    &                            + nn(iCHLD  ,jCHLDm1) * (jCHLDp1-jCHLD)                                       &
+    &                            + nn(iCHLD  ,jCHLDp1) * (jCHLD-jCHLDm1)                                     )
 
    endif
 
@@ -593,184 +594,184 @@ enddo
 
 !---------
 
-write(*,*) '>i=125 ', nn(125,20), Bathymetry_isf_REG(125,20), isf_draft_REG(125,20)
-write(*,*) '>i=624 ', nn(624,20), Bathymetry_isf_REG(624,20), isf_draft_REG(624,20)
+write(*,*) '>i=125 ', nn(125,20), Bathymetry_isf_CHLD(125,20), isf_draft_CHLD(125,20)
+write(*,*) '>i=624 ', nn(624,20), Bathymetry_isf_CHLD(624,20), isf_draft_CHLD(624,20)
 
-where( isf_draft_REG(:,:) .lt. 0.e0 )
-  isf_draft_REG(:,:) = 0.e0
+where( isf_draft_CHLD(:,:) .lt. 0.e0 )
+  isf_draft_CHLD(:,:) = 0.e0
 endwhere
 
-where( Bathymetry_isf_REG(:,:) .lt. 0.e0 )
-  Bathymetry_isf_REG(:,:) = 0.e0
+where( Bathymetry_isf_CHLD(:,:) .lt. 0.e0 )
+  Bathymetry_isf_CHLD(:,:) = 0.e0
 endwhere
 
-where( isf_draft_REG(:,:) .gt. 1.e0 .and. isf_draft_REG(:,:) .lt. 1.e4 )
-  Bathymetry_REG(:,:) = 0.e0
+where( isf_draft_CHLD(:,:) .gt. 1.e0 .and. isf_draft_CHLD(:,:) .lt. 1.e4 )
+  Bathymetry_CHLD(:,:) = 0.e0
 elsewhere
-  Bathymetry_REG(:,:) = Bathymetry_isf_REG(:,:)
+  Bathymetry_CHLD(:,:) = Bathymetry_isf_CHLD(:,:)
 endwhere
 
-!write(*,*) '#i=125 ', Bathymetry_REG(125,20), Bathymetry_isf_REG(125,20), isf_draft_REG(125,20)
-!write(*,*) '#i=624 ', Bathymetry_REG(624,20), Bathymetry_isf_REG(624,20), isf_draft_REG(624,20)
+!write(*,*) '#i=125 ', Bathymetry_CHLD(125,20), Bathymetry_isf_CHLD(125,20), isf_draft_CHLD(125,20)
+!write(*,*) '#i=624 ', Bathymetry_CHLD(624,20), Bathymetry_isf_CHLD(624,20), isf_draft_CHLD(624,20)
 
 !---------------------------------------
-! Adjust bathy along the edges of the REG grid :
+! Adjust bathy along the edges of the CHLD grid :
 
 write(*,*) 'Halo with bathy from the dataset used as lateral boundaries...'
 
 if ( ln_coarse_bdy ) then
     
     !---------------------------------------
-    ! Adjust bathy along the edges of the REG grid :
+    ! Adjust bathy along the edges of the CHLD grid :
     
     write(*,*) 'Halo with bathy from coarse resolution...'
     
-    !=== put exactly CRS data over a npts-point halo :
-    do jREG=1,my_REG
-      jtmp = NINT(FLOAT(jREG+jmin_GLO-1-bj)/aj)
+    !=== put exactly PAR data over a npts-point halo :
+    do jCHLD=1,my_CHLD
+      jtmp = NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj)
       if ( jtmp .gt. 0 ) then !! we do not try to change the bathy southward of the grid
         !-- Western BDY :
-        do iREG=1,npts
+        do iCHLD=1,npts
           if ( ln_isfcav) then
-            isf_draft_REG     (iREG,jREG) = isf_draft_CRS      ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp )
-            Bathymetry_isf_REG(iREG,jREG) = Bathymetry_isf_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp )
+            isf_draft_CHLD     (iCHLD,jCHLD) = isf_draft_PAR      ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp )
+            Bathymetry_isf_CHLD(iCHLD,jCHLD) = Bathymetry_isf_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp )
           endif
-          Bathymetry_REG    (iREG,jREG) = Bathymetry_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp )
+          Bathymetry_CHLD    (iCHLD,jCHLD) = Bathymetry_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp )
         enddo
         !--- Eastern BDY :
-        do iREG=mx_REG-npts+1,mx_REG
+        do iCHLD=mx_CHLD-npts+1,mx_CHLD
           if ( ln_isfcav) then
-            isf_draft_REG     (iREG,jREG) = isf_draft_CRS      ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp )
-            Bathymetry_isf_REG(iREG,jREG) = Bathymetry_isf_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp )
+            isf_draft_CHLD     (iCHLD,jCHLD) = isf_draft_PAR      ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp )
+            Bathymetry_isf_CHLD(iCHLD,jCHLD) = Bathymetry_isf_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp )
           endif
-          Bathymetry_REG    (iREG,jREG) = Bathymetry_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp )
+          Bathymetry_CHLD    (iCHLD,jCHLD) = Bathymetry_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp )
         enddo
       endif
     enddo
     !-- Southern BDY :
-    do jREG=1,npts
-      jtmp = NINT(FLOAT(jREG+jmin_GLO-1-bj)/aj)
+    do jCHLD=1,npts
+      jtmp = NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj)
       if ( jtmp .gt. 0 ) then !! we do not try to change the bathy southward of the grid
-        do iREG=npts+1,mx_REG-npts
+        do iCHLD=npts+1,mx_CHLD-npts
           if ( ln_isfcav) then
-            isf_draft_REG     (iREG,jREG) = isf_draft_CRS      ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp )
-            Bathymetry_isf_REG(iREG,jREG) = Bathymetry_isf_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp )
+            isf_draft_CHLD     (iCHLD,jCHLD) = isf_draft_PAR      ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp )
+            Bathymetry_isf_CHLD(iCHLD,jCHLD) = Bathymetry_isf_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp )
           endif
-          Bathymetry_REG    (iREG,jREG) = Bathymetry_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp )
+          Bathymetry_CHLD    (iCHLD,jCHLD) = Bathymetry_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp )
         enddo
       endif
     enddo
     !--- Northern BDY :
-    do jREG=my_REG-npts+1,my_REG
-      jtmp = NINT(FLOAT(jREG+jmin_GLO-1-bj)/aj)
+    do jCHLD=my_CHLD-npts+1,my_CHLD
+      jtmp = NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj)
       if ( jtmp .gt. 0 ) then !! we do not try to change the bathy southward of the grid
-        do iREG=npts+1,mx_REG-npts
+        do iCHLD=npts+1,mx_CHLD-npts
           if ( ln_isfcav) then
-            isf_draft_REG     (iREG,jREG) = isf_draft_CRS      ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp )
-            Bathymetry_isf_REG(iREG,jREG) = Bathymetry_isf_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp )
+            isf_draft_CHLD     (iCHLD,jCHLD) = isf_draft_PAR      ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp )
+            Bathymetry_isf_CHLD(iCHLD,jCHLD) = Bathymetry_isf_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp )
           endif
-          Bathymetry_REG    (iREG,jREG) = Bathymetry_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp )
+          Bathymetry_CHLD    (iCHLD,jCHLD) = Bathymetry_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp )
         enddo
       endif
     enddo
     
     write(*,*) 'Smooth transition...'
 
-    Bathymetry_0     = Bathymetry_REG
-    Bathymetry_isf_0 = Bathymetry_isf_REG
-    isf_draft_0      = isf_draft_REG
+    Bathymetry_0     = Bathymetry_CHLD
+    Bathymetry_isf_0 = Bathymetry_isf_CHLD
+    isf_draft_0      = isf_draft_CHLD
 
-    !=== smooth transition from CRS to the interpolated fields (over npts points again) :
-    do jREG=npts+1,my_REG-npts
-      jtmp = NINT(FLOAT(jREG+jmin_GLO-1-bj)/aj)
+    !=== smooth transition from PAR to the interpolated fields (over npts points again) :
+    do jCHLD=npts+1,my_CHLD-npts
+      jtmp = NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj)
       !-- Western BDY :
       if ( jtmp .gt. 0 ) then !! we do not try to change the bathy southward of the grid
-        do iREG=npts+1,2*npts
+        do iCHLD=npts+1,2*npts
           if ( ln_isfcav) then
-            if ( isf_draft_0(iREG,jREG) .gt. 1.0 .and. isf_draft_CRS(NINT(FLOAT(iREG+imin_GLO-1-bi)/ai),jtmp) .gt. 1.0 ) then
-              isf_draft_REG(iREG,jREG) = (  (2*npts+1-iREG) * isf_draft_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp ) &
-              &                           + (iREG-npts) * isf_draft_0(iREG,jREG) ) / (npts+1)
+            if ( isf_draft_0(iCHLD,jCHLD) .gt. 1.0 .and. isf_draft_PAR(NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai),jtmp) .gt. 1.0 ) then
+              isf_draft_CHLD(iCHLD,jCHLD) = (  (2*npts+1-iCHLD) * isf_draft_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp ) &
+              &                           + (iCHLD-npts) * isf_draft_0(iCHLD,jCHLD) ) / (npts+1)
             !else
-            !  isf_draft_REG   (iREG,jREG) = 0.0
+            !  isf_draft_CHLD   (iCHLD,jCHLD) = 0.0
             endif
-            if ( Bathymetry_isf_0(iREG,jREG) .gt. 1.0 .and. Bathymetry_isf_CRS(NINT(FLOAT(iREG+imin_GLO-1-bi)/ai),jtmp) .gt. 1.0 ) then
-              Bathymetry_isf_REG(iREG,jREG) = (  (2*npts+1-iREG) * Bathymetry_isf_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp ) &
-              &                                + (iREG-npts) * Bathymetry_isf_0(iREG,jREG) ) / (npts+1)
+            if ( Bathymetry_isf_0(iCHLD,jCHLD) .gt. 1.0 .and. Bathymetry_isf_PAR(NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai),jtmp) .gt. 1.0 ) then
+              Bathymetry_isf_CHLD(iCHLD,jCHLD) = (  (2*npts+1-iCHLD) * Bathymetry_isf_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp ) &
+              &                                + (iCHLD-npts) * Bathymetry_isf_0(iCHLD,jCHLD) ) / (npts+1)
             !else
-            !  Bathymetry_isf_REG   (iREG,jREG) = 0.0
+            !  Bathymetry_isf_CHLD   (iCHLD,jCHLD) = 0.0
             endif
           endif
-          Bathymetry_REG(iREG,jREG) = (   (2*npts+1-iREG) * Bathymetry_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp ) &
-          &                             + (iREG-npts) * Bathymetry_0(iREG,jREG) ) / (npts+1)
+          Bathymetry_CHLD(iCHLD,jCHLD) = (   (2*npts+1-iCHLD) * Bathymetry_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp ) &
+          &                             + (iCHLD-npts) * Bathymetry_0(iCHLD,jCHLD) ) / (npts+1)
         enddo
         !-- Eastern BDY
-        do iREG=mx_REG-2*npts+1,mx_REG-npts
+        do iCHLD=mx_CHLD-2*npts+1,mx_CHLD-npts
           if ( ln_isfcav) then
-            if ( isf_draft_0(iREG,jREG) .gt. 1.0 .and. isf_draft_CRS(NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp) .gt. 1.0 ) then
-              isf_draft_REG(iREG,jREG) = (   (iREG-mx_REG+2*npts) * isf_draft_CRS( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp ) &
-              &                            + (mx_REG-npts+1-iREG) * isf_draft_0(iREG,jREG) ) / (npts+1)
+            if ( isf_draft_0(iCHLD,jCHLD) .gt. 1.0 .and. isf_draft_PAR(NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp) .gt. 1.0 ) then
+              isf_draft_CHLD(iCHLD,jCHLD) = (   (iCHLD-mx_CHLD+2*npts) * isf_draft_PAR( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp ) &
+              &                            + (mx_CHLD-npts+1-iCHLD) * isf_draft_0(iCHLD,jCHLD) ) / (npts+1)
             !else
-            !  isf_draft_REG   (iREG,jREG) = 0.0
+            !  isf_draft_CHLD   (iCHLD,jCHLD) = 0.0
             endif
-            if ( Bathymetry_isf_0(iREG,jREG) .gt. 1.0 .and. Bathymetry_isf_CRS(NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp) .gt. 1.0 ) then
-              Bathymetry_isf_REG(iREG,jREG) = (   (iREG-mx_REG+2*npts) * Bathymetry_isf_CRS( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp ) &
-              &                                 + (mx_REG-npts+1-iREG) * Bathymetry_isf_0(iREG,jREG) ) / (npts+1)
+            if ( Bathymetry_isf_0(iCHLD,jCHLD) .gt. 1.0 .and. Bathymetry_isf_PAR(NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp) .gt. 1.0 ) then
+              Bathymetry_isf_CHLD(iCHLD,jCHLD) = (   (iCHLD-mx_CHLD+2*npts) * Bathymetry_isf_PAR( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp ) &
+              &                                 + (mx_CHLD-npts+1-iCHLD) * Bathymetry_isf_0(iCHLD,jCHLD) ) / (npts+1)
             !else
-            !  Bathymetry_isf_REG   (iREG,jREG) = 0.0
+            !  Bathymetry_isf_CHLD   (iCHLD,jCHLD) = 0.0
             endif
           endif
-          Bathymetry_REG(iREG,jREG) = (   (iREG-mx_REG+2*npts) * Bathymetry_CRS( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp ) &
-          &                             + (mx_REG-npts+1-iREG) * Bathymetry_0(iREG,jREG) ) / (npts+1)
+          Bathymetry_CHLD(iCHLD,jCHLD) = (   (iCHLD-mx_CHLD+2*npts) * Bathymetry_PAR( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp ) &
+          &                             + (mx_CHLD-npts+1-iCHLD) * Bathymetry_0(iCHLD,jCHLD) ) / (npts+1)
         enddo
       endif
     enddo
     !-- Southern BDY :
-    do jREG=npts+1,2*npts
-      jtmp = NINT(FLOAT(jREG+jmin_GLO-1-bj)/aj)
+    do jCHLD=npts+1,2*npts
+      jtmp = NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj)
       if ( jtmp .gt. 0 ) then !! we do not try to change the bathy southward of the grid
-        do iREG=2*npts+1,mx_REG-2*npts
+        do iCHLD=2*npts+1,mx_CHLD-2*npts
           if ( ln_isfcav) then
-            if ( isf_draft_0(iREG,jREG) .gt. 1.0 .and. isf_draft_CRS(NINT(FLOAT(iREG+imin_GLO-1-bi)/ai),jtmp) .gt. 1.0 ) then
-              isf_draft_REG(iREG,jREG) = (   (2*npts+1-jREG) * isf_draft_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp ) &
-              &                            + (jREG-npts) * isf_draft_0(iREG,jREG) ) / (npts+1)
+            if ( isf_draft_0(iCHLD,jCHLD) .gt. 1.0 .and. isf_draft_PAR(NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai),jtmp) .gt. 1.0 ) then
+              isf_draft_CHLD(iCHLD,jCHLD) = (   (2*npts+1-jCHLD) * isf_draft_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp ) &
+              &                            + (jCHLD-npts) * isf_draft_0(iCHLD,jCHLD) ) / (npts+1)
             !else
-            !  isf_draft_REG   (iREG,jREG) = 0.0
+            !  isf_draft_CHLD   (iCHLD,jCHLD) = 0.0
             endif
-            if ( Bathymetry_isf_0(iREG,jREG) .gt. 1.0 .and. Bathymetry_isf_CRS(NINT(FLOAT(iREG+imin_GLO-1-bi)/ai),jtmp) .gt. 1.0 ) then
-              Bathymetry_isf_REG(iREG,jREG) = (   (2*npts+1-jREG) * Bathymetry_isf_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp ) &
-              &                                 + (jREG-npts) * Bathymetry_isf_0(iREG,jREG) ) / (npts+1)
+            if ( Bathymetry_isf_0(iCHLD,jCHLD) .gt. 1.0 .and. Bathymetry_isf_PAR(NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai),jtmp) .gt. 1.0 ) then
+              Bathymetry_isf_CHLD(iCHLD,jCHLD) = (   (2*npts+1-jCHLD) * Bathymetry_isf_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp ) &
+              &                                 + (jCHLD-npts) * Bathymetry_isf_0(iCHLD,jCHLD) ) / (npts+1)
             !else
-            !  Bathymetry_isf_REG   (iREG,jREG) = 0.0
+            !  Bathymetry_isf_CHLD   (iCHLD,jCHLD) = 0.0
             endif
           endif
-          Bathymetry_REG(iREG,jREG) = (   (2*npts+1-jREG) * Bathymetry_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp ) &
-          &                             + (jREG-npts) * Bathymetry_0(iREG,jREG) ) / (npts+1)
+          Bathymetry_CHLD(iCHLD,jCHLD) = (   (2*npts+1-jCHLD) * Bathymetry_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp ) &
+          &                             + (jCHLD-npts) * Bathymetry_0(iCHLD,jCHLD) ) / (npts+1)
         enddo
       endif
     enddo
     !-- Northern BDY :
-    do jREG=my_REG-2*npts+1,my_REG-npts
-      jtmp = NINT(FLOAT(jREG+jmin_GLO-1-bj)/aj)
+    do jCHLD=my_CHLD-2*npts+1,my_CHLD-npts
+      jtmp = NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj)
       if ( jtmp .gt. 0 ) then !! we do not try to change the bathy southward of the grid
-        do iREG=2*npts+1,mx_REG-2*npts
+        do iCHLD=2*npts+1,mx_CHLD-2*npts
           if ( ln_isfcav) then
-            if ( isf_draft_0(iREG,jREG) .gt. 1.0 .and. isf_draft_CRS(NINT(FLOAT(iREG+imin_GLO-1-bi)/ai),jtmp) .gt. 1.0 ) then
-              isf_draft_REG(iREG,jREG) = (   (jREG-my_REG+2*npts) * isf_draft_CRS( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp ) &
-              &                            + (my_REG-npts+1-jREG) * isf_draft_0(iREG,jREG) ) / (npts+1)
+            if ( isf_draft_0(iCHLD,jCHLD) .gt. 1.0 .and. isf_draft_PAR(NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai),jtmp) .gt. 1.0 ) then
+              isf_draft_CHLD(iCHLD,jCHLD) = (   (jCHLD-my_CHLD+2*npts) * isf_draft_PAR( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp ) &
+              &                            + (my_CHLD-npts+1-jCHLD) * isf_draft_0(iCHLD,jCHLD) ) / (npts+1)
             !else
-            !  isf_draft_REG   (iREG,jREG) = 0.0
+            !  isf_draft_CHLD   (iCHLD,jCHLD) = 0.0
             endif
-            if ( Bathymetry_isf_0(iREG,jREG) .gt. 1.0 .and. Bathymetry_isf_CRS(NINT(FLOAT(iREG+imin_GLO-1-bi)/ai),jtmp) .gt. 1.0 ) then
-              Bathymetry_isf_REG(iREG,jREG) = (   (jREG-my_REG+2*npts) * Bathymetry_isf_CRS( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp ) &
-              &                                 + (my_REG-npts+1-jREG) * Bathymetry_isf_0(iREG,jREG) ) / (npts+1)
+            if ( Bathymetry_isf_0(iCHLD,jCHLD) .gt. 1.0 .and. Bathymetry_isf_PAR(NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai),jtmp) .gt. 1.0 ) then
+              Bathymetry_isf_CHLD(iCHLD,jCHLD) = (   (jCHLD-my_CHLD+2*npts) * Bathymetry_isf_PAR( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp ) &
+              &                                 + (my_CHLD-npts+1-jCHLD) * Bathymetry_isf_0(iCHLD,jCHLD) ) / (npts+1)
             !else
-            !  Bathymetry_isf_REG   (iREG,jREG) = 0.0
+            !  Bathymetry_isf_CHLD   (iCHLD,jCHLD) = 0.0
             endif
-            Bathymetry_isf_REG(iREG,jREG) = (   (jREG-my_REG+2*npts) * Bathymetry_isf_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp ) &
-            &                                 + (my_REG-npts+1-jREG) * Bathymetry_isf_0(iREG,jREG) ) / (npts+1)
+            Bathymetry_isf_CHLD(iCHLD,jCHLD) = (   (jCHLD-my_CHLD+2*npts) * Bathymetry_isf_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp ) &
+            &                                 + (my_CHLD-npts+1-jCHLD) * Bathymetry_isf_0(iCHLD,jCHLD) ) / (npts+1)
           endif
-          Bathymetry_REG(iREG,jREG) = (   (jREG-my_REG+2*npts) * Bathymetry_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), jtmp ) &
-          &                             + (my_REG-npts+1-jREG) * Bathymetry_0(iREG,jREG) ) / (npts+1)
+          Bathymetry_CHLD(iCHLD,jCHLD) = (   (jCHLD-my_CHLD+2*npts) * Bathymetry_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), jtmp ) &
+          &                             + (my_CHLD-npts+1-jCHLD) * Bathymetry_0(iCHLD,jCHLD) ) / (npts+1)
         enddo
       endif
     enddo
@@ -789,98 +790,98 @@ if ( TRIM(config) == 'WED12' ) then
     ! through modifications of nn_imin_extract, nn_imax_extract, ... in the namelist 
 
     ! To keep the boxes at the same position:
-    i0 = 2464 - imin_GLO
-    j0 =  151 - jmin_GLO
+    i0 = 2464 - imin_EXT
+    j0 =  151 - jmin_EXT
 
     !! correction to avoid a closed cavity of 2x2x2 pts (identified after first
     !! mesh_mask creation)
-    !isf_draft_REG     (i0+241:i0+242,j0+667:j0+668) = 0.0
-    !Bathymetry_isf_REG(i0+241:i0+242,j0+667:j0+668) = 0.0
+    !isf_draft_CHLD     (i0+241:i0+242,j0+667:j0+668) = 0.0
+    !Bathymetry_isf_CHLD(i0+241:i0+242,j0+667:j0+668) = 0.0
     !
     !! no isf along eastern boundary (adapt manually to adjust more accurately) :
-    !isf_draft_REG     (i0+1095:mx_REG,j0+668:j0+703) = 0.0
-    !Bathymetry_isf_REG(i0+1095:mx_REG,j0+668:j0+703) = Bathymetry_REG(i0+1095:mx_REG,j0+668:j0+703)
+    !isf_draft_CHLD     (i0+1095:mx_CHLD,j0+668:j0+703) = 0.0
+    !Bathymetry_isf_CHLD(i0+1095:mx_CHLD,j0+668:j0+703) = Bathymetry_CHLD(i0+1095:mx_CHLD,j0+668:j0+703)
 
     ! boxes to fill the Bellingshausen Sea : filled over [imin:imax,jmin:my]
     Nbox = 8
     ALLOCATE( imin(Nbox), imax(Nbox), jmin(Nbox), jmax(Nbox) )
     imin = (/   1+i0 , 192+i0 , 213+i0 , 237+i0 , 254+i0 , 275+i0 , 287+i0 , 299+i0 /)
     imax = (/ 191+i0 , 212+i0 , 236+i0 , 253+i0 , 274+i0 , 286+i0 , 298+i0 , &
-    &           NINT(FLOAT(325+i0+imin_GLO-1-bi)/ai)*ai+bi-imin_GLO+1-1 /) ! WARNING: last number must match with CRS (i.e. next unmasked point neads to be on CRS) !!
+    &           NINT(FLOAT(325+i0+imin_EXT-1-bi)/ai)*ai+bi-imin_EXT+1-1 /) ! WARNING: last number must match with PAR (i.e. next unmasked point neads to be on PAR) !!
     jmin = (/ 494+j0 , 807+j0 , 835+j0 , 862+j0 , 876+j0 , 894+j0 ,            &
-    &           NINT(FLOAT(899+j0+jmin_GLO-1-bj)/aj)*aj+bj-jmin_GLO+1+1 ,&
-    &           NINT(FLOAT(903+j0+jmin_GLO-1-bj)/aj)*aj+bj-jmin_GLO+1+1 /) ! WARNING: last two numbers must match with CRS (i.e. next unmasked point neads to be on CRS) !!
-    jmax(:) = my_REG
+    &           NINT(FLOAT(899+j0+jmin_EXT-1-bj)/aj)*aj+bj-jmin_EXT+1+1 ,&
+    &           NINT(FLOAT(903+j0+jmin_EXT-1-bj)/aj)*aj+bj-jmin_EXT+1+1 /) ! WARNING: last two numbers must match with PAR (i.e. next unmasked point neads to be on PAR) !!
+    jmax(:) = my_CHLD
 
     do kk=1,Nbox
-      imin(kk) = MIN( MAX( 1, imin(kk) ), mx_REG )
-      imax(kk) = MIN( MAX( 1, imax(kk) ), mx_REG )
-      jmin(kk) = MIN( MAX( 1, jmin(kk) ), my_REG )
-      jmax(kk) = MIN( MAX( 1, jmax(kk) ), my_REG )
+      imin(kk) = MIN( MAX( 1, imin(kk) ), mx_CHLD )
+      imax(kk) = MIN( MAX( 1, imax(kk) ), mx_CHLD )
+      jmin(kk) = MIN( MAX( 1, jmin(kk) ), my_CHLD )
+      jmax(kk) = MIN( MAX( 1, jmax(kk) ), my_CHLD )
     enddo     
  
     write(*,*) 'Note for future bdy building:'
     write(*,*) '                    '
     write(*,*) '  ii_bdy_west(1)  = ', imax(8)+1
     write(*,*) '  j1_bdy_west(1)  = ', jmin(8)
-    write(*,*) '  j2_bdy_west(1)  = ', my_REG-1 ! given that jmax(8)=my_REG-1
+    write(*,*) '  j2_bdy_west(1)  = ', my_CHLD-1 ! given that jmax(8)=my_CHLD-1
     write(*,*) '                    '
     write(*,*) '  i1_bdy_north(1) = ', imin(8)
     write(*,*) '  i2_bdy_north(1) = ', imax(8)
     write(*,*) '  jj_bdy_north(1) = ', jmin(8)-1
     write(*,*) '                    '
     write(*,*) '  i1_bdy_north(2) = ', imax(8)+2
-    write(*,*) '  i2_bdy_north(2) = ', mx_REG-2 ! -2 because east bdy already contains mx_REG-1
-    write(*,*) '  jj_bdy_north(2) = ', my_REG-1
+    write(*,*) '  i2_bdy_north(2) = ', mx_CHLD-2 ! -2 because east bdy already contains mx_CHLD-1
+    write(*,*) '  jj_bdy_north(2) = ', my_CHLD-1
     write(*,*) '                    '
 
-    !----- put CRS along modified North-Western corner :
+    !----- put PAR along modified North-Western corner :
     !- bdy_west(1) :
-    do jREG=jmin(8),my_REG
-      do iREG=imax(8)+1,imax(8)+npts
-        isf_draft_REG     (iREG,jREG) = isf_draft_CRS      ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), NINT(FLOAT(jREG+jmin_GLO-1-bj)/aj) )
-        Bathymetry_isf_REG(iREG,jREG) = Bathymetry_isf_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), NINT(FLOAT(jREG+jmin_GLO-1-bj)/aj) )
-        Bathymetry_REG    (iREG,jREG) = Bathymetry_CRS     ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), NINT(FLOAT(jREG+jmin_GLO-1-bj)/aj) )
+    do jCHLD=jmin(8),my_CHLD
+      do iCHLD=imax(8)+1,imax(8)+npts
+        isf_draft_CHLD     (iCHLD,jCHLD) = isf_draft_PAR      ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj) )
+        Bathymetry_isf_CHLD(iCHLD,jCHLD) = Bathymetry_isf_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj) )
+        Bathymetry_CHLD    (iCHLD,jCHLD) = Bathymetry_PAR     ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj) )
       enddo
     enddo
     !- bdy_north(1) :
-    do jREG=jmin(8)-npts, jmin(8)-1
-      do iREG=imin(8),imax(8)
-        isf_draft_REG     (iREG,jREG) = isf_draft_CRS      ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), NINT(FLOAT(jREG+jmin_GLO-1-bj)/aj) )
-        Bathymetry_isf_REG(iREG,jREG) = Bathymetry_isf_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), NINT(FLOAT(jREG+jmin_GLO-1-bj)/aj) )
-        Bathymetry_REG    (iREG,jREG) = Bathymetry_CRS     ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), NINT(FLOAT(jREG+jmin_GLO-1-bj)/aj) )
+    do jCHLD=jmin(8)-npts, jmin(8)-1
+      do iCHLD=imin(8),imax(8)
+        isf_draft_CHLD     (iCHLD,jCHLD) = isf_draft_PAR      ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj) )
+        Bathymetry_isf_CHLD(iCHLD,jCHLD) = Bathymetry_isf_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj) )
+        Bathymetry_CHLD    (iCHLD,jCHLD) = Bathymetry_PAR     ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj) )
       enddo
     enddo
 
     !---- smooth transitions :
     !- bdy_west(1) :
-    do jREG=jmin(8),my_REG
-      do iREG=imax(8)+npts+1,imax(8)+2*npts
-        isf_draft_REG     (iREG,jREG) = (   (imax(8)+2*npts-iREG+1) * isf_draft_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), NINT(FLOAT(jREG+jmin_GLO-1-bj)/aj) ) &
-        &                                 +     (iREG-imax(8)-npts) * isf_draft_0 ( iREG, jREG ) ) / (npts+1)
-        Bathymetry_isf_REG(iREG,jREG) = (   (imax(8)+2*npts-iREG+1) * Bathymetry_isf_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), NINT(FLOAT(jREG+jmin_GLO-1-bj)/aj) ) &
-        &                                 +     (iREG-imax(8)-npts) * Bathymetry_isf_0 ( iREG, jREG ) ) / (npts+1)
-        Bathymetry_REG    (iREG,jREG) = (   (imax(8)+2*npts-iREG+1) * Bathymetry_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), NINT(FLOAT(jREG+jmin_GLO-1-bj)/aj) ) &
-        &                                 +     (iREG-imax(8)-npts) * Bathymetry_0 ( iREG, jREG ) ) / (npts+1)
+    do jCHLD=jmin(8),my_CHLD
+      do iCHLD=imax(8)+npts+1,imax(8)+2*npts
+        isf_draft_CHLD     (iCHLD,jCHLD) = (   (imax(8)+2*npts-iCHLD+1) * isf_draft_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj) ) &
+        &                                 +     (iCHLD-imax(8)-npts) * isf_draft_0 ( iCHLD, jCHLD ) ) / (npts+1)
+        Bathymetry_isf_CHLD(iCHLD,jCHLD) = (   (imax(8)+2*npts-iCHLD+1) * Bathymetry_isf_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj) ) &
+        &                                 +     (iCHLD-imax(8)-npts) * Bathymetry_isf_0 ( iCHLD, jCHLD ) ) / (npts+1)
+        Bathymetry_CHLD    (iCHLD,jCHLD) = (   (imax(8)+2*npts-iCHLD+1) * Bathymetry_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj) ) &
+        &                                 +     (iCHLD-imax(8)-npts) * Bathymetry_0 ( iCHLD, jCHLD ) ) / (npts+1)
       enddo
     enddo
     !- bdy_north(1) :
-    do jREG=jmin(8)-2*npts,jmin(8)-npts-1
-      do iREG=imin(8),imax(8)
-        isf_draft_REG     (iREG,jREG) = ( (jREG-jmin(8)+2*npts+1) * isf_draft_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), NINT(FLOAT(jREG+jmin_GLO-1-bj)/aj) ) &
-        &                                   + (jmin(8)-npts-jREG) * isf_draft_0 ( iREG, jREG ) ) / (npts+1)                     
-        Bathymetry_isf_REG(iREG,jREG) = ( (jREG-jmin(8)+2*npts+1) * Bathymetry_isf_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), NINT(FLOAT(jREG+jmin_GLO-1-bj)/aj) ) &
-        &                                   + (jmin(8)-npts-jREG) * Bathymetry_isf_0 ( iREG, jREG ) ) / (npts+1)                     
-        Bathymetry_REG    (iREG,jREG) = ( (jREG-jmin(8)+2*npts+1) * Bathymetry_CRS ( NINT(FLOAT(iREG+imin_GLO-1-bi)/ai), NINT(FLOAT(jREG+jmin_GLO-1-bj)/aj) ) &
-        &                                   + (jmin(8)-npts-jREG) * Bathymetry_0 ( iREG, jREG ) ) / (npts+1)                     
+    do jCHLD=jmin(8)-2*npts,jmin(8)-npts-1
+      do iCHLD=imin(8),imax(8)
+        isf_draft_CHLD     (iCHLD,jCHLD) = ( (jCHLD-jmin(8)+2*npts+1) * isf_draft_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj) ) &
+        &                                   + (jmin(8)-npts-jCHLD) * isf_draft_0 ( iCHLD, jCHLD ) ) / (npts+1)                     
+        Bathymetry_isf_CHLD(iCHLD,jCHLD) = ( (jCHLD-jmin(8)+2*npts+1) * Bathymetry_isf_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj) ) &
+        &                                   + (jmin(8)-npts-jCHLD) * Bathymetry_isf_0 ( iCHLD, jCHLD ) ) / (npts+1)                     
+        Bathymetry_CHLD    (iCHLD,jCHLD) = ( (jCHLD-jmin(8)+2*npts+1) * Bathymetry_PAR ( NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai), NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj) ) &
+        &                                   + (jmin(8)-npts-jCHLD) * Bathymetry_0 ( iCHLD, jCHLD ) ) / (npts+1)                     
       enddo
     enddo
 
     !- fill bellingshausen:
     do kk=1,Nbox
-      isf_draft_REG      (imin(kk):imax(kk),jmin(kk):my_REG) = 0.0
-      Bathymetry_isf_REG (imin(kk):imax(kk),jmin(kk):my_REG) = 0.0
-      Bathymetry_REG     (imin(kk):imax(kk),jmin(kk):my_REG) = 0.0
+      isf_draft_CHLD      (imin(kk):imax(kk),jmin(kk):my_CHLD) = 0.0
+      Bathymetry_isf_CHLD (imin(kk):imax(kk),jmin(kk):my_CHLD) = 0.0
+      Bathymetry_CHLD     (imin(kk):imax(kk),jmin(kk):my_CHLD) = 0.0
     enddo
 
 elseif ( TRIM(config) == 'AMUXL12' ) then
@@ -891,8 +892,8 @@ elseif ( TRIM(config) == 'AMUXL12' ) then
     ! through modifications of nn_imin_extract, nn_imax_extract, ... in the namelist 
 
     ! To keep the boxes at the same position:
-    i0 = 1771 - imin_GLO
-    j0 =   30 - jmin_GLO
+    i0 = 1771 - imin_EXT
+    j0 =   30 - jmin_EXT
     write(*,*) '   i0 = ', i0
     write(*,*) '   j0 = ', j0
 
@@ -905,74 +906,74 @@ elseif ( TRIM(config) == 'AMUXL12' ) then
     jmax(1) = j0+73    
     !-
     do kk=1,Nbox
-      imin(kk) = MIN( MAX( 1, imin(kk) ), mx_REG )
-      imax(kk) = MIN( MAX( 1, imax(kk) ), mx_REG )
-      jmin(kk) = MIN( MAX( 1, jmin(kk) ), my_REG )
-      jmax(kk) = MIN( MAX( 1, jmax(kk) ), my_REG )
+      imin(kk) = MIN( MAX( 1, imin(kk) ), mx_CHLD )
+      imax(kk) = MIN( MAX( 1, imax(kk) ), mx_CHLD )
+      jmin(kk) = MIN( MAX( 1, jmin(kk) ), my_CHLD )
+      jmax(kk) = MIN( MAX( 1, jmax(kk) ), my_CHLD )
     enddo
     !-
-    isf_draft_REG(imin(1):imax(1),jmin(1):jmax(1)) = Bathymetry_isf_REG(imin(1):imax(1),jmin(1):jmax(1))
+    isf_draft_CHLD(imin(1):imax(1),jmin(1):jmax(1)) = Bathymetry_isf_CHLD(imin(1):imax(1),jmin(1):jmax(1))
     write(*,*) '   imin, imax = ', imin(:), imax(:)
     write(*,*) '   jmin, jmax = ', jmin(:), jmax(:)
 
     ! no isf over a safety zone (2*npts wide halo) from the eastern and western BDY :
-    isf_draft_REG     (1:2*npts,:) = 0.0
-    Bathymetry_isf_REG(1:2*npts,:) = Bathymetry_REG(1:2*npts,:)
-    isf_draft_REG     (mx_REG-2*npts+1:mx_REG,:) = 0.0
-    Bathymetry_isf_REG(mx_REG-2*npts+1:mx_REG,:) = Bathymetry_REG(mx_REG-2*npts+1:mx_REG,:)
+    isf_draft_CHLD     (1:2*npts,:) = 0.0
+    Bathymetry_isf_CHLD(1:2*npts,:) = Bathymetry_CHLD(1:2*npts,:)
+    isf_draft_CHLD     (mx_CHLD-2*npts+1:mx_CHLD,:) = 0.0
+    Bathymetry_isf_CHLD(mx_CHLD-2*npts+1:mx_CHLD,:) = Bathymetry_CHLD(mx_CHLD-2*npts+1:mx_CHLD,:)
 
     ! remove a narrow channel in the halo :
-    Bathymetry_isf_REG(678:682,144:149)=0.e0
-    isf_draft_REG(678:682,144:149)=0.e0
+    Bathymetry_isf_CHLD(678:682,144:149)=0.e0
+    isf_draft_CHLD(678:682,144:149)=0.e0
  
     ! remove ice shelves on islands and de-facto icebergs:
-    isf_draft_REG(435:455,139:165)=0.e0
-    isf_draft_REG(435:468,127:139)=0.e0
-    isf_draft_REG(435:470,116:127)=0.e0
-    isf_draft_REG(435:478,103:116)=0.e0
+    isf_draft_CHLD(435:455,139:165)=0.e0
+    isf_draft_CHLD(435:468,127:139)=0.e0
+    isf_draft_CHLD(435:470,116:127)=0.e0
+    isf_draft_CHLD(435:478,103:116)=0.e0
 
 elseif ( TRIM(config(1:8)) == 'AMUXL025' ) then
 
     ! no isf over a safety zone (2*npts wide halo) from the eastern and western BDY :
-    isf_draft_REG     (1:2*npts,:) = 0.0
-    Bathymetry_isf_REG(1:2*npts,:) = Bathymetry_REG(1:2*npts,:)
-    isf_draft_REG     (mx_REG-2*npts+1:mx_REG,:) = 0.0
-    Bathymetry_isf_REG(mx_REG-2*npts+1:mx_REG,:) = Bathymetry_REG(mx_REG-2*npts+1:mx_REG,:)
+    isf_draft_CHLD     (1:2*npts,:) = 0.0
+    Bathymetry_isf_CHLD(1:2*npts,:) = Bathymetry_CHLD(1:2*npts,:)
+    isf_draft_CHLD     (mx_CHLD-2*npts+1:mx_CHLD,:) = 0.0
+    Bathymetry_isf_CHLD(mx_CHLD-2*npts+1:mx_CHLD,:) = Bathymetry_CHLD(mx_CHLD-2*npts+1:mx_CHLD,:)
 
     ! remove a narrow channel in the halo :
-    Bathymetry_isf_REG(229,48:50)=0.e0
-    isf_draft_REG(229,48:50)=0.e0
+    Bathymetry_isf_CHLD(229,48:50)=0.e0
+    isf_draft_CHLD(229,48:50)=0.e0
 
 elseif ( TRIM(config) == 'CRODOT60' ) then
 
     ! no isf over a safety zone (2*npts wide halo) from the eastern and western BDY :
-    isf_draft_REG     (1:2*npts,:) = 0.0
-    Bathymetry_isf_REG(1:2*npts,:) = Bathymetry_REG(1:2*npts,:)
-    isf_draft_REG     (mx_REG-2*npts+1:mx_REG,:) = 0.0
-    Bathymetry_isf_REG(mx_REG-2*npts+1:mx_REG,:) = Bathymetry_REG(mx_REG-2*npts+1:mx_REG,:)
+    isf_draft_CHLD     (1:2*npts,:) = 0.0
+    Bathymetry_isf_CHLD(1:2*npts,:) = Bathymetry_CHLD(1:2*npts,:)
+    isf_draft_CHLD     (mx_CHLD-2*npts+1:mx_CHLD,:) = 0.0
+    Bathymetry_isf_CHLD(mx_CHLD-2*npts+1:mx_CHLD,:) = Bathymetry_CHLD(mx_CHLD-2*npts+1:mx_CHLD,:)
 
     ! put ice in the shear margin of Crosson:
-    do iREG=260,271
-    do jREG=158,202
-      isf_draft_REG(iREG,jREG) = MAX(10.5,isf_draft_REG(iREG,jREG))
+    do iCHLD=260,271
+    do jCHLD=158,202
+      isf_draft_CHLD(iCHLD,jCHLD) = MAX(10.5,isf_draft_CHLD(iCHLD,jCHLD))
     enddo
     enddo
 
     ! prevent weird narrow cavities:
-    isf_draft_REG(263:275,221:230)=Bathymetry_isf_REG(263:275,221:230)-Bathymetry_REG(263:275,221:230)
+    isf_draft_CHLD(263:275,221:230)=Bathymetry_isf_CHLD(263:275,221:230)-Bathymetry_CHLD(263:275,221:230)
 
 endif
 
 !=================================================================================
-! 5- Writing new REG bathymetry file :
+! 5- Writing new CHLD bathymetry file :
 !=================================================================================
 
 write(*,*) 'Creating ', TRIM(file_bathy_out)
 
 status = NF90_CREATE(TRIM(file_bathy_out),NF90_NOCLOBBER,fidM); call erreur(status,.TRUE.,'create')                     
 
-status = NF90_DEF_DIM(fidM,"y",my_REG,dimID_y); call erreur(status,.TRUE.,"def_dimID_y")
-status = NF90_DEF_DIM(fidM,"x",mx_REG,dimID_x); call erreur(status,.TRUE.,"def_dimID_x")
+status = NF90_DEF_DIM(fidM,"y",my_CHLD,dimID_y); call erreur(status,.TRUE.,"def_dimID_y")
+status = NF90_DEF_DIM(fidM,"x",mx_CHLD,dimID_x); call erreur(status,.TRUE.,"def_dimID_x")
 
 status = NF90_DEF_VAR(fidM,"nav_lat",NF90_FLOAT,(/dimID_x,dimID_y/),nav_lat_ID); call erreur(status,.TRUE.,"def_var_nav_lat_ID")
 status = NF90_DEF_VAR(fidM,"nav_lon",NF90_FLOAT,(/dimID_x,dimID_y/),nav_lon_ID); call erreur(status,.TRUE.,"def_var_nav_lon_ID")
@@ -1019,20 +1020,20 @@ status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"history","Created using extract_bathy_sp
 status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"tools","https://github.com/nicojourdain/BUILD_CONFIG_NEMO")
 call erreur(status,.TRUE.,"put_att_GLOBAL1")
 status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"data",TRIM(file_spe_bathy)) ; call erreur(status,.TRUE.,"put_att_GLOBAL2")
-status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"imin_extraction",imin_GLO)  ; call erreur(status,.TRUE.,"put_att_GLOBAL3")
-status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"imax_extraction",imax_GLO)  ; call erreur(status,.TRUE.,"put_att_GLOBAL4")
-status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"jmin_extraction",jmin_GLO)  ; call erreur(status,.TRUE.,"put_att_GLOBAL5")
-status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"jmax_extraction",jmax_GLO)  ; call erreur(status,.TRUE.,"put_att_GLOBAL6")
+status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"imin_extraction",imin_EXT)  ; call erreur(status,.TRUE.,"put_att_GLOBAL3")
+status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"imax_extraction",imax_EXT)  ; call erreur(status,.TRUE.,"put_att_GLOBAL4")
+status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"jmin_extraction",jmin_EXT)  ; call erreur(status,.TRUE.,"put_att_GLOBAL5")
+status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"jmax_extraction",jmax_EXT)  ; call erreur(status,.TRUE.,"put_att_GLOBAL6")
 
 status = NF90_ENDDEF(fidM); call erreur(status,.TRUE.,"end_definition") 
 
-status = NF90_PUT_VAR(fidM,nav_lat_ID,gphit_REG); call erreur(status,.TRUE.,"var_nav_lat_ID")
-status = NF90_PUT_VAR(fidM,nav_lon_ID,glamt_REG); call erreur(status,.TRUE.,"var_nav_lon_ID")
+status = NF90_PUT_VAR(fidM,nav_lat_ID,gphit_CHLD); call erreur(status,.TRUE.,"var_nav_lat_ID")
+status = NF90_PUT_VAR(fidM,nav_lon_ID,glamt_CHLD); call erreur(status,.TRUE.,"var_nav_lon_ID")
 if ( ln_isfcav ) then
-  status = NF90_PUT_VAR(fidM,isf_draft_ID,isf_draft_REG);           call erreur(status,.TRUE.,"var_isf_draft_ID")
-  status = NF90_PUT_VAR(fidM,Bathymetry_isf_ID,Bathymetry_isf_REG); call erreur(status,.TRUE.,"var_Bathymetry_isf_ID")
+  status = NF90_PUT_VAR(fidM,isf_draft_ID,isf_draft_CHLD);           call erreur(status,.TRUE.,"var_isf_draft_ID")
+  status = NF90_PUT_VAR(fidM,Bathymetry_isf_ID,Bathymetry_isf_CHLD); call erreur(status,.TRUE.,"var_Bathymetry_isf_ID")
 endif
-status = NF90_PUT_VAR(fidM,Bathymetry_ID,Bathymetry_REG); call erreur(status,.TRUE.,"var_Bathymetry_ID")
+status = NF90_PUT_VAR(fidM,Bathymetry_ID,Bathymetry_CHLD); call erreur(status,.TRUE.,"var_Bathymetry_ID")
 
 status = NF90_CLOSE(fidM)                    
 call erreur(status,.TRUE.,"final")         
