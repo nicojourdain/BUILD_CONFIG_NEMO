@@ -961,6 +961,19 @@ elseif ( TRIM(config) == 'CRODOT60' ) then
     ! prevent weird narrow cavities:
     isf_draft_CHLD(263:275,221:230)=Bathymetry_isf_CHLD(263:275,221:230)-Bathymetry_CHLD(263:275,221:230)
 
+elseif ( TRIM(config) == 'eAMUXL12.L121' ) then
+
+    write(*,*) 'Special correction for config ', TRIM(config)
+
+    ! to avoid hole in an ice shelf:
+    isf_draft_CHLD(557,199:200) = Bathymetry_isf_CHLD(557,199:200)
+
+    ! no isf over a safety zone (2*npts wide halo) from the eastern and western BDY :
+    isf_draft_CHLD     (1:2*npts,:) = 0.0
+    Bathymetry_isf_CHLD(1:2*npts,:) = Bathymetry_CHLD(1:2*npts,:)
+    isf_draft_CHLD     (mx_CHLD-2*npts+1:mx_CHLD,:) = 0.0
+    Bathymetry_isf_CHLD(mx_CHLD-2*npts+1:mx_CHLD,:) = Bathymetry_CHLD(mx_CHLD-2*npts+1:mx_CHLD,:)
+
 endif
 
 !=================================================================================

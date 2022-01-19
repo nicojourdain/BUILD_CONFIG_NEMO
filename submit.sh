@@ -47,7 +47,8 @@ if [ `hostname | cut -d"." -f2` == "occigen" ]; then
 echo "host is occigen"
 cat > tmptxp_${RAND}.sh << EOF
 #!/bin/bash
-#SBATCH -C HSW24
+###SBATCH -C HSW24
+#SBATCH -C BDW28
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks-per-node=1
