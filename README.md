@@ -21,10 +21,14 @@ Before you start, make sure your system has the following:
 
 ### History
 
-* NOV 2021 , N. Jourdain :
+* JAN 2022, N. Jourdain : 
+        - new variable suffixes (PAR, EXT, CHLD).
+        - tests for eAMUXL12.L121
+
+* NOV 2021, N. Jourdain :
 	- minor modifications and successful tests for AMUXL025.L75 with NEMO-4.2-RC.
 
-* JUL 2018 , N. Jourdain : 
+* JUL 2018, N. Jourdain : 
 	- new scripts to interpolate bathy and ice draft from lon/lat or stereo data.
 	- can now handle interannual runoff.
 	- more flexible way to provide file names in the namelist.
