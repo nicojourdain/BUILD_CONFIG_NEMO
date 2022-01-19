@@ -96,7 +96,9 @@ write(file_out_TS,201)  TRIM(config_dir), TRIM(config)
 
 status = NF90_OPEN(TRIM(file_in_mask_extract),0,fidMSKIN); call erreur(status,.TRUE.,"read mask input") 
 
-status = NF90_INQ_DIMID(fidMSKIN,"z",dimID_z); call erreur(status,.TRUE.,"inq_dimID_z_PAR")
+status = NF90_INQ_DIMID(fidMSKIN,"z",dimID_z)
+if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidMSKIN,"nav_lev",dimID_z)
+call erreur(status,.TRUE.,"inq_dimID_z_PAR")
 status = NF90_INQ_DIMID(fidMSKIN,"y",dimID_y); call erreur(status,.TRUE.,"inq_dimID_y_PAR")
 status = NF90_INQ_DIMID(fidMSKIN,"x",dimID_x); call erreur(status,.TRUE.,"inq_dimID_x_PAR")
 
