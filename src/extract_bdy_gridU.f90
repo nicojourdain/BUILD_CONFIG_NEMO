@@ -10,6 +10,7 @@ program modif
 ! 3- Process all gridU files over specified period
 !
 ! history : - Feb. 2017: version with namelist (N. Jourdain)
+!           - Jan. 2022: new convention for variable names (PAR/CHLD/CHLD)
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 USE netcdf                                            
@@ -30,23 +31,23 @@ CHARACTER(LEN=150)                   :: config_dir, data_dir, data_prefix, data_
 INTEGER                              :: nn_yeari, nn_yearf, nn_bdy_eosmatch
 
 INTEGER                              :: fidCOORD, status, dimID_yb, dimID_xbt, dimID_xbu, dimID_xbv, &
-&                                       myb, mxbu, glamu_ID, gphiu_ID, e1u_ID, e2u_ID, e2u_GLO_ID,   &
+&                                       myb, mxbu, glamu_ID, gphiu_ID, e1u_ID, e2u_ID, e2u_PAR_ID,   &
 &                                       nbiu_ID, nbju_ID, nbru_ID, mtime, dimID_x, dimID_y,          &
 &                                       mlon, mlat, mdepthu, kday, kmonth, kyear, kbdy, nfmt, fidN,  &
 &                                       kt, kz,     lon_ID, lat_ID, depthu_ID, vobtcrtx_ID, fidM,    &
 &                                       vozocrtx_ID, time_counter_ID, nav_lon_ID, nav_lat_ID, fidU,  &
 &                                       dimID_time_counter, dimID_depthu, time_ID, dimID_time, fidS, &
-&                                       i, j, k, l, fidC, imin_ORCA12, jmin_ORCA12, iGLO, jGLO,      &
-&                                       depth_ID, ai, aj, bi, bj, kfmt, fidMSKIN, umask_GLO_ID,      &
-&                                       e3u_GLO_ID, fidZGRIN, fidHGRIN, e3u_ID
+&                                       i, j, k, l, fidC, imin_EXT, jmin_EXT, iPAR, jPAR,      &
+&                                       depth_ID, ai, aj, bi, bj, kfmt, fidMSKIN, umask_PAR_ID,      &
+&                                       e3u_PAR_ID, fidZGRIN, fidHGRIN, e3u_ID
 CHARACTER(LEN=100)                   :: calendar, time_units
 CHARACTER(LEN=150)                   :: file_coord, file_in_gridU, file_bdy_gridU2d,  &
-&                                       file_in_coord_REG, command_str, file_bdy_gridU3d
+&                                       file_in_coord_CHLD, command_str, file_bdy_gridU3d
 INTEGER*4,ALLOCATABLE,DIMENSION(:)   :: list_fmt
 INTEGER*4,ALLOCATABLE,DIMENSION(:,:) :: nbiu, nbju, nbru
-INTEGER*1,ALLOCATABLE,DIMENSION(:,:,:) :: umask_GLO
-REAL*4,ALLOCATABLE,DIMENSION(:,:)    :: e2u_GLO, glamu, gphiu, e1u, e2u, nav_lon, nav_lat, nav_lon_bdy, nav_lat_bdy
-REAL*4,ALLOCATABLE,DIMENSION(:,:,:)  :: e3u_GLO, vobtcrtx, vobtcrtx_bdy
+INTEGER*1,ALLOCATABLE,DIMENSION(:,:,:) :: umask_PAR
+REAL*4,ALLOCATABLE,DIMENSION(:,:)    :: e2u_PAR, glamu, gphiu, e1u, e2u, nav_lon, nav_lat, nav_lon_bdy, nav_lat_bdy
+REAL*4,ALLOCATABLE,DIMENSION(:,:,:)  :: e3u_PAR, vobtcrtx, vobtcrtx_bdy
 REAL*4,ALLOCATABLE,DIMENSION(:,:,:,:):: e3u, vozocrtx, vozocrtx_bdy
 REAL*4,ALLOCATABLE,DIMENSION(:)      :: depthu
 REAL*8,ALLOCATABLE,DIMENSION(:)      :: time
@@ -74,7 +75,7 @@ write(file_coord,101) TRIM(config_dir), TRIM(config)
 101 FORMAT(a,'/coordinates_bdy_',a,'.nc')
 
 !- name of regional coordinates (input) :
-write(file_in_coord_REG,103) TRIM(config_dir), TRIM(config)
+write(file_in_coord_CHLD,103) TRIM(config_dir), TRIM(config)
 103 FORMAT(a,'/coordinates_',a,'.nc')
 
 !=================================================================================
@@ -82,17 +83,17 @@ write(file_in_coord_REG,103) TRIM(config_dir), TRIM(config)
 !=================================================================================
 
 !- Read global attributes of coordinate file to get grid correspondance :
-!       i_ORCA12 = ai * i_ORCA025 + bi
-!       j_ORCA12 = aj * j_ORCA025 + bj
+!       i_EXT = ai * i_PAR + bi
+!       j_EXT = aj * j_PAR + bj
 
-write(*,*) 'Reading parameters for grid correspondence in the attributes of ', TRIM(file_in_coord_REG)
-status = NF90_OPEN(TRIM(file_in_coord_REG),0,fidC); call erreur(status,.TRUE.,"read global grid coord input")
+write(*,*) 'Reading parameters for grid correspondence in the attributes of ', TRIM(file_in_coord_CHLD)
+status = NF90_OPEN(TRIM(file_in_coord_CHLD),0,fidC); call erreur(status,.TRUE.,"read global grid coord input")
 status = NF90_GET_ATT(fidC, NF90_GLOBAL, "ai", ai); call erreur(status,.TRUE.,"read att1")
 status = NF90_GET_ATT(fidC, NF90_GLOBAL, "bi", bi); call erreur(status,.TRUE.,"read att2")
 status = NF90_GET_ATT(fidC, NF90_GLOBAL, "aj", aj); call erreur(status,.TRUE.,"read att3")
 status = NF90_GET_ATT(fidC, NF90_GLOBAL, "bj", bj); call erreur(status,.TRUE.,"read att4")
-status = NF90_GET_ATT(fidC, NF90_GLOBAL, "imin_extraction", imin_ORCA12); call erreur(status,.TRUE.,"read att5")
-status = NF90_GET_ATT(fidC, NF90_GLOBAL, "jmin_extraction", jmin_ORCA12); call erreur(status,.TRUE.,"read att6")
+status = NF90_GET_ATT(fidC, NF90_GLOBAL, "imin_extraction", imin_EXT); call erreur(status,.TRUE.,"read att5")
+status = NF90_GET_ATT(fidC, NF90_GLOBAL, "jmin_extraction", jmin_EXT); call erreur(status,.TRUE.,"read att6")
 status = NF90_CLOSE(fidC)                         ; call erreur(status,.TRUE.,"end read fidC")
 
 !- Read BDY coordinates 
@@ -227,26 +228,26 @@ ENDDO
 
 !- Read umask and e3u in large-scale/global file:
 status = NF90_OPEN(TRIM(file_data_mask),0,fidMSKIN);    call erreur(status,.TRUE.,"read mask input") 
-ALLOCATE(  umask_GLO(mlon,mlat,mdepthu)  ) 
-status = NF90_INQ_VARID(fidMSKIN,"umask",umask_GLO_ID); call erreur(status,.TRUE.,"inq_umask_GLO_ID")
-status = NF90_GET_VAR(fidMSKIN,umask_GLO_ID,umask_GLO); call erreur(status,.TRUE.,"getvar_umask_GLO")
-status = NF90_CLOSE(fidMSKIN);                          call erreur(status,.TRUE.,"end read mask_GLO")
+ALLOCATE(  umask_PAR(mlon,mlat,mdepthu)  ) 
+status = NF90_INQ_VARID(fidMSKIN,"umask",umask_PAR_ID); call erreur(status,.TRUE.,"inq_umask_PAR_ID")
+status = NF90_GET_VAR(fidMSKIN,umask_PAR_ID,umask_PAR); call erreur(status,.TRUE.,"getvar_umask_PAR")
+status = NF90_CLOSE(fidMSKIN);                          call erreur(status,.TRUE.,"end read mask_PAR")
 
 
 !- Read e2u and e3u in large-scale/global file:
 status = NF90_OPEN(TRIM(file_data_zgr),0,fidZGRIN);     call erreur(status,.TRUE.,"read mask input")
-ALLOCATE(  e3u_GLO(mlon,mlat,mdepthu)  )
-status = NF90_INQ_VARID(fidZGRIN,"e3u",e3u_GLO_ID) 
-if ( status .ne. 0 ) status = NF90_INQ_VARID(fidZGRIN,"e3u_0",e3u_GLO_ID)
-call erreur(status,.TRUE.,"inq_e3u_GLO_ID")
-status = NF90_GET_VAR(fidZGRIN,e3u_GLO_ID,e3u_GLO);     call erreur(status,.TRUE.,"getvar_e3u_GLO")
-status = NF90_CLOSE(fidZGRIN);                          call erreur(status,.TRUE.,"end read mask_GLO")
+ALLOCATE(  e3u_PAR(mlon,mlat,mdepthu)  )
+status = NF90_INQ_VARID(fidZGRIN,"e3u",e3u_PAR_ID) 
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidZGRIN,"e3u_0",e3u_PAR_ID)
+call erreur(status,.TRUE.,"inq_e3u_PAR_ID")
+status = NF90_GET_VAR(fidZGRIN,e3u_PAR_ID,e3u_PAR);     call erreur(status,.TRUE.,"getvar_e3u_PAR")
+status = NF90_CLOSE(fidZGRIN);                          call erreur(status,.TRUE.,"end read mask_PAR")
 !-
 status = NF90_OPEN(TRIM(file_data_hgr),0,fidHGRIN);     call erreur(status,.TRUE.,"read mask input")
-ALLOCATE(  e2u_GLO(mlon,mlat)  )
-status = NF90_INQ_VARID(fidHGRIN,"e2u",e2u_GLO_ID);     call erreur(status,.TRUE.,"inq_e2u_GLO_ID")
-status = NF90_GET_VAR(fidHGRIN,e2u_GLO_ID,e2u_GLO);     call erreur(status,.TRUE.,"getvar_e2u_GLO")
-status = NF90_CLOSE(fidHGRIN);                          call erreur(status,.TRUE.,"end read mask_GLO")
+ALLOCATE(  e2u_PAR(mlon,mlat)  )
+status = NF90_INQ_VARID(fidHGRIN,"e2u",e2u_PAR_ID);     call erreur(status,.TRUE.,"inq_e2u_PAR_ID")
+status = NF90_GET_VAR(fidHGRIN,e2u_PAR_ID,e2u_PAR);     call erreur(status,.TRUE.,"getvar_e2u_PAR")
+status = NF90_CLOSE(fidHGRIN);                          call erreur(status,.TRUE.,"end read mask_PAR")
 
 
 !--
@@ -254,10 +255,10 @@ status = NF90_CLOSE(fidHGRIN);                          call erreur(status,.TRUE
 ALLOCATE( nav_lon_bdy(mxbu,1), nav_lat_bdy(mxbu,1) )
 
 do kbdy=1,mxbu
-  iGLO=NINT(FLOAT(nbiu(kbdy,1)+imin_ORCA12-1-bi)/ai)
-  jGLO=NINT(FLOAT(nbju(kbdy,1)+jmin_ORCA12-1-bj)/aj)
-  nav_lon_bdy(kbdy,1) = nav_lon(iGLO,jGLO)
-  nav_lat_bdy(kbdy,1) = nav_lat(iGLO,jGLO)
+  iPAR=NINT(FLOAT(nbiu(kbdy,1)+imin_EXT-1-bi)/ai)
+  jPAR=NINT(FLOAT(nbju(kbdy,1)+jmin_EXT-1-bj)/aj)
+  nav_lon_bdy(kbdy,1) = nav_lon(iPAR,jPAR)
+  nav_lat_bdy(kbdy,1) = nav_lat(iPAR,jPAR)
 enddo
 
 !--
@@ -318,7 +319,7 @@ DO kyear=nn_yeari,nn_yearf
 
         write(*,*) 'Reading velocities in ', TRIM(file_in_gridU)
         
-        status = NF90_OPEN(TRIM(file_in_gridU),0,fidU)                ; call erreur(status,.TRUE.,"read ORCA12 TS") 
+        status = NF90_OPEN(TRIM(file_in_gridU),0,fidU)                ; call erreur(status,.TRUE.,"read EXT TS") 
         
         status = NF90_INQ_VARID(fidU,"time_counter",time_ID)          ; call erreur(status,.TRUE.,"inq_time_ID")
         status = NF90_GET_VAR(fidU,time_ID,time)                      ; call erreur(status,.TRUE.,"getvar_time")
@@ -362,15 +363,15 @@ DO kyear=nn_yeari,nn_yearf
         ! Calculate the barotropic component :
   
         do l=1,mtime
-          if ( ln_vvl ) e3u_GLO(:,:,:) = e3u(:,:,:,l)
+          if ( ln_vvl ) e3u_PAR(:,:,:) = e3u(:,:,:,l)
           do i=1,mlon
           do j=1,mlat
             vobtcrtx(i,j,l) = 0.0
             thic=0.0
             do k=1,mdepthu
-              if ( umask_GLO(i,j,k) .eq. 1 ) then
-                vobtcrtx(i,j,l) = vobtcrtx(i,j,l) + vozocrtx(i,j,k,l) * e3u_GLO(i,j,k) * umask_GLO(i,j,k)
-                thic            = thic            +                     e3u_GLO(i,j,k) * umask_GLO(i,j,k)
+              if ( umask_PAR(i,j,k) .eq. 1 ) then
+                vobtcrtx(i,j,l) = vobtcrtx(i,j,l) + vozocrtx(i,j,k,l) * e3u_PAR(i,j,k) * umask_PAR(i,j,k)
+                thic            = thic            +                     e3u_PAR(i,j,k) * umask_PAR(i,j,k)
               endif
             enddo
             if ( thic .gt. 1.e-3 ) then
@@ -381,7 +382,7 @@ DO kyear=nn_yeari,nn_yearf
             endif
             ! baroclinic component :
             do k=1,mdepthu
-              vozocrtx(i,j,k,l) = ( vozocrtx(i,j,k,l) - vobtcrtx(i,j,l) ) * umask_GLO(i,j,k)
+              vozocrtx(i,j,k,l) = ( vozocrtx(i,j,k,l) - vobtcrtx(i,j,l) ) * umask_PAR(i,j,k)
             enddo
           enddo
           enddo
@@ -397,13 +398,13 @@ DO kyear=nn_yeari,nn_yearf
         ALLOCATE( vobtcrtx_bdy(mxbu,1,mtime)  )
 
         do kbdy=1,mxbu
-          iGLO=NINT(FLOAT(nbiu(kbdy,1)+imin_ORCA12-1-bi)/ai)
-          jGLO=NINT(FLOAT(nbju(kbdy,1)+jmin_ORCA12-1-bj)/aj)
-          write(*,*) kbdy, iGLO, jGLO, nbiu(kbdy,1), nbju(kbdy,1)
+          iPAR=NINT(FLOAT(nbiu(kbdy,1)+imin_EXT-1-bi)/ai)
+          jPAR=NINT(FLOAT(nbju(kbdy,1)+jmin_EXT-1-bj)/aj)
+          write(*,*) kbdy, iPAR, jPAR, nbiu(kbdy,1), nbju(kbdy,1)
           do kt=1,mtime
            do kz=1,mdepthu
-             vozocrtx_bdy(kbdy,1,kz,kt) = vozocrtx( iGLO, jGLO, kz, kt ) * e2u_GLO( iGLO, jGLO ) / (e2u(kbdy,1)*aj)
-             vobtcrtx_bdy(kbdy,1,   kt) = vobtcrtx( iGLO, jGLO,     kt ) * e2u_GLO( iGLO, jGLO ) / (e2u(kbdy,1)*aj)
+             vozocrtx_bdy(kbdy,1,kz,kt) = vozocrtx( iPAR, jPAR, kz, kt ) * e2u_PAR( iPAR, jPAR ) / (e2u(kbdy,1)*aj)
+             vobtcrtx_bdy(kbdy,1,   kt) = vobtcrtx( iPAR, jPAR,     kt ) * e2u_PAR( iPAR, jPAR ) / (e2u(kbdy,1)*aj)
            enddo
           enddo
         enddo

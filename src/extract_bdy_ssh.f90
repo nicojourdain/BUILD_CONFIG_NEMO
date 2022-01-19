@@ -10,6 +10,7 @@ program modif
 ! 3- Process all gridT files over specified period
 !
 ! history : - Feb. 2017: version with namelist (N. Jourdain)
+!           - Jan. 2022: new convention for variable names (PAR/CHLD/CHLD)
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 USE netcdf                                            
@@ -34,11 +35,11 @@ INTEGER                              :: fidCOORD, status, dimID_yb, dimID_xbt, m
 &                                       kt, kz, lon_ID, lat_ID, fidM,                                         &
 &                                       sossheig_ID, time_counter_ID, nav_lon_ID, nav_lat_ID, fidT,           &
 &                                       dimID_time_counter, time_ID, dimID_time, fidS,                        &
-&                                       i, j, k, l, fidC, imin_ORCA12, jmin_ORCA12, iGLO, jGLO,               &
+&                                       i, j, k, l, fidC, imin_EXT, jmin_EXT, iPAR, jPAR,               &
 &                                       ai, aj, bi, bj, kfmt
 CHARACTER(LEN=100)                   :: calendar, time_units
 CHARACTER(LEN=150)                   :: file_coord, file_in_SSH, file_bdy_SSH,  &
-&                                       file_in_coord_REG, file_in_gridS, command_str
+&                                       file_in_coord_CHLD, file_in_gridS, command_str
 INTEGER*4,ALLOCATABLE,DIMENSION(:)   :: list_fmt
 INTEGER*4,ALLOCATABLE,DIMENSION(:,:) :: nbit, nbjt, nbrt
 REAL*4,ALLOCATABLE,DIMENSION(:,:)    :: glamt, gphit, e1t, e2t, nav_lon, nav_lat, nav_lon_bdy, nav_lat_bdy
@@ -67,7 +68,7 @@ write(file_coord,101) TRIM(config_dir), TRIM(config)
 101 FORMAT(a,'/coordinates_bdy_',a,'.nc')
 
 !- name of regional coordinates (input) :
-write(file_in_coord_REG,103) TRIM(config_dir), TRIM(config)
+write(file_in_coord_CHLD,103) TRIM(config_dir), TRIM(config)
 103 FORMAT(a,'/coordinates_',a,'.nc')
 
 !=================================================================================
@@ -75,17 +76,17 @@ write(file_in_coord_REG,103) TRIM(config_dir), TRIM(config)
 !=================================================================================
 
 !- Read global attributes of coordinate file to get grid correspondance :
-!       i_ORCA12 = ai * i_ORCA025 + bi
-!       j_ORCA12 = aj * j_ORCA025 + bj
+!       i_EXT = ai * i_PAR + bi
+!       j_EXT = aj * j_PAR + bj
 
-write(*,*) 'Reading parameters for grid correspondence in the attributes of ', TRIM(file_in_coord_REG)
-status = NF90_OPEN(TRIM(file_in_coord_REG),0,fidC); call erreur(status,.TRUE.,"read global grid coord input")
+write(*,*) 'Reading parameters for grid correspondence in the attributes of ', TRIM(file_in_coord_CHLD)
+status = NF90_OPEN(TRIM(file_in_coord_CHLD),0,fidC); call erreur(status,.TRUE.,"read global grid coord input")
 status = NF90_GET_ATT(fidC, NF90_GLOBAL, "ai", ai); call erreur(status,.TRUE.,"read att1")
 status = NF90_GET_ATT(fidC, NF90_GLOBAL, "bi", bi); call erreur(status,.TRUE.,"read att2")
 status = NF90_GET_ATT(fidC, NF90_GLOBAL, "aj", aj); call erreur(status,.TRUE.,"read att3")
 status = NF90_GET_ATT(fidC, NF90_GLOBAL, "bj", bj); call erreur(status,.TRUE.,"read att4")
-status = NF90_GET_ATT(fidC, NF90_GLOBAL, "imin_extraction", imin_ORCA12); call erreur(status,.TRUE.,"read att5")
-status = NF90_GET_ATT(fidC, NF90_GLOBAL, "jmin_extraction", jmin_ORCA12); call erreur(status,.TRUE.,"read att6")
+status = NF90_GET_ATT(fidC, NF90_GLOBAL, "imin_extraction", imin_EXT); call erreur(status,.TRUE.,"read att5")
+status = NF90_GET_ATT(fidC, NF90_GLOBAL, "jmin_extraction", jmin_EXT); call erreur(status,.TRUE.,"read att6")
 status = NF90_CLOSE(fidC)                         ; call erreur(status,.TRUE.,"end read fidC")
 
 !- Read BDY coordinates 
@@ -208,10 +209,10 @@ ENDDO
 ALLOCATE( nav_lon_bdy(mxbt,1), nav_lat_bdy(mxbt,1) )
 
 do kbdy=1,mxbt
-  iGLO=NINT(FLOAT(nbit(kbdy,1)+imin_ORCA12-1-bi)/ai)
-  jGLO=NINT(FLOAT(nbjt(kbdy,1)+jmin_ORCA12-1-bj)/aj)
-  nav_lon_bdy(kbdy,1) = nav_lon(iGLO,jGLO)
-  nav_lat_bdy(kbdy,1) = nav_lat(iGLO,jGLO)
+  iPAR=NINT(FLOAT(nbit(kbdy,1)+imin_EXT-1-bi)/ai)
+  jPAR=NINT(FLOAT(nbjt(kbdy,1)+jmin_EXT-1-bj)/aj)
+  nav_lon_bdy(kbdy,1) = nav_lon(iPAR,jPAR)
+  nav_lat_bdy(kbdy,1) = nav_lat(iPAR,jPAR)
 enddo
 
 !--
@@ -267,7 +268,7 @@ DO kyear=nn_yeari,nn_yearf
 
         write(*,*) 'Reading SSH in ', TRIM(file_in_SSH)
         
-        status = NF90_OPEN(TRIM(file_in_SSH),0,fidT)                ; call erreur(status,.TRUE.,"read ORCA12 TS") 
+        status = NF90_OPEN(TRIM(file_in_SSH),0,fidT)                ; call erreur(status,.TRUE.,"read EXT TS") 
         
         status = NF90_INQ_VARID(fidT,"time_counter",time_ID)          ; call erreur(status,.TRUE.,"inq_time_ID")
         status = NF90_INQ_VARID(fidT,"sossheig",sossheig_ID)
@@ -303,10 +304,10 @@ DO kyear=nn_yeari,nn_yearf
         ALLOCATE( sossheig_bdy(mxbt,1,mtime)  )
  
         do kbdy=1,mxbt
-          iGLO=NINT(FLOAT(nbit(kbdy,1)+imin_ORCA12-1-bi)/ai)
-          jGLO=NINT(FLOAT(nbjt(kbdy,1)+jmin_ORCA12-1-bj)/aj)
+          iPAR=NINT(FLOAT(nbit(kbdy,1)+imin_EXT-1-bi)/ai)
+          jPAR=NINT(FLOAT(nbjt(kbdy,1)+jmin_EXT-1-bj)/aj)
           do kt=1,mtime
-            sossheig_bdy(kbdy,1,kt) = sossheig( iGLO, jGLO, kt )
+            sossheig_bdy(kbdy,1,kt) = sossheig( iPAR, jPAR, kt )
           enddo
         enddo
 

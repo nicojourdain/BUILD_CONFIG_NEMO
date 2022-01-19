@@ -15,6 +15,7 @@ program modif
 !   - Nov. 2021 : + clarify PARENT/CHILD naming
 !                 + write both T & S in single file 
 !                 + remove nn_init option            (N. Jourdain)
+!   - Jan. 2022: new convention for variable names (PAR/CHLD/REG)
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -40,7 +41,7 @@ REAL(KIND=4)                          :: rn_temp, rn_sal
 INTEGER :: fidMSKIN, fidMSKCHI, status, dimID_z, dimID_y, dimID_x, mz_PAR, my_PAR, mx_PAR, tmask_PAR_ID, &
 &          mx_CHI, my_CHI, mz_CHI, tmask_CHI_ID, fidSAL, fidTS, votemper_ID, vosaline_ID,                &
 &          dimID_time_counter, ai, bi, aj, bj, iii, jjj, kkk, kk, iPAR, jPAR, iCHI, jCHI, fidTin, fidSin,&
-&          kiter, rs, rz, sg, time_counter_ID, fidCOORD, imin_ORCA12, jmin_ORCA12, lon_ID, lat_ID, dij,  &
+&          kiter, rs, rz, sg, time_counter_ID, fidCOORD, imin_EXT, jmin_EXT, lon_ID, lat_ID, dij,  &
 &          dep_ID, kPAR, ntest, im1, ip1, jm1, jp1
 
 CHARACTER(LEN=180) :: file_in_mask_CHI, file_in_coord_CHI, file_out_TS
@@ -204,15 +205,15 @@ if ( mz_CHI .ne. mz_PAR ) then
 endif
 
 !- Read global attributes of coordinate file to get grid correspondance :
-!       i_ORCA12 = ai * i_ORCA025 + bi
-!       j_ORCA12 = aj * j_ORCA025 + bj
+!       i_EXT = ai * i_PAR + bi
+!       j_EXT = aj * j_PAR + bj
 status = NF90_OPEN(TRIM(file_in_coord_CHI),0,fidCOORD); call erreur(status,.TRUE.,"read coord input")
 status = NF90_GET_ATT(fidCOORD, NF90_GLOBAL, "ai", ai); call erreur(status,.TRUE.,"read att1")
 status = NF90_GET_ATT(fidCOORD, NF90_GLOBAL, "bi", bi); call erreur(status,.TRUE.,"read att2")
 status = NF90_GET_ATT(fidCOORD, NF90_GLOBAL, "aj", aj); call erreur(status,.TRUE.,"read att3")
 status = NF90_GET_ATT(fidCOORD, NF90_GLOBAL, "bj", bj); call erreur(status,.TRUE.,"read att4")
-status = NF90_GET_ATT(fidCOORD, NF90_GLOBAL, "imin_extraction", imin_ORCA12); call erreur(status,.TRUE.,"read att5")
-status = NF90_GET_ATT(fidCOORD, NF90_GLOBAL, "jmin_extraction", jmin_ORCA12); call erreur(status,.TRUE.,"read att6")
+status = NF90_GET_ATT(fidCOORD, NF90_GLOBAL, "imin_extraction", imin_EXT); call erreur(status,.TRUE.,"read att5")
+status = NF90_GET_ATT(fidCOORD, NF90_GLOBAL, "jmin_extraction", jmin_EXT); call erreur(status,.TRUE.,"read att6")
 status = NF90_CLOSE(fidCOORD)                         ; call erreur(status,.TRUE.,"end read fidCOORD")
 
 ! Just extract where ocean points on both grids :
@@ -225,8 +226,8 @@ votemper_CHI(:,:,:)=0.d0
 vosaline_CHI(:,:,:)=0.d0
 do iCHI=1,mx_CHI
 do jCHI=1,my_CHI
-   iPAR=NINT(FLOAT(iCHI+imin_ORCA12-1-bi)/ai)
-   jPAR=NINT(FLOAT(jCHI+jmin_ORCA12-1-bj)/aj)
+   iPAR=NINT(FLOAT(iCHI+imin_EXT-1-bi)/ai)
+   jPAR=NINT(FLOAT(jCHI+jmin_EXT-1-bj)/aj)
    if ( iPAR .ge. 1 .and. jPAR .ge. 1 ) then
      do kk=1,mz_CHI
        if ( tmask_PAR(iPAR,jPAR,kk) .eq. 1 ) then
