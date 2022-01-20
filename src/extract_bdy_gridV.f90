@@ -1,6 +1,5 @@
 program modif                                         
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! N. Jourdain, LGGE-CNRS, March 2015
 !
 ! Used to build netcdf gridV file for BDY
 !
@@ -9,7 +8,8 @@ program modif
 ! 2- Read input file dimensions in first existing file for specified time window
 ! 3- Process all gridV files over specified period
 !
-! history : - Feb. 2017: version with namelist (N. Jourdain)
+! history : - Jan. 2015: initial version (N. Jourdain, CNRS-LGGE)
+!           - Feb. 2017: version with namelist (N. Jourdain, CNRS-IGE)
 !           - Jan. 2022: new convention for variable names (PAR/CHLD/CHLD)
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -74,7 +74,7 @@ CLOSE(1)
 write(file_coord,101) TRIM(config_dir), TRIM(config)
 101 FORMAT(a,'/coordinates_bdy_',a,'.nc')
 
-!- name of regional coordinates (input) :
+!- name of child domain coordinates (input) :
 write(file_in_coord_CHLD,103) TRIM(config_dir), TRIM(config)
 103 FORMAT(a,'/coordinates_',a,'.nc')
 

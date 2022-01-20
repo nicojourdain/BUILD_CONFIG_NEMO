@@ -1,18 +1,19 @@
 program modif                                         
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! N. Jourdain, LGGE-CNRS, March 2015
 !
 ! Used to build netcdf files with prescribed runoff
 !
 ! 0- Initialiartions
 ! 1- Read information on grids
-! 2- Read REGIONAL mask
+! 2- Read child mask (CHLD)
 ! 3- Read input file dimensions in first existing file for specified time window
 !    (can be 2d or 3d salinity)
 ! 4- Process all gridT files over specified period
 !
-! history : - Feb. 2017: version with namelist (N. Jourdain)
+! history : - Mar. 2015: initial version (N. Jourdain, CNRS-LGGE)
+!           - Feb. 2017: version with namelist (N. Jourdain, CNRS-IGE)
 !           - Jun. 2018: enable time-dependent files (N. Jourdain)
+!           - Jan. 2022: cleaning and new naming convention (PAR/EXT/CHLD)
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 USE netcdf                                            
@@ -36,22 +37,22 @@ INTEGER                              :: nn_rrr_yeari, nn_rrr_yearf, nn_band, nn_
 &                                       nn_jmin_extract, nn_jmax_extract, nn_perio, nn_isfcav
 LOGICAL                              :: ln_dateline
 
-INTEGER                              :: status, dimID_x, dimID_y, mx_GLO, my_GLO, kday, kmonth, kyear, i0, j0, &
-&                                       runoff_ID, time_counter_ID, nav_lon_ID, nav_lat_ID, fidRNF, mz_GLO,    &
+INTEGER                              :: status, dimID_x, dimID_y, mx_PAR, my_PAR, kday, kmonth, kyear, i0, j0, &
+&                                       runoff_ID, time_counter_ID, nav_lon_ID, nav_lat_ID, fidRNF, mz_PAR,    &
 &                                       dimID_time_counter, time_ID, dimID_time, fidS, kfmt, mx_tmp, mtime,    &
-&                                       i, j, k, l, fidC, imin_ORCA12, jmin_ORCA12, iGLO, jGLO, dimID_z, mb,   &
-&                                       nfmt, lon_ID, lat_ID, iREG, jREG, tmask_GLO_ID, ntest, ntest2,         &
-&                                       fidMSKREG, mx_REG, my_REG, mz_REG, fidMSKIN, tmask_REG_ID, iii, jjj,   &
+&                                       i, j, k, l, fidC, imin_EXT, jmin_EXT, iPAR, jPAR, dimID_z, mb,   &
+&                                       nfmt, lon_ID, lat_ID, iCHLD, jCHLD, tmask_PAR_ID, ntest, ntest2,         &
+&                                       fidMSKCHLD, mx_CHLD, my_CHLD, mz_CHLD, fidMSKIN, tmask_CHLD_ID, iii, jjj,   &
 &                                       kiter, rs, dij, im1, ip1, jm1, jp1, fidM, my_tmp, socoefr_ID,          &
 &                                       ai, aj, bi, bj
 CHARACTER(LEN=100)                           :: calendar, time_units
-CHARACTER(LEN=150)                           :: file_coord, file_in_RNF, file_REG_RNF, file_in_mask_REG, &
-&                                               file_in_coord_REG, file_in_gridS, command_str
+CHARACTER(LEN=150)                           :: file_coord, file_in_RNF, file_CHLD_RNF, file_in_mask_CHLD, &
+&                                               file_in_coord_CHLD, file_in_gridS, command_str
 INTEGER(KIND=4),ALLOCATABLE,DIMENSION(:)     :: list_fmt
-INTEGER(KIND=1),ALLOCATABLE,DIMENSION(:,:)   :: tmask_GLO, tmask_REG, missing, tmp_missing
+INTEGER(KIND=1),ALLOCATABLE,DIMENSION(:,:)   :: tmask_PAR, tmask_CHLD, missing, tmp_missing
 INTEGER(KIND=1),ALLOCATABLE,DIMENSION(:,:,:) :: tmask
-REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:)      :: nav_lon, nav_lat, nav_lon_REG, nav_lat_REG, socoefr
-REAL(KIND=8),ALLOCATABLE,DIMENSION(:,:,:)    :: runoff_GLO, runoff_REG, tmp_runoff_REG
+REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:)      :: nav_lon, nav_lat, nav_lon_CHLD, nav_lat_CHLD, socoefr
+REAL(KIND=8),ALLOCATABLE,DIMENSION(:,:,:)    :: runoff_PAR, runoff_CHLD, tmp_runoff_CHLD
 REAL(KIND=8),ALLOCATABLE,DIMENSION(:)        :: time
 REAL(KIND=8)                                 :: chkland, eps
 LOGICAL                                      :: existfile, iout, ll_climato
@@ -76,11 +77,11 @@ CLOSE(1)
 write(*,*) 'nn_rrr_yeari = ', nn_rrr_yeari
 
 !- name of regional coordinates (input) :
-write(file_in_coord_REG,103) TRIM(config_dir), TRIM(config)
+write(file_in_coord_CHLD,103) TRIM(config_dir), TRIM(config)
 103 FORMAT(a,'/coordinates_',a,'.nc')
 
 !- name of regional mesh_mask (input) :
-write(file_in_mask_REG,101) TRIM(config_dir), TRIM(config)
+write(file_in_mask_CHLD,101) TRIM(config_dir), TRIM(config)
 101 FORMAT(a,'/mesh_mask_',a,'.nc')
 
 eps=1.d-9
@@ -90,43 +91,43 @@ eps=1.d-9
 !=================================================================================
 
 !- Read global attributes of coordinate file to get grid correspondance :
-!       i_ORCA12 = ai * i_ORCA025 + bi
-!       j_ORCA12 = aj * j_ORCA025 + bj
+!       i_EXT = ai * i_PAR + bi
+!       j_EXT = aj * j_PAR + bj
 
-write(*,*) 'Reading parameters for grid correspondence in the attributes of ', TRIM(file_in_coord_REG)
-status = NF90_OPEN(TRIM(file_in_coord_REG),0,fidC); call erreur(status,.TRUE.,"read global grid coord input")
+write(*,*) 'Reading parameters for grid correspondence in the attributes of ', TRIM(file_in_coord_CHLD)
+status = NF90_OPEN(TRIM(file_in_coord_CHLD),0,fidC); call erreur(status,.TRUE.,"read global grid coord input")
 status = NF90_GET_ATT(fidC, NF90_GLOBAL, "ai", ai); call erreur(status,.TRUE.,"read att1")
 status = NF90_GET_ATT(fidC, NF90_GLOBAL, "bi", bi); call erreur(status,.TRUE.,"read att2")
 status = NF90_GET_ATT(fidC, NF90_GLOBAL, "aj", aj); call erreur(status,.TRUE.,"read att3")
 status = NF90_GET_ATT(fidC, NF90_GLOBAL, "bj", bj); call erreur(status,.TRUE.,"read att4")
-status = NF90_GET_ATT(fidC, NF90_GLOBAL, "imin_extraction", imin_ORCA12); call erreur(status,.TRUE.,"read att5")
-status = NF90_GET_ATT(fidC, NF90_GLOBAL, "jmin_extraction", jmin_ORCA12); call erreur(status,.TRUE.,"read att6")
+status = NF90_GET_ATT(fidC, NF90_GLOBAL, "imin_extraction", imin_EXT); call erreur(status,.TRUE.,"read att5")
+status = NF90_GET_ATT(fidC, NF90_GLOBAL, "jmin_extraction", jmin_EXT); call erreur(status,.TRUE.,"read att6")
 status = NF90_CLOSE(fidC)                         ; call erreur(status,.TRUE.,"end read fidC")
 
 !=================================================================================
-! 2- Read REGIONAL mask :
+! 2- Read CHLDIONAL mask :
 !=================================================================================
 
-write(*,*) 'Reading regional mask in ', TRIM(file_in_mask_REG)
-status = NF90_OPEN(TRIM(file_in_mask_REG),0,fidMSKREG); call erreur(status,.TRUE.,"read regional mask") 
+write(*,*) 'Reading regional mask in ', TRIM(file_in_mask_CHLD)
+status = NF90_OPEN(TRIM(file_in_mask_CHLD),0,fidMSKCHLD); call erreur(status,.TRUE.,"read regional mask") 
 !-
-status = NF90_INQ_DIMID(fidMSKREG,"z",dimID_z)
-if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidMSKREG,"nav_lev",dimID_z)
-call erreur(status,.TRUE.,"inq_dimID_z_REG")
-status = NF90_INQ_DIMID(fidMSKREG,"y",dimID_y); call erreur(status,.TRUE.,"inq_dimID_y_REG")
-status = NF90_INQ_DIMID(fidMSKREG,"x",dimID_x); call erreur(status,.TRUE.,"inq_dimID_x_REG")
+status = NF90_INQ_DIMID(fidMSKCHLD,"z",dimID_z)
+if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidMSKCHLD,"nav_lev",dimID_z)
+call erreur(status,.TRUE.,"inq_dimID_z_CHLD")
+status = NF90_INQ_DIMID(fidMSKCHLD,"y",dimID_y); call erreur(status,.TRUE.,"inq_dimID_y_CHLD")
+status = NF90_INQ_DIMID(fidMSKCHLD,"x",dimID_x); call erreur(status,.TRUE.,"inq_dimID_x_CHLD")
 !-
-status = NF90_INQUIRE_DIMENSION(fidMSKREG,dimID_z,len=mz_REG); call erreur(status,.TRUE.,"inq_dim_z_REG")
-status = NF90_INQUIRE_DIMENSION(fidMSKREG,dimID_y,len=my_REG); call erreur(status,.TRUE.,"inq_dim_y_REG")
-status = NF90_INQUIRE_DIMENSION(fidMSKREG,dimID_x,len=mx_REG); call erreur(status,.TRUE.,"inq_dim_x_REG")
+status = NF90_INQUIRE_DIMENSION(fidMSKCHLD,dimID_z,len=mz_CHLD); call erreur(status,.TRUE.,"inq_dim_z_CHLD")
+status = NF90_INQUIRE_DIMENSION(fidMSKCHLD,dimID_y,len=my_CHLD); call erreur(status,.TRUE.,"inq_dim_y_CHLD")
+status = NF90_INQUIRE_DIMENSION(fidMSKCHLD,dimID_x,len=mx_CHLD); call erreur(status,.TRUE.,"inq_dim_x_CHLD")
 !-
-ALLOCATE(  tmask(mx_REG,my_REG,mz_REG), tmask_REG(mx_REG,my_REG)  ) 
-status = NF90_INQ_VARID(fidMSKREG,"tmask",tmask_REG_ID) ; call erreur(status,.TRUE.,"inq_tmask_REG_ID")
-status = NF90_GET_VAR(fidMSKREG,tmask_REG_ID,tmask)     ; call erreur(status,.TRUE.,"getvar_tmask_REG")
-tmask_REG(:,:)=tmask(:,:,1)
+ALLOCATE(  tmask(mx_CHLD,my_CHLD,mz_CHLD), tmask_CHLD(mx_CHLD,my_CHLD)  ) 
+status = NF90_INQ_VARID(fidMSKCHLD,"tmask",tmask_CHLD_ID) ; call erreur(status,.TRUE.,"inq_tmask_CHLD_ID")
+status = NF90_GET_VAR(fidMSKCHLD,tmask_CHLD_ID,tmask)     ; call erreur(status,.TRUE.,"getvar_tmask_CHLD")
+tmask_CHLD(:,:)=tmask(:,:,1)
 DEALLOCATE(tmask)
 !-
-status = NF90_CLOSE(fidMSKREG); call erreur(status,.TRUE.,"end read fidMSKREG")
+status = NF90_CLOSE(fidMSKCHLD); call erreur(status,.TRUE.,"end read fidMSKCHLD")
 
 !=================================================================================
 ! 3- Read input file dimensions in first existing file for specified time window
@@ -181,12 +182,12 @@ DO kday=1,31
     status = NF90_INQ_DIMID(fidRNF,"y",dimID_y)               ; call erreur(status,.TRUE.,"inq_dimID_y")
 
     status = NF90_INQUIRE_DIMENSION(fidRNF,dimID_time,len=mtime)     ; call erreur(status,.TRUE.,"inq_dim_time")
-    status = NF90_INQUIRE_DIMENSION(fidRNF,dimID_x,len=mx_GLO)         ; call erreur(status,.TRUE.,"inq_dim_x")
-    status = NF90_INQUIRE_DIMENSION(fidRNF,dimID_y,len=my_GLO)         ; call erreur(status,.TRUE.,"inq_dim_y")
+    status = NF90_INQUIRE_DIMENSION(fidRNF,dimID_x,len=mx_PAR)         ; call erreur(status,.TRUE.,"inq_dim_x")
+    status = NF90_INQUIRE_DIMENSION(fidRNF,dimID_y,len=my_PAR)         ; call erreur(status,.TRUE.,"inq_dim_y")
 
-    write(*,*) 'dimensions :', mx_GLO, my_GLO
+    write(*,*) 'dimensions :', mx_PAR, my_PAR
 
-    ALLOCATE( nav_lon(mx_GLO,my_GLO), nav_lat(mx_GLO,my_GLO) )
+    ALLOCATE( nav_lon(mx_PAR,my_PAR), nav_lat(mx_PAR,my_PAR) )
 
     status = NF90_INQ_VARID(fidRNF,"nav_lon",lon_ID)
     if ( status .ne. 0 ) status = NF90_INQ_VARID(fidRNF,"lon",lon_ID)
@@ -215,18 +216,18 @@ DO kday=1,31
 ENDDO
 
 !- Read tmask in large-scale/global file:
-status = NF90_OPEN(TRIM(file_mask_runoff),0,fidMSKIN);     call erreur(status,.TRUE.,"read mask_GLO") 
+status = NF90_OPEN(TRIM(file_mask_runoff),0,fidMSKIN);     call erreur(status,.TRUE.,"read mask_PAR") 
 status = NF90_INQ_DIMID(fidMSKIN,"z",dimID_z)
 if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidMSKIN,"depth",dimID_z)
 if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidMSKIN,"deptht",dimID_z)
 if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidMSKIN,"nav_lev",dimID_z)
-status = NF90_INQUIRE_DIMENSION(fidMSKIN,dimID_z,len=mz_GLO)
-ALLOCATE(  tmask(mx_GLO,my_GLO,mz_GLO), tmask_GLO(mx_GLO,my_GLO)  ) 
-status = NF90_INQ_VARID(fidMSKIN,"tmask",tmask_GLO_ID); call erreur(status,.TRUE.,"inq_tmask_GLO_ID")
-status = NF90_GET_VAR(fidMSKIN,tmask_GLO_ID,tmask);     call erreur(status,.TRUE.,"getvar_tmask_GLO")
-tmask_GLO(:,:)=tmask(:,:,1)
+status = NF90_INQUIRE_DIMENSION(fidMSKIN,dimID_z,len=mz_PAR)
+ALLOCATE(  tmask(mx_PAR,my_PAR,mz_PAR), tmask_PAR(mx_PAR,my_PAR)  ) 
+status = NF90_INQ_VARID(fidMSKIN,"tmask",tmask_PAR_ID); call erreur(status,.TRUE.,"inq_tmask_PAR_ID")
+status = NF90_GET_VAR(fidMSKIN,tmask_PAR_ID,tmask);     call erreur(status,.TRUE.,"getvar_tmask_PAR")
+tmask_PAR(:,:)=tmask(:,:,1)
 DEALLOCATE(tmask)
-status = NF90_CLOSE(fidMSKIN);                          call erreur(status,.TRUE.,"end read mask_GLO")
+status = NF90_CLOSE(fidMSKIN);                          call erreur(status,.TRUE.,"end read mask_PAR")
 
 !- create RNF directory :
 write(command_str,888) TRIM(config_dir)
@@ -265,19 +266,19 @@ DO kyear=nn_rrr_yeari,nn_rrr_yearf
         ! output file format :
         if     ( nfmt .eq. 191 .or. nfmt .eq. 193 ) then
           401 FORMAT(a,'/RNF/runoff_',i4.4,'_',i2.2,'_',i2.2,'_',a,'.nc')
-          write(file_REG_RNF,401) TRIM(config_dir), kyear, kmonth, kday, TRIM(config)
+          write(file_CHLD_RNF,401) TRIM(config_dir), kyear, kmonth, kday, TRIM(config)
         elseif ( nfmt .eq. 192 .or. nfmt .eq. 194 ) then
           402 FORMAT(a,'/RNF/runoff_',i4.4,'_',i2.2,'_',a,'.nc')
-          write(file_REG_RNF,402) TRIM(config_dir), kyear, kmonth, TRIM(config)
+          write(file_CHLD_RNF,402) TRIM(config_dir), kyear, kmonth, TRIM(config)
         elseif ( nfmt .eq. 195 ) then
           403 FORMAT(a,'/runoff_climato_',a,'.nc')
-          write(file_REG_RNF,403) TRIM(config_dir), TRIM(config)
+          write(file_CHLD_RNF,403) TRIM(config_dir), TRIM(config)
         else
-          write(*,*) 'Do not forget to include new file format in the format definition for file_REG_RNF  >>>> stop'
+          write(*,*) 'Do not forget to include new file format in the format definition for file_CHLD_RNF  >>>> stop'
           stop
         endif
 
-        ALLOCATE( runoff_GLO(mx_GLO,my_GLO,mtime)  )
+        ALLOCATE( runoff_PAR(mx_PAR,my_PAR,mtime)  )
         ALLOCATE( time(mtime) )
         
         !---------------------------------------
@@ -285,7 +286,7 @@ DO kyear=nn_rrr_yeari,nn_rrr_yearf
 
         write(*,*) 'Reading runoff in ', TRIM(file_in_RNF)
         
-        status = NF90_OPEN(TRIM(file_in_RNF),0,fidRNF)              ; call erreur(status,.TRUE.,"read ORCA12 TS") 
+        status = NF90_OPEN(TRIM(file_in_RNF),0,fidRNF)              ; call erreur(status,.TRUE.,"read EXT TS") 
         
         status = NF90_INQ_VARID(fidRNF,"time_counter",time_ID)      ; call erreur(status,.TRUE.,"inq_time_ID")
         status = NF90_INQ_VARID(fidRNF,"runoff",runoff_ID)
@@ -296,7 +297,7 @@ DO kyear=nn_rrr_yeari,nn_rrr_yearf
         call erreur(status,.TRUE.,"inq_runoff_ID")
         
         status = NF90_GET_VAR(fidRNF,time_ID,time)                  ; call erreur(status,.TRUE.,"getvar_time")
-        status = NF90_GET_VAR(fidRNF,runoff_ID,runoff_GLO)          ; call erreur(status,.TRUE.,"getvar_runoff")
+        status = NF90_GET_VAR(fidRNF,runoff_ID,runoff_PAR)          ; call erreur(status,.TRUE.,"getvar_runoff")
 
         status = NF90_GET_ATT(fidRNF,time_ID,"calendar",calendar)   ; call erreur(status,.TRUE.,"getatt_origin")
         status = NF90_GET_ATT(fidRNF,time_ID,"units",time_units)    ; call erreur(status,.TRUE.,"getatt_units")
@@ -307,27 +308,27 @@ DO kyear=nn_rrr_yeari,nn_rrr_yearf
         ! Projection onto regional grid :
 
         write(*,*) 'start extraction...'
-        !ALLOCATE( missing(mx_REG,my_REG) )
-        !ALLOCATE( tmp_missing(mx_REG,my_REG) )
-        ALLOCATE( runoff_REG(mx_REG,my_REG,mtime) )
-        ALLOCATE( tmp_runoff_REG(mx_REG,my_REG,mtime) )
+        !ALLOCATE( missing(mx_CHLD,my_CHLD) )
+        !ALLOCATE( tmp_missing(mx_CHLD,my_CHLD) )
+        ALLOCATE( runoff_CHLD(mx_CHLD,my_CHLD,mtime) )
+        ALLOCATE( tmp_runoff_CHLD(mx_CHLD,my_CHLD,mtime) )
         missing(:,:)=0
-        runoff_REG(:,:,:)=0.d0
+        runoff_CHLD(:,:,:)=0.d0
 
-        do iREG=1,mx_REG
-        do jREG=1,my_REG
-          iGLO=NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai)
-          jGLO=NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj)
-          if ( iGLO .ge. 1 .and. jGLO .ge. 1 ) then
-            if ( tmask_GLO(iGLO,jGLO) .eq. 1 ) then
+        do iCHLD=1,mx_CHLD
+        do jCHLD=1,my_CHLD
+          iPAR=NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai)
+          jPAR=NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj)
+          if ( iPAR .ge. 1 .and. jPAR .ge. 1 ) then
+            if ( tmask_PAR(iPAR,jPAR) .eq. 1 ) then
               do l=1,mtime
-                runoff_REG(iREG,jREG,l) = runoff_GLO(iGLO,jGLO,l) * tmask_REG(iREG,jREG)
+                runoff_CHLD(iCHLD,jCHLD,l) = runoff_PAR(iPAR,jPAR,l) * tmask_CHLD(iCHLD,jCHLD)
               enddo
             else
-              runoff_REG(iREG,jREG,:) = 0.e0 
+              runoff_CHLD(iCHLD,jCHLD,:) = 0.e0 
             endif
           else
-            runoff_REG(iREG,jREG,:) = 0.e0
+            runoff_CHLD(iCHLD,jCHLD,:) = 0.e0
           endif
         enddo
         enddo
@@ -335,22 +336,22 @@ DO kyear=nn_rrr_yeari,nn_rrr_yearf
         !- Smoothing (i.e. bi-linear interpolation) :
         dij=INT(MAX(ai,aj)*0.5)
         write(*,*) 'Smoothing over plus and minus :', dij, ' pts'
-        tmp_runoff_REG(:,:,:)=runoff_REG(:,:,:)
-        do iREG=1,mx_REG
-        do jREG=1,my_REG
-            im1=MAX(iREG-dij,1) ; ip1=MIN(iREG+dij,mx_REG) 
-            jm1=MAX(jREG-dij,1) ; jp1=MIN(jREG+dij,my_REG)
-            if ( tmask_REG(iREG,jREG) .eq. 1 ) then 
+        tmp_runoff_CHLD(:,:,:)=runoff_CHLD(:,:,:)
+        do iCHLD=1,mx_CHLD
+        do jCHLD=1,my_CHLD
+            im1=MAX(iCHLD-dij,1) ; ip1=MIN(iCHLD+dij,mx_CHLD) 
+            jm1=MAX(jCHLD-dij,1) ; jp1=MIN(jCHLD+dij,my_CHLD)
+            if ( tmask_CHLD(iCHLD,jCHLD) .eq. 1 ) then 
               do l=1,mtime
-                tmp_runoff_REG(iREG,jREG,l) =   SUM( SUM( runoff_REG(im1:ip1,jm1:jp1,l) * tmask_REG(im1:ip1,jm1:jp1), 2), 1) &
-                &                             / SUM( SUM(                          1.0  * tmask_REG(im1:ip1,jm1:jp1), 2), 1)
+                tmp_runoff_CHLD(iCHLD,jCHLD,l) =   SUM( SUM( runoff_CHLD(im1:ip1,jm1:jp1,l) * tmask_CHLD(im1:ip1,jm1:jp1), 2), 1) &
+                &                             / SUM( SUM(                          1.0  * tmask_CHLD(im1:ip1,jm1:jp1), 2), 1)
               enddo
             else
-              tmp_runoff_REG(iREG,jREG,:) = 0.e0
+              tmp_runoff_CHLD(iCHLD,jCHLD,:) = 0.e0
             endif
         enddo
         enddo
-        runoff_REG(:,:,:)=tmp_runoff_REG(:,:,:)
+        runoff_CHLD(:,:,:)=tmp_runoff_CHLD(:,:,:)
         
         !------------------------------------------------------------------------------
         ! Define socoefr to avoid SSS restoring within some distance from the coast:
@@ -359,45 +360,45 @@ DO kyear=nn_rrr_yeari,nn_rrr_yearf
         
         mb=nn_band
         
-        ALLOCATE( socoefr(mx_REG,my_REG) )
+        ALLOCATE( socoefr(mx_CHLD,my_CHLD) )
         socoefr(:,:) = 0.0
         
         !! manual corrections :
         if (      TRIM(config) == 'AMU12'  &
         &    .or. TRIM(config) == 'AMU12y' &
         &    .or. TRIM(config) == 'AMU12r' ) then
-          i0 = imin_ORCA12 - 1811  ! To keep the boxes at the same position even if
-          j0 = jmin_ORCA12 -  571  ! nn_jmin_extract & nn_jmax_extract are changed.
-          tmask_REG(i0+240:i0+320,j0+1:j0+80) = 0.0 ! to remove SSS restoring in the TG & PIG Bay
+          i0 = imin_EXT - 1811  ! To keep the boxes at the same position even if
+          j0 = jmin_EXT -  571  ! nn_jmin_extract & nn_jmax_extract are changed.
+          tmask_CHLD(i0+240:i0+320,j0+1:j0+80) = 0.0 ! to remove SSS restoring in the TG & PIG Bay
         elseif ( TRIM(config) == 'WED12' ) then
-          i0 = imin_ORCA12 - 2464  ! To keep the boxes at the same position even if
-          j0 = jmin_ORCA12 -  151  ! nn_jmin_extract & nn_jmax_extract are changed.
-          tmask_REG(:,j0+1:j0+415) = 0.0  ! region where the old ORCA025 grid was masked
+          i0 = imin_EXT - 2464  ! To keep the boxes at the same position even if
+          j0 = jmin_EXT -  151  ! nn_jmin_extract & nn_jmax_extract are changed.
+          tmask_CHLD(:,j0+1:j0+415) = 0.0  ! region where the old ORCA025 grid was masked
         endif
         
-        DO i=1,mx_REG
-        DO j=1,my_REG
+        DO i=1,mx_CHLD
+        DO j=1,my_CHLD
           ! mask surrounding domain excluded :
-          chkland=SUM(SUM(1.00000000000000*(1-tmask_REG(MAX(2,i-mb):MIN(i+mb,mx_REG-1),MAX(2,j-mb):MIN(j+mb,my_REG-1))),2),1)
+          chkland=SUM(SUM(1.00000000000000*(1-tmask_CHLD(MAX(2,i-mb):MIN(i+mb,mx_CHLD-1),MAX(2,j-mb):MIN(j+mb,my_CHLD-1))),2),1)
           if ( chkland .gt. 5.5 ) socoefr(i,j) = 0.5 * MIN(chkland,0.15*4*mb**2) / (0.15*4*mb**2)  ! 0.15 is for 15% of the square with land
         ENDDO
         ENDDO
         
-        DO i=1,mx_REG
-        DO j=1,my_REG
-          if ( tmask_REG(i,j) .eq. 0 ) socoefr(i,j) = 0.5  ! Important to mask where there are ice shelf cavities !
+        DO i=1,mx_CHLD
+        DO j=1,my_CHLD
+          if ( tmask_CHLD(i,j) .eq. 0 ) socoefr(i,j) = 0.5  ! Important to mask where there are ice shelf cavities !
         ENDDO
         ENDDO
 
         !--------------------------------------
         ! Write RNF netcdf file
 
-        write(*,*) 'Creating ', TRIM(file_REG_RNF)
-        status = NF90_CREATE(TRIM(file_REG_RNF),NF90_NOCLOBBER,fidM) ; call erreur(status,.TRUE.,'create RNF file')                     
+        write(*,*) 'Creating ', TRIM(file_CHLD_RNF)
+        status = NF90_CREATE(TRIM(file_CHLD_RNF),NF90_NOCLOBBER,fidM) ; call erreur(status,.TRUE.,'create RNF file')                     
 
         status = NF90_DEF_DIM(fidM,"time_counter",NF90_UNLIMITED,dimID_time) ; call erreur(status,.TRUE.,"def_dimID_time_counter")
-        status = NF90_DEF_DIM(fidM,"x",mx_REG,dimID_x)                       ; call erreur(status,.TRUE.,"def_dimID_x")
-        status = NF90_DEF_DIM(fidM,"y",my_REG,dimID_y)                       ; call erreur(status,.TRUE.,"def_dimID_y")
+        status = NF90_DEF_DIM(fidM,"x",mx_CHLD,dimID_x)                       ; call erreur(status,.TRUE.,"def_dimID_x")
+        status = NF90_DEF_DIM(fidM,"y",my_CHLD,dimID_y)                       ; call erreur(status,.TRUE.,"def_dimID_y")
         
         status = NF90_DEF_VAR(fidM,"time_counter",NF90_DOUBLE,(/dimID_time/),time_ID)
         call erreur(status,.TRUE.,"def_var_time_counter_ID")
@@ -427,15 +428,15 @@ DO kyear=nn_rrr_yeari,nn_rrr_yearf
         status = NF90_ENDDEF(fidM) ; call erreur(status,.TRUE.,"fin_definition") 
         
         status = NF90_PUT_VAR(fidM,time_ID,time)         ; call erreur(status,.TRUE.,"var_time_ID")
-        status = NF90_PUT_VAR(fidM,runoff_ID,runoff_REG) ; call erreur(status,.TRUE.,"var_runoff_ID")
+        status = NF90_PUT_VAR(fidM,runoff_ID,runoff_CHLD) ; call erreur(status,.TRUE.,"var_runoff_ID")
         status = NF90_PUT_VAR(fidM,socoefr_ID,socoefr)   ; call erreur(status,.TRUE.,"var_socoefr_ID")       
  
         status = NF90_CLOSE(fidM) ; call erreur(status,.TRUE.,"close new RNF file")
 
         !--       
-        DEALLOCATE( runoff_GLO, time )
-        DEALLOCATE( runoff_REG, socoefr )
-        DEALLOCATE( tmp_runoff_REG )
+        DEALLOCATE( runoff_PAR, time )
+        DEALLOCATE( runoff_CHLD, socoefr )
+        DEALLOCATE( tmp_runoff_CHLD )
         
         !--
         if     ( nfmt .eq. 191 .or. nfmt .eq. 193 ) then

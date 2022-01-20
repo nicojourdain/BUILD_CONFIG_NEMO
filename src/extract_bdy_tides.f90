@@ -1,6 +1,5 @@
 program modif
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! N. Jourdain, CNRS-IGE, March 2015
 !
 ! Used to build netcdf tide lateral boundary conditions for the child domain (CHLD)
 !
@@ -9,7 +8,8 @@ program modif
 ! 2- Read input file dimensions in first existing file for specified time window
 ! 3- Process all gridT files over specified period
 !
-! history : - Mar. 2017: version with namelist (N. Jourdain)
+! history : - Mar. 2015: initial version (N. Jourdain, CNRS-LGGE)
+!           - Mar. 2017: version with namelist (N. Jourdain, CNRS-IGE)
 !           - Jan. 2022: a bit of cleaning (N. Jourdain)
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -83,7 +83,7 @@ CLOSE(1)
 write(file_coord,101) TRIM(config_dir), TRIM(config)
 101 FORMAT(a,'/coordinates_bdy_',a,'.nc')
 
-!- mesh/mask of regional configuration :
+!- mesh/mask of child domain :
 write(file_mesh_mask,102) TRIM(config_dir), TRIM(config)
 102 FORMAT(a,'/mesh_mask_',a,'.nc')
 
@@ -98,7 +98,7 @@ write(file_mesh_mask,102) TRIM(config_dir), TRIM(config)
 
 zrad = 3.14159265358979323846264338327 / 180.000000000000000000000000000
 
-idateline = .false. !! = .true. if dateline withing the regional domain
+idateline = .false. !! = .true. if dateline withing the child domain
 
 !--
 write(command_str,888) TRIM(config_dir)
@@ -177,7 +177,7 @@ status = NF90_CLOSE(fidCOORD) ; call erreur(status,.TRUE.,"fin_lecture")
                              
 write(*,*) 'Reading ', TRIM(file_mesh_mask)
                               
-status = NF90_OPEN(TRIM(file_mesh_mask),0,fidG) ; call erreur(status,.TRUE.,"read regional mesh/mask") 
+status = NF90_OPEN(TRIM(file_mesh_mask),0,fidG) ; call erreur(status,.TRUE.,"read child mesh/mask") 
                                                            
 status = NF90_INQ_DIMID(fidG,"x",dimIDG_x) ; call erreur(status,.TRUE.,"inq_dimIDG_x")
 status = NF90_INQ_DIMID(fidG,"y",dimIDG_y) ; call erreur(status,.TRUE.,"inq_dimIDG_y")

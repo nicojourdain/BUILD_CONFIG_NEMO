@@ -1,17 +1,18 @@
 program modif                                         
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! N. Jourdain, LGGE-CNRS, Feb. 2015
 !
-! purpose: extract chlororophyll from large-scale grid to regional grid
+! Interpolate chlororophyll from parent grid onto child grid
 !
 ! 0- Initializations
 ! 1- Read information on grids
 ! 2- Read chlorophyll
-! 3- Read REGIONAL mesh/mask file
-! 4- Projection onto regional grid
-! 5- Writing regional chlorophyll file 
+! 3- Read child mesh/mask file (CHLD)
+! 4- Projection onto child grid
+! 5- Writing child chlorophyll file 
 !
-! history: - March 2017: GitHub version with namelist (N. Jourdain, IGE)
+! history : - Jan. 2015: initial version (N. Jourdain, CNRS-LGGE)
+!           - Mar. 2017: GitHub version with namelist (N. Jourdain, CNRS-IGE)
+!           - Jan. 2022: cleaning and new naming convention (PAR/CHLD)
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 USE netcdf                                            
@@ -26,15 +27,15 @@ CHARACTER(LEN=150)                       :: file_chloro_in, config_dir
 REAL*4                                   :: rn_chla
 
 INTEGER                                  :: fidA, status, dimID_x, dimID_y, dimID_time_counter, dimID_z, dimID_t, mx, my, mtime_counter, &
-&                                           mzreg, mtreg, time_counter_ID, nav_lon_ID, nav_lat_ID, CHLA_ID, fidM, fidglo, jmin_ORCA12,   &
-&                                           i, j, iGLO, jGLO, kk, rr, rs, mxglo, myglo, mzglo, mtglo, fidMSH, l, tmask_ID, mb, kki, kkj, &
-&                                           fidC, ai, aj, bi, bj, iREG, jREG, mx_REG, my_REG, imin_ORCA12, dij, im1, ip1,    &
+&                                           mzreg, mtreg, time_counter_ID, nav_lon_ID, nav_lat_ID, CHLA_ID, fidM, fidglo, jmin_EXT,   &
+&                                           i, j, iPAR, jPAR, kk, rr, rs, mxglo, myglo, mzglo, mtglo, fidMSH, l, tmask_ID, mb, kki, kkj, &
+&                                           fidC, ai, aj, bi, bj, iCHLD, jCHLD, mx_CHLD, my_CHLD, imin_EXT, dij, im1, ip1,    &
 &                                           jm1, jp1
-CHARACTER(LEN=150)                       :: file_chloro_out, file_in_mask_REG, file_in_coord_REG
+CHARACTER(LEN=150)                       :: file_chloro_out, file_in_mask_CHLD, file_in_coord_CHLD
 REAL*4,ALLOCATABLE,DIMENSION(:)          :: time_counter           
 REAL*4,ALLOCATABLE,DIMENSION(:,:)        :: nav_lon, nav_lat, lonreg, latreg
 REAL*4,ALLOCATABLE,DIMENSION(:,:,:)      :: CHLA, CHLAreg, tmp_CHLAreg
-INTEGER*1,ALLOCATABLE,DIMENSION(:,:)     :: tmask_REG
+INTEGER*1,ALLOCATABLE,DIMENSION(:,:)     :: tmask_CHLD
 INTEGER*1,ALLOCATABLE,DIMENSION(:,:,:,:) :: tmask
 
 !=================================================================================
@@ -50,12 +51,12 @@ READ (UNIT=1, NML=general)
 READ (UNIT=1, NML=chloro)
 CLOSE(1)
 
-!- name of regional mesh_mask (input) :
-write(file_in_mask_REG,101) TRIM(config_dir), TRIM(config)
+!- name of child mesh_mask (input) :
+write(file_in_mask_CHLD,101) TRIM(config_dir), TRIM(config)
 101 FORMAT(a,'/mesh_mask_',a,'.nc')
 
-!- name of regional coordinates (input) :
-write(file_in_coord_REG,102) TRIM(config_dir), TRIM(config)
+!- name of child coordinates (input) :
+write(file_in_coord_CHLD,102) TRIM(config_dir), TRIM(config)
 102 FORMAT(a,'/coordinates_',a,'.nc')
 
 !- output file names :
@@ -67,17 +68,17 @@ write(file_chloro_out,201)  TRIM(config_dir), TRIM(config)
 !=================================================================================
 
 !- Read global attributes of coordinate file to get grid correspondance :
-!       i_ORCA12 = ai * i_ORCA025 + bi
-!       j_ORCA12 = aj * j_ORCA025 + bj
+!       i_EXT = ai * i_PAR + bi
+!       j_EXT = aj * j_PAR + bj
 
-write(*,*) 'Reading parameters for grid correspondence in the attributes of ', TRIM(file_in_coord_REG)
-status = NF90_OPEN(TRIM(file_in_coord_REG),0,fidC); call erreur(status,.TRUE.,"read global grid coord input")
+write(*,*) 'Reading parameters for grid correspondence in the attributes of ', TRIM(file_in_coord_CHLD)
+status = NF90_OPEN(TRIM(file_in_coord_CHLD),0,fidC); call erreur(status,.TRUE.,"read global grid coord input")
 status = NF90_GET_ATT(fidC, NF90_GLOBAL, "ai", ai); call erreur(status,.TRUE.,"read att1")
 status = NF90_GET_ATT(fidC, NF90_GLOBAL, "bi", bi); call erreur(status,.TRUE.,"read att2")
 status = NF90_GET_ATT(fidC, NF90_GLOBAL, "aj", aj); call erreur(status,.TRUE.,"read att3")
 status = NF90_GET_ATT(fidC, NF90_GLOBAL, "bj", bj); call erreur(status,.TRUE.,"read att4")
-status = NF90_GET_ATT(fidC, NF90_GLOBAL, "imin_extraction", imin_ORCA12); call erreur(status,.TRUE.,"read att5")
-status = NF90_GET_ATT(fidC, NF90_GLOBAL, "jmin_extraction", jmin_ORCA12); call erreur(status,.TRUE.,"read att6")
+status = NF90_GET_ATT(fidC, NF90_GLOBAL, "imin_extraction", imin_EXT); call erreur(status,.TRUE.,"read att5")
+status = NF90_GET_ATT(fidC, NF90_GLOBAL, "jmin_extraction", jmin_EXT); call erreur(status,.TRUE.,"read att6")
 status = NF90_CLOSE(fidC)                         ; call erreur(status,.TRUE.,"end read fidC")
 
 !=================================================================================
@@ -95,7 +96,7 @@ status = NF90_INQ_DIMID(fidA,"y",dimID_y)
 if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidA,"YAXIS",dimID_y)
 call erreur(status,.TRUE.,"inq_dimID_y")
 status = NF90_INQ_DIMID(fidA,"time_counter",dimID_time_counter)
-if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidA,"MONTH_REG",dimID_time_counter)
+if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidA,"MONTH_CHLD",dimID_time_counter)
 call erreur(status,.TRUE.,"inq_dimID_time_counter")
                                        
 status = NF90_INQUIRE_DIMENSION(fidA,dimID_x,len=mx)                       ; call erreur(status,.TRUE.,"inq_dim_x")
@@ -108,7 +109,7 @@ ALLOCATE(  nav_lat(mx,my)  )
 ALLOCATE(  CHLA(mx,my,mtime_counter)  ) 
          
 status = NF90_INQ_VARID(fidA,"time_counter",time_counter_ID)
-if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"MONTH_REG",time_counter_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"MONTH_CHLD",time_counter_ID)
 call erreur(status,.TRUE.,"inq_time_counter_ID")
 status = NF90_INQ_VARID(fidA,"nav_lon",nav_lon_ID)
 if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"XAXIS",nav_lon_ID) 
@@ -129,12 +130,12 @@ status = NF90_GET_VAR(fidA,CHLA_ID,CHLA)                 ; call erreur(status,.T
 status = NF90_CLOSE(fidA) ; call erreur(status,.TRUE.,"fin_lecture")     
                                       
 !=================================================================================
-! 3- Read REGIONAL mesh/mask file
+! 3- Read child mesh/mask file (CHLD)
 !=================================================================================
 
-write(*,*) 'Reading ', TRIM(file_in_mask_REG)
+write(*,*) 'Reading ', TRIM(file_in_mask_CHLD)
 
-status = NF90_OPEN(TRIM(file_in_mask_REG),0,fidMSH) ; call erreur(status,.TRUE.,"read AMU12 mesh mask") 
+status = NF90_OPEN(TRIM(file_in_mask_CHLD),0,fidMSH) ; call erreur(status,.TRUE.,"read child mesh mask") 
 
 status = NF90_INQ_DIMID(fidMSH,"x",dimID_x) ; call erreur(status,.TRUE.,"inq_dimID_x")
 status = NF90_INQ_DIMID(fidMSH,"y",dimID_y) ; call erreur(status,.TRUE.,"inq_dimID_y")
@@ -145,17 +146,17 @@ status = NF90_INQ_DIMID(fidMSH,"t",dimID_t)
 if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidMSH,"time_counter",dimID_t)
 call erreur(status,.TRUE.,"inq_dimID_t")
 
-status = NF90_INQUIRE_DIMENSION(fidMSH,dimID_x,len=mx_REG) ; call erreur(status,.TRUE.,"inq_dim_x")
-status = NF90_INQUIRE_DIMENSION(fidMSH,dimID_y,len=my_REG) ; call erreur(status,.TRUE.,"inq_dim_y")
+status = NF90_INQUIRE_DIMENSION(fidMSH,dimID_x,len=mx_CHLD) ; call erreur(status,.TRUE.,"inq_dim_x")
+status = NF90_INQUIRE_DIMENSION(fidMSH,dimID_y,len=my_CHLD) ; call erreur(status,.TRUE.,"inq_dim_y")
 status = NF90_INQUIRE_DIMENSION(fidMSH,dimID_z,len=mzreg) ; call erreur(status,.TRUE.,"inq_dim_z")
 status = NF90_INQUIRE_DIMENSION(fidMSH,dimID_t,len=mtreg) ; call erreur(status,.TRUE.,"inq_dim_t")
 
-ALLOCATE(  tmask(mx_REG,my_REG,mzreg,mtreg)  )
-ALLOCATE(  tmask_REG(mx_REG,my_REG)  )
-ALLOCATE(  CHLAreg(mx_REG,my_REG,12) )
-ALLOCATE(  tmp_CHLAreg(mx_REG,my_REG,12) )
-ALLOCATE(  lonreg(mx_REG,my_REG)  ) 
-ALLOCATE(  latreg(mx_REG,my_REG)  ) 
+ALLOCATE(  tmask(mx_CHLD,my_CHLD,mzreg,mtreg)  )
+ALLOCATE(  tmask_CHLD(mx_CHLD,my_CHLD)  )
+ALLOCATE(  CHLAreg(mx_CHLD,my_CHLD,12) )
+ALLOCATE(  tmp_CHLAreg(mx_CHLD,my_CHLD,12) )
+ALLOCATE(  lonreg(mx_CHLD,my_CHLD)  ) 
+ALLOCATE(  latreg(mx_CHLD,my_CHLD)  ) 
 
 status = NF90_INQ_VARID(fidMSH,"tmask",tmask_ID)     ; call erreur(status,.TRUE.,"inq_tmask_ID")
 status = NF90_INQ_VARID(fidMSH,"glamt",nav_lon_ID)   ; call erreur(status,.TRUE.,"inq_glamt_ID")
@@ -165,25 +166,25 @@ status = NF90_GET_VAR(fidMSH,tmask_ID,tmask)         ; call erreur(status,.TRUE.
 status = NF90_GET_VAR(fidMSH,nav_lon_ID,lonreg)      ; call erreur(status,.TRUE.,"getvar_glamt")
 status = NF90_GET_VAR(fidMSH,nav_lat_ID,latreg)      ; call erreur(status,.TRUE.,"getvar_gphit")
 
-tmask_REG(:,:)=tmask(:,:,1,1)
+tmask_CHLD(:,:)=tmask(:,:,1,1)
 DEALLOCATE(tmask)
 
 status = NF90_CLOSE(fidMSH) ; call erreur(status,.TRUE.,"fin_lecture")     
 
 !=================================================================================
-! 4- Projection onto regional grid :
+! 4- Projection onto child grid :
 !=================================================================================
 
 ! Default value :
 CHLAreg(:,:,:) = rn_chla
 
-do iREG=1,mx_REG
-do jREG=1,my_REG
-  iGLO=NINT(FLOAT(iREG+imin_ORCA12-1-bi)/ai)
-  jGLO=NINT(FLOAT(jREG+jmin_ORCA12-1-bj)/aj)
-  if ( iGLO .ge. 1 .and. jGLO .ge. 1 ) then
+do iCHLD=1,mx_CHLD
+do jCHLD=1,my_CHLD
+  iPAR=NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai)
+  jPAR=NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj)
+  if ( iPAR .ge. 1 .and. jPAR .ge. 1 ) then
     do l=1,mtime_counter
-      CHLAreg(iREG,jREG,l) = CHLA(iGLO,jGLO,l) * tmask_REG(iREG,jREG)
+      CHLAreg(iCHLD,jCHLD,l) = CHLA(iPAR,jPAR,l) * tmask_CHLD(iCHLD,jCHLD)
     enddo
   endif
 enddo
@@ -193,30 +194,30 @@ enddo
 dij=INT(MAX(ai,aj)*0.5)
 write(*,*) 'Smoothing over plus and minus :', dij, ' pts'
 tmp_CHLAreg(:,:,:)=CHLAreg(:,:,:)
-do iREG=1,mx_REG
-do jREG=1,my_REG
-    im1=MAX(iREG-dij,1) ; ip1=MIN(iREG+dij,mx_REG) 
-    jm1=MAX(jREG-dij,1) ; jp1=MIN(jREG+dij,my_REG)
-    if ( tmask_REG(iREG,jREG) .eq. 1 ) then 
+do iCHLD=1,mx_CHLD
+do jCHLD=1,my_CHLD
+    im1=MAX(iCHLD-dij,1) ; ip1=MIN(iCHLD+dij,mx_CHLD) 
+    jm1=MAX(jCHLD-dij,1) ; jp1=MIN(jCHLD+dij,my_CHLD)
+    if ( tmask_CHLD(iCHLD,jCHLD) .eq. 1 ) then 
       do l=1,mtime_counter
-        tmp_CHLAreg(iREG,jREG,l) =   SUM( SUM( CHLAreg(im1:ip1,jm1:jp1,l) * tmask_REG(im1:ip1,jm1:jp1), 2), 1) &
-        &                          / SUM( SUM(                       1.0  * tmask_REG(im1:ip1,jm1:jp1), 2), 1)
+        tmp_CHLAreg(iCHLD,jCHLD,l) =   SUM( SUM( CHLAreg(im1:ip1,jm1:jp1,l) * tmask_CHLD(im1:ip1,jm1:jp1), 2), 1) &
+        &                          / SUM( SUM(                       1.0  * tmask_CHLD(im1:ip1,jm1:jp1), 2), 1)
       enddo
     else
-      tmp_CHLAreg(iREG,jREG,:) = 0.e0
+      tmp_CHLAreg(iCHLD,jCHLD,:) = 0.e0
     endif
 enddo
 enddo
 CHLAreg(:,:,:)=tmp_CHLAreg(:,:,:)
 
 !=================================================================================
-! 5- Writing new chlorophyll file on REGIONAL grid
+! 5- Writing new chlorophyll file on CHLDIONAL grid
 !=================================================================================
                                       
 status = NF90_CREATE(TRIM(file_chloro_out),NF90_NOCLOBBER,fidM) ; call erreur(status,.TRUE.,'create new chloro file')                     
                                         
-status = NF90_DEF_DIM(fidM,"x",mx_REG,dimID_x)                               ; call erreur(status,.TRUE.,"def_dimID_x")
-status = NF90_DEF_DIM(fidM,"y",my_REG,dimID_y)                               ; call erreur(status,.TRUE.,"def_dimID_y")
+status = NF90_DEF_DIM(fidM,"x",mx_CHLD,dimID_x)                               ; call erreur(status,.TRUE.,"def_dimID_x")
+status = NF90_DEF_DIM(fidM,"y",my_CHLD,dimID_y)                               ; call erreur(status,.TRUE.,"def_dimID_y")
 status = NF90_DEF_DIM(fidM,"time_counter",NF90_UNLIMITED,dimID_time_counter) ; call erreur(status,.TRUE.,"def_dimID_time_counter")
                                       
 status = NF90_DEF_VAR(fidM,"time_counter",NF90_FLOAT,(/dimID_time_counter/),time_counter_ID) ; call erreur(status,.TRUE.,"def_var_time_counter_ID")
