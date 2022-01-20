@@ -1,11 +1,8 @@
 program modif
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! N. Jourdain, LGGE-CNRS, March 2015
+! N. Jourdain, CNRS-IGE, March 2015
 !
-! Used to build netcdf tide file for BDY
-!
-! NB: in it current forn, only works if lon/lat grid (no rotated grid as near
-! the north pole !!)
+! Used to build netcdf tide lateral boundary conditions for the child domain (CHLD)
 !
 ! 0- Initialiartions
 ! 1- Read information on grids
@@ -13,6 +10,7 @@ program modif
 ! 3- Process all gridT files over specified period
 !
 ! history : - Mar. 2017: version with namelist (N. Jourdain)
+!           - Jan. 2022: a bit of cleaning (N. Jourdain)
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -43,7 +41,7 @@ CHARACTER(LEN=4) :: harmstr
 REAL*8,ALLOCATABLE,DIMENSION(:) :: lat, lon, zlon
 
 REAL*4,ALLOCATABLE,DIMENSION(:,:) :: Hg, Ha,  Vg, Va, Ug, Ua, z1, z2, u1, u2, v1, v2, glamt, gphit, glamu, gphiu, glamv, gphiv,&
-&                                    zglamt, zglamu, zglamv, gphiu_REG, glamu_REG, gphiv_REG, glamv_REG, zglamu_REG, zglamv_REG
+&                                    zglamt, zglamu, zglamv, gphiu_CHLD, glamu_CHLD, gphiv_CHLD, glamv_CHLD, zglamu_CHLD, zglamv_CHLD
 
 REAL*8 :: Hg_bdy, Ha_bdy, Vg_bdy, Va_bdy, Ug_bdy, Ua_bdy, div, zrad, angle, tmp1, tmp2, Hcs, Hsn, Ucs, Usn, Vcs, Vsn
 
@@ -175,7 +173,7 @@ status = NF90_GET_VAR(fidCOORD,nbrv_ID,nbrv)   ; call erreur(status,.TRUE.,"getv
 status = NF90_CLOSE(fidCOORD) ; call erreur(status,.TRUE.,"fin_lecture")
 
 !---------------------------------------                   
-! Read regional mesh_mask 
+! Read mesh_mask of child domain
                              
 write(*,*) 'Reading ', TRIM(file_mesh_mask)
                               
@@ -198,8 +196,8 @@ status = NF90_INQUIRE_DIMENSION(fidG,dimIDG_t,len=mtG) ; call erreur(status,.TRU
 ALLOCATE(  tmask(mxG,myG,mzG,mtG)  ) 
 ALLOCATE(  umask(mxG,myG,mzG,mtG)  ) 
 ALLOCATE(  vmask(mxG,myG,mzG,mtG)  )
-ALLOCATE(  gphiu_REG(mxG,myG), glamu_REG(mxG,myG), zglamu_REG(mxG,myG) ) 
-ALLOCATE(  gphiv_REG(mxG,myG), glamv_REG(mxG,myG), zglamv_REG(mxG,myG) ) 
+ALLOCATE(  gphiu_CHLD(mxG,myG), glamu_CHLD(mxG,myG), zglamu_CHLD(mxG,myG) ) 
+ALLOCATE(  gphiv_CHLD(mxG,myG), glamv_CHLD(mxG,myG), zglamv_CHLD(mxG,myG) ) 
                                  
 status = NF90_INQ_VARID(fidG,"tmask",tmask_ID) ; call erreur(status,.TRUE.,"inq_tmask_ID")
 status = NF90_INQ_VARID(fidG,"umask",umask_ID) ; call erreur(status,.TRUE.,"inq_umask_ID")
@@ -212,34 +210,34 @@ status = NF90_INQ_VARID(fidG,"glamv",glamv_ID) ; call erreur(status,.TRUE.,"inq_
 status = NF90_GET_VAR(fidG,tmask_ID,tmask)     ; call erreur(status,.TRUE.,"getvar_tmask")
 status = NF90_GET_VAR(fidG,umask_ID,umask)     ; call erreur(status,.TRUE.,"getvar_umask")
 status = NF90_GET_VAR(fidG,vmask_ID,vmask)     ; call erreur(status,.TRUE.,"getvar_vmask")
-status = NF90_GET_VAR(fidG,gphiu_ID,gphiu_REG) ; call erreur(status,.TRUE.,"getvar_gphiu")
-status = NF90_GET_VAR(fidG,glamu_ID,glamu_REG) ; call erreur(status,.TRUE.,"getvar_glamu")
-status = NF90_GET_VAR(fidG,gphiv_ID,gphiv_REG) ; call erreur(status,.TRUE.,"getvar_gphiv")
-status = NF90_GET_VAR(fidG,glamv_ID,glamv_REG) ; call erreur(status,.TRUE.,"getvar_glamv")
+status = NF90_GET_VAR(fidG,gphiu_ID,gphiu_CHLD) ; call erreur(status,.TRUE.,"getvar_gphiu")
+status = NF90_GET_VAR(fidG,glamu_ID,glamu_CHLD) ; call erreur(status,.TRUE.,"getvar_glamu")
+status = NF90_GET_VAR(fidG,gphiv_ID,gphiv_CHLD) ; call erreur(status,.TRUE.,"getvar_gphiv")
+status = NF90_GET_VAR(fidG,glamv_ID,glamv_CHLD) ; call erreur(status,.TRUE.,"getvar_glamv")
                                                       
 status = NF90_CLOSE(fidG) ; call erreur(status,.TRUE.,"fin_lecture")     
 
 if ( idateline) then
 
-  write(*,*) 'swithc REG longitudes to [ 0; 360 ]'
+  write(*,*) 'swithc CHLD longitudes to [ 0; 360 ]'
 
-  where( glamu_REG(:,:) .lt. 0.0 )
-    zglamu_REG(:,:) = 360.0 + glamu_REG(:,:)
+  where( glamu_CHLD(:,:) .lt. 0.0 )
+    zglamu_CHLD(:,:) = 360.0 + glamu_CHLD(:,:)
   elsewhere
-    zglamu_REG(:,:) = glamu_REG(:,:)
+    zglamu_CHLD(:,:) = glamu_CHLD(:,:)
   endwhere
 
-  where( glamv_REG(:,:) .lt. 0.0 )
-    zglamv_REG(:,:) = 360.0 + glamv_REG(:,:)
+  where( glamv_CHLD(:,:) .lt. 0.0 )
+    zglamv_CHLD(:,:) = 360.0 + glamv_CHLD(:,:)
   elsewhere
-    zglamv_REG(:,:) = glamv_REG(:,:)
+    zglamv_CHLD(:,:) = glamv_CHLD(:,:)
   endwhere
 
 else
 
-  write(*,*) 'keep REG longitudes in [ -180; 180]'
-  zglamu_REG(:,:) = glamu_REG(:,:)
-  zglamv_REG(:,:) = glamv_REG(:,:)
+  write(*,*) 'keep CHLD longitudes in [ -180; 180]'
+  zglamu_CHLD(:,:) = glamu_CHLD(:,:)
+  zglamv_CHLD(:,:) = glamv_CHLD(:,:)
 
 endif
 
@@ -531,8 +529,9 @@ DO kharm=1,nn_harm
          &        + ( zglamu(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphiu(kbdy,1) ) * SIN(zrad*Vg(isup,jinf)) * mskfes(isup,jinf)  &
          &        + ( zglamu(kbdy,1) - zlon(iinf) ) * ( gphiu(kbdy,1) - lat(jinf) ) * SIN(zrad*Vg(isup,jsup)) * mskfes(isup,jsup)
  
-         tmp1  = gphiu_REG( MIN(mxG,nbiu(kbdy,1)+1), nbju(kbdy,1) ) - gphiu_REG( MAX(1,nbiu(kbdy,1)-1), nbju(kbdy,1) )
-         tmp2  = ( zglamu_REG( MIN(mxG,nbiu(kbdy,1)+1), nbju(kbdy,1) ) - zglamu_REG( MAX(1,nbiu(kbdy,1)-1), nbju(kbdy,1) ) ) * cos( zrad * gphiu_REG(nbiu(kbdy,1),nbju(kbdy,1)) )
+         tmp1  =    gphiu_CHLD( MIN(mxG,nbiu(kbdy,1)+1), nbju(kbdy,1) ) -  gphiu_CHLD( MAX(1,nbiu(kbdy,1)-1), nbju(kbdy,1) )
+         tmp2  = ( zglamu_CHLD( MIN(mxG,nbiu(kbdy,1)+1), nbju(kbdy,1) ) - zglamu_CHLD( MAX(1,nbiu(kbdy,1)-1), nbju(kbdy,1) ) ) &
+         &       * cos( zrad * gphiu_CHLD(nbiu(kbdy,1),nbju(kbdy,1)) )
          angle = ATAN2( tmp1, tmp2 )
  
          div =   ( zlon(isup) - zglamu(kbdy,1) ) * ( lat(jsup) - gphiu(kbdy,1) ) * mskfes(iinf,jinf)  &
@@ -566,10 +565,6 @@ DO kharm=1,nn_harm
  
      endif !--  if ( tmask(nbit(kbdy,1),nbjt(kbdy,1),1) .ne. 0 )
   
-     !write(*,*) TRIM(harmstr), kbdy, angle
-     !write(*,*) '      ', gphiu_REG( MIN(mxG,nbiu(kbdy,1)+1),nbju(kbdy,1) ), gphiu_REG( MIN(mxG,nbiu(kbdy,1)+1),nbju(kbdy,1) ) - gphiu_REG( MAX(1,nbiu(kbdy,1)-1), nbju(kbdy,1) )
-     !write(*,*) '      ', zglamu_REG( MIN(mxG,nbiu(kbdy,1)+1), nbju(kbdy,1) ), ( zglamu_REG( MIN(mxG,nbiu(kbdy,1)+1), nbju(kbdy,1) ) - zglamu_REG( MAX(1,nbiu(kbdy,1)-1), nbju(kbdy,1) ) ) * cos( zrad * gphiu_REG(nbiu(kbdy,1),nbju(kbdy,1)) ) 
- 
      u1(kbdy,1) = Ua_bdy * COS( zrad * Ug_bdy ) * COS(angle) + Va_bdy * COS( zrad * Vg_bdy ) * SIN(angle)  ! real part
      u2(kbdy,1) = Ua_bdy * SIN( zrad * Ug_bdy ) * COS(angle) + Va_bdy * SIN( zrad * Vg_bdy ) * SIN(angle)  ! imaginary part
   
@@ -636,9 +631,9 @@ DO kharm=1,nn_harm
          &        + ( zglamv(kbdy,1) - zlon(iinf) ) * ( lat(jsup) - gphiv(kbdy,1) ) * SIN(zrad*Vg(isup,jinf)) * mskfes(isup,jinf)  &
          &        + ( zglamv(kbdy,1) - zlon(iinf) ) * ( gphiv(kbdy,1) - lat(jinf) ) * SIN(zrad*Vg(isup,jsup)) * mskfes(isup,jsup)
  
-         angle  = ATAN2(    gphiv_REG( MIN(mxG,nbiv(kbdy,1)+1), nbjv(kbdy,1) ) -  gphiv_REG( MAX(1,nbiv(kbdy,1)-1), nbjv(kbdy,1) )  , &
-         &               ( zglamv_REG( MIN(mxG,nbiv(kbdy,1)+1), nbjv(kbdy,1) ) - zglamv_REG( MAX(1,nbiv(kbdy,1)-1), nbjv(kbdy,1) ) )  &
-         &               * cos( zrad * gphiv_REG(nbiv(kbdy,1),nbjv(kbdy,1)) )  ) 
+         angle  = ATAN2(    gphiv_CHLD( MIN(mxG,nbiv(kbdy,1)+1), nbjv(kbdy,1) ) -  gphiv_CHLD( MAX(1,nbiv(kbdy,1)-1), nbjv(kbdy,1) )  , &
+         &               ( zglamv_CHLD( MIN(mxG,nbiv(kbdy,1)+1), nbjv(kbdy,1) ) - zglamv_CHLD( MAX(1,nbiv(kbdy,1)-1), nbjv(kbdy,1) ) )  &
+         &               * cos( zrad * gphiv_CHLD(nbiv(kbdy,1),nbjv(kbdy,1)) )  ) 
  
          div =   ( zlon(isup) - zglamv(kbdy,1) ) * ( lat(jsup) - gphiv(kbdy,1) ) * mskfes(iinf,jinf)  &
            &   + ( zlon(isup) - zglamv(kbdy,1) ) * ( gphiv(kbdy,1) - lat(jinf) ) * mskfes(iinf,jsup)  &
