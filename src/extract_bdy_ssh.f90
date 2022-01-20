@@ -275,6 +275,7 @@ DO kyear=nn_yeari,nn_yearf
         if ( status .ne. 0 ) status = NF90_INQ_VARID(fidT,"zos",sossheig_ID)
         if ( status .ne. 0 ) status = NF90_INQ_VARID(fidT,"ssh",sossheig_ID)
         if ( status .ne. 0 ) status = NF90_INQ_VARID(fidT,"SSH",sossheig_ID)
+        if ( status .ne. 0 ) status = NF90_INQ_VARID(fidT,"sossh",sossheig_ID)
         call erreur(status,.TRUE.,"None existing SSH, or unknown variable name")
         
         status = NF90_GET_VAR(fidT,time_ID,time)                      ; call erreur(status,.TRUE.,"getvar_time")

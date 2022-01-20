@@ -57,13 +57,13 @@ file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/BedMachineAntarctica-2
 file_in_mask_extract  = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_mask.nc'
 !-
 ! PARENT temperature file (same grid as file_in_mask_extract):
-file_in_T             = '/scratch/cnt0021/egi6035/SHARED/NEMO/OUTPUT/eORCA025.L121-OPM026/5d/1979/eORCA025.L121-OPM026_y1979m03d01.5d_gridT.nc'
+file_in_T             = '/scratch/cnt0021/egi6035/SHARED/NEMO/OUTPUT/eORCA025.L121-OPM026/5d/2005/eORCA025.L121-OPM026_y2005m03d01.5d_gridT.nc'
 !-
 ! PARENT salinity file (same grid as file_in_mask_extract) :
-file_in_S             = '/scratch/cnt0021/egi6035/SHARED/NEMO/OUTPUT/eORCA025.L121-OPM026/5d/1979/eORCA025.L121-OPM026_y1979m03d01.5d_gridT.nc'
+file_in_S             = '/scratch/cnt0021/egi6035/SHARED/NEMO/OUTPUT/eORCA025.L121-OPM026/5d/2005/eORCA025.L121-OPM026_y2005m03d01.5d_gridT.nc'
 !-
 ! PARENT sea ice file (only used by extract_istate_sea_ice.f90, put e.g. 'NOT USED' if no sea ice) :
-file_in_SI            = '/scratch/cnt0021/egi6035/SHARED/NEMO/OUTPUT/eORCA025.L121-OPM026/5d/1979/eORCA025.L121-OPM026_y1979m03d01.5d_icemod.nc'
+file_in_SI            = '/scratch/cnt0021/egi6035/SHARED/NEMO/OUTPUT/eORCA025.L121-OPM026/5d/2005/eORCA025.L121-OPM026_y2005m03d01.5d_icemod.nc'
 !-
 nn_eosmatch           =   1    ! match between model equ. of state and istate equ. of state :
                                !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
