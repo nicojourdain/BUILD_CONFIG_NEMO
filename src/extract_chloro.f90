@@ -21,10 +21,12 @@ IMPLICIT NONE
 
 !-- namelist parameters :
 namelist /general/ config, config_dir
-namelist /chloro/ file_chloro_in, rn_chla
+namelist /chloro/ file_chloro_in, rn_chla, ln_datelinex, nn_periox
 CHARACTER(LEN=50)                        :: config
 CHARACTER(LEN=150)                       :: file_chloro_in, config_dir
 REAL*4                                   :: rn_chla
+LOGICAL                                  :: ln_datelinex ! not used 
+INTEGER                                  :: nn_periox ! not used
 
 INTEGER                                  :: fidA, status, dimID_x, dimID_y, dimID_time_counter, dimID_z, dimID_t, mx, my, mtime_counter, &
 &                                           mzreg, mtreg, time_counter_ID, nav_lon_ID, nav_lat_ID, CHLA_ID, fidM, fidglo, jmin_EXT,   &
@@ -82,7 +84,7 @@ status = NF90_GET_ATT(fidC, NF90_GLOBAL, "jmin_extraction", jmin_EXT); call erre
 status = NF90_CLOSE(fidC)                         ; call erreur(status,.TRUE.,"end read fidC")
 
 !=================================================================================
-! 2- Read iceberg chloro :
+! 2- Read chloro :
 !=================================================================================
 
 write(*,*) 'Reading ', TRIM(file_chloro_in)
@@ -201,7 +203,7 @@ do jCHLD=1,my_CHLD
     if ( tmask_CHLD(iCHLD,jCHLD) .eq. 1 ) then 
       do l=1,mtime_counter
         tmp_CHLAreg(iCHLD,jCHLD,l) =   SUM( SUM( CHLAreg(im1:ip1,jm1:jp1,l) * tmask_CHLD(im1:ip1,jm1:jp1), 2), 1) &
-        &                          / SUM( SUM(                       1.0  * tmask_CHLD(im1:ip1,jm1:jp1), 2), 1)
+        &                            / SUM( SUM(                       1.0  * tmask_CHLD(im1:ip1,jm1:jp1), 2), 1)
       enddo
     else
       tmp_CHLAreg(iCHLD,jCHLD,:) = 0.e0
@@ -216,8 +218,8 @@ CHLAreg(:,:,:)=tmp_CHLAreg(:,:,:)
                                       
 status = NF90_CREATE(TRIM(file_chloro_out),NF90_NOCLOBBER,fidM) ; call erreur(status,.TRUE.,'create new chloro file')                     
                                         
-status = NF90_DEF_DIM(fidM,"x",mx_CHLD,dimID_x)                               ; call erreur(status,.TRUE.,"def_dimID_x")
-status = NF90_DEF_DIM(fidM,"y",my_CHLD,dimID_y)                               ; call erreur(status,.TRUE.,"def_dimID_y")
+status = NF90_DEF_DIM(fidM,"x",mx_CHLD,dimID_x)                              ; call erreur(status,.TRUE.,"def_dimID_x")
+status = NF90_DEF_DIM(fidM,"y",my_CHLD,dimID_y)                              ; call erreur(status,.TRUE.,"def_dimID_y")
 status = NF90_DEF_DIM(fidM,"time_counter",NF90_UNLIMITED,dimID_time_counter) ; call erreur(status,.TRUE.,"def_dimID_time_counter")
                                       
 status = NF90_DEF_VAR(fidM,"time_counter",NF90_FLOAT,(/dimID_time_counter/),time_counter_ID) ; call erreur(status,.TRUE.,"def_var_time_counter_ID")
