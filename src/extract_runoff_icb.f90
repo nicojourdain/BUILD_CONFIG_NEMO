@@ -6,7 +6,7 @@ program modif
 !
 ! 0- Initialiartions
 ! 1- Read information on grids
-! 2- Read CHLDIONAL mask
+! 2- Read child mask (CHLD)
 ! 3- Read input file dimensions in first existing file for specified time window
 !    (can be 2d or 3d salinity)
 ! 4- Process all gridT files over specified period
@@ -58,7 +58,7 @@ REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:)      :: nav_lon, nav_lat, nav_lon_CHLD, 
 REAL(KIND=8),ALLOCATABLE,DIMENSION(:,:,:)    :: runoff_PAR, runoff_CHLD, tmp_runoff_CHLD, icb_melt_PAR, icb_melt_CHLD, tmp_icb_melt_CHLD
 REAL(KIND=8),ALLOCATABLE,DIMENSION(:)        :: time
 REAL(KIND=8)                                 :: chkland, eps
-LOGICAL                                      :: existfile, iout, ll_climato
+LOGICAL                                      :: existfile, iout !, ll_climato
 
 !=================================================================================
 !- 0- Initialiartions
@@ -108,7 +108,7 @@ status = NF90_GET_ATT(fidC, NF90_GLOBAL, "jmin_extraction", jmin_EXT); call erre
 status = NF90_CLOSE(fidC)                         ; call erreur(status,.TRUE.,"end read fidC")
 
 !=================================================================================
-! 2- Read CHLDIONAL mask :
+! 2- Read child mask (CHLD) :
 !=================================================================================
 
 write(*,*) 'Reading regional mask in ', TRIM(file_in_mask_CHLD)
@@ -146,7 +146,7 @@ status = NF90_CLOSE(fidMSKCHLD); call erreur(status,.TRUE.,"end read fidMSKCHLD"
 ALLOCATE(list_fmt(5))
 list_fmt=(/191,192,193,194,195/)
 
-ll_climato = .false.
+!ll_climato = .false.
 
 kyear=nn_rrr_yeari
 kmonth=1
@@ -165,7 +165,8 @@ DO kday=1,31
           write(file_in_RNF,194) TRIM(rrr_dir), TRIM(rrr_prefix), kyear, TRIM(rrr_sep1), kmonth, TRIM(rrr_suffix)
         CASE(195)
           write(file_in_RNF,195) TRIM(rrr_dir), TRIM(rrr_prefix)
-          ll_climato = .true.
+          !ll_climato = .true.
+          !write(*,*) 'CLIMATOLOGICAL FILE IS BEING USED'
         CASE DEFAULT 
           write(*,*) 'wrong nfmt value >>>>>> stop !'
           stop
@@ -218,7 +219,7 @@ DO kday=1,31
 
 ENDDO
 
-!- Read tmask in large-scale/global file:
+!- Read tmask in parent file:
 status = NF90_OPEN(TRIM(file_mask_runoff),0,fidMSKIN);     call erreur(status,.TRUE.,"read mask_PAR") 
 status = NF90_INQ_DIMID(fidMSKIN,"z",dimID_z)
 if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidMSKIN,"depth",dimID_z)
@@ -234,7 +235,7 @@ status = NF90_CLOSE(fidMSKIN);                          call erreur(status,.TRUE
 
 !- create RNF directory :
 write(command_str,888) TRIM(config_dir)
-888 FORMAT('mkdir ',a,'/RNF')
+888 FORMAT('mkdir -pv ',a,'/RNF')
 CALL system(TRIM(command_str))
 
 !=================================================================================
@@ -263,6 +264,7 @@ DO kyear=nn_rrr_yeari,nn_rrr_yearf
           stop
       END SELECT
       inquire(file=file_in_RNF, exist=existfile)
+      write(*,*) 'toto ', TRIM(file_in_RNF), existfile
 
       IF ( existfile ) THEN
 
@@ -302,9 +304,7 @@ DO kyear=nn_rrr_yeari,nn_rrr_yearf
         if ( status .ne. 0 ) status = NF90_INQ_VARID(fidRNF,"rnf",runoff_ID)
         if ( status .ne. 0 ) then
           statusb = 1
-          write(*,*) '~!@#$%^*~!@#$%^*~!@#$%^*~!@#$%^*~!@#$%^*~!@#$%^*~!@#$%^*~!@#$%^*~!@#$%^*~!@*'
           write(*,*) '~!@#$%^*  WARNING : liquid runoff is assumed to be zero everywhere  ~!@#$%^*'
-          write(*,*) '~!@#$%^*~!@#$%^*~!@#$%^*~!@#$%^*~!@#$%^*~!@#$%^*~!@#$%^*~!@#$%^*~!@#$%^*~!@*'
           runoff_PAR(:,:,:) = 0.e0
         else
           statusb = 0
@@ -318,9 +318,7 @@ DO kyear=nn_rrr_yeari,nn_rrr_yearf
         if ( status .ne. 0 ) status = NF90_INQ_VARID(fidRNF,"iceberg_cea",icb_melt_ID)
         if ( status .ne. 0 ) then
           statusb = statusb + 1
-          write(*,*) '~!@#$%^*~!@#$%^*~!@#$%^*~!@#$%^~!@#$%^*~!@#$%^*~!@#$%^*~!@#$%^*~!@#$%^*~!@*'
           write(*,*) '~!@#$%^*  WARNING : iceberg melt is assumed to be zero everywhere  ~!@#$%^*'
-          write(*,*) '~!@#$%^*~!@#$%^*~!@#$%^*~!@#$%^~!@#$%^*~!@#$%^*~!@#$%^*~!@#$%^*~!@#$%^*~!@*'
           icb_melt_PAR(:,:,:) = 0.e0
         else
           status = NF90_GET_VAR(fidRNF,icb_melt_ID,icb_melt_PAR) ; call erreur(status,.TRUE.,"getvar_icb_melt")
@@ -489,9 +487,9 @@ DO kyear=nn_rrr_yeari,nn_rrr_yearf
       ENDIF
 
     ENDDO !-kday
-    if (ll_climato) exit
+    !if (ll_climato) exit
   ENDDO !- kmonth
-  if (ll_climato) exit
+  !if (ll_climato) exit
 ENDDO !- kyear
 
 end program modif

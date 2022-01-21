@@ -55,7 +55,7 @@ REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:)      :: nav_lon, nav_lat, nav_lon_CHLD, 
 REAL(KIND=8),ALLOCATABLE,DIMENSION(:,:,:)    :: runoff_PAR, runoff_CHLD, tmp_runoff_CHLD
 REAL(KIND=8),ALLOCATABLE,DIMENSION(:)        :: time
 REAL(KIND=8)                                 :: chkland, eps
-LOGICAL                                      :: existfile, iout, ll_climato
+LOGICAL                                      :: existfile, iout !, ll_climato
 
 !=================================================================================
 !- 0- Initialiartions
@@ -143,7 +143,7 @@ status = NF90_CLOSE(fidMSKCHLD); call erreur(status,.TRUE.,"end read fidMSKCHLD"
 ALLOCATE(list_fmt(5))
 list_fmt=(/191,192,193,194,195/)
 
-ll_climato = .false.
+!ll_climato = .false.
 
 kyear=nn_rrr_yeari
 kmonth=1
@@ -162,7 +162,7 @@ DO kday=1,31
           write(file_in_RNF,194) TRIM(rrr_dir), TRIM(rrr_prefix), kyear, TRIM(rrr_sep1), kmonth, TRIM(rrr_suffix)
         CASE(195)
           write(file_in_RNF,195) TRIM(rrr_dir), TRIM(rrr_prefix)
-          ll_climato = .true.
+          !ll_climato = .true.
         CASE DEFAULT 
           write(*,*) 'wrong nfmt value >>>>>> stop !'
           stop
@@ -215,7 +215,7 @@ DO kday=1,31
 
 ENDDO
 
-!- Read tmask in large-scale/global file:
+!- Read tmask in parent grid file:
 status = NF90_OPEN(TRIM(file_mask_runoff),0,fidMSKIN);     call erreur(status,.TRUE.,"read mask_PAR") 
 status = NF90_INQ_DIMID(fidMSKIN,"z",dimID_z)
 if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidMSKIN,"depth",dimID_z)
@@ -231,7 +231,7 @@ status = NF90_CLOSE(fidMSKIN);                          call erreur(status,.TRUE
 
 !- create RNF directory :
 write(command_str,888) TRIM(config_dir)
-888 FORMAT('mkdir ',a,'/RNF')
+888 FORMAT('mkdir -pv ',a,'/RNF')
 CALL system(TRIM(command_str))
 
 !=================================================================================
@@ -452,9 +452,9 @@ DO kyear=nn_rrr_yeari,nn_rrr_yearf
       ENDIF
 
     ENDDO !-kday
-    if (ll_climato) exit
+    !if (ll_climato) exit
   ENDDO !- kmonth
-  if (ll_climato) exit
+  !if (ll_climato) exit
 ENDDO !- kyear
 
 end program modif
