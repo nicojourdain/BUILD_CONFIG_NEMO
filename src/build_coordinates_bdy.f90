@@ -1,11 +1,7 @@
 program modif                                         
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! N. Jourdain, LGGE-CNRS, March 2015
 !
 ! Used to build netcdf coordinate file for BDY
-!
-! hisotry: - Feb. 2017: use of namelist
-!          - May  2021: remove 3 consecutive land points (useful for land-processor masking in NEMO4)
 !
 ! 0- Initializations
 ! 1a- Read coordinates of the entire domain
@@ -13,6 +9,10 @@ program modif
 ! 2- Calculate BDY dimensions
 ! 3- Exctract coordinates along BDY
 ! 4- Write BDY coordinates in a netcdf file
+!
+! hisotry: - Mar. 2015: initial verison (N. Jourdain, CNRS-LGGE)
+!          - Feb. 2017: use of namelist (N. Jourdain, CNRS-IGE)
+!          - May  2021: remove 3 consecutive land points (useful for land-processor masking in NEMO4)
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 USE netcdf                                            
@@ -41,7 +41,7 @@ INTEGER                              :: fidA, status, dimID_xbv, dimID_xbu, dimI
 &                                       nbru_ID, nbju_ID, nbiu_ID, nbrt_ID, nbjt_ID, nbit_ID, fidM, dimID_x,    &
 &                                       dimID_y, k, kt, ku, kv, kt0, ku0, kv0, mx, my, kkbdy, k1, k2, ndouble,  &
 &                                       fidJ, vmaskutil_ID, umaskutil_ID, tmaskutil_ID
-CHARACTER(LEN=150)                   :: file_in_coord_REG, file_in_mask_REG, file_out                     
+CHARACTER(LEN=150)                   :: file_in_coord_CHLD, file_in_mask_CHLD, file_out                     
 INTEGER*1,ALLOCATABLE,DIMENSION(:,:) :: vmaskutil, umaskutil, tmaskutil
 INTEGER*4,ALLOCATABLE,DIMENSION(:,:) :: nbrv, nbjv, nbiv, nbru, nbju, nbiu, nbrt, nbjt, nbit    
 INTEGER*4,ALLOCATABLE,DIMENSION(:,:) :: nbjv_tmp, nbiv_tmp, nbju_tmp, nbiu_tmp, nbjt_tmp, nbit_tmp    
@@ -82,9 +82,9 @@ IF (nn_bdy_north .gt. 0) READ (UNIT=1, NML=bdy_north)
 IF (nn_bdy_south .gt. 0) READ (UNIT=1, NML=bdy_south)
 CLOSE(1)
 
-write(file_in_coord_REG,101) TRIM(config_dir), TRIM(config)
+write(file_in_coord_CHLD,101) TRIM(config_dir), TRIM(config)
 101 FORMAT(a,'/coordinates_',a,'.nc')
-write(file_in_mask_REG,102) TRIM(config_dir), TRIM(config)
+write(file_in_mask_CHLD,102) TRIM(config_dir), TRIM(config)
 102 FORMAT(a,'/mesh_mask_',a,'.nc')
 write(file_out,103) TRIM(config_dir), TRIM(config)
 103 FORMAT(a,'/coordinates_bdy_',a,'.nc')
@@ -93,9 +93,9 @@ write(file_out,103) TRIM(config_dir), TRIM(config)
 ! 1a- Read coordinates of the entire domain
 !=================================================================================
 
-write(*,*) 'Reading ', TRIM(file_in_coord_REG)
+write(*,*) 'Reading ', TRIM(file_in_coord_CHLD)
 
-status = NF90_OPEN(TRIM(file_in_coord_REG),0,fidA) ; call erreur(status,.TRUE.,"open coordinates") 
+status = NF90_OPEN(TRIM(file_in_coord_CHLD),0,fidA) ; call erreur(status,.TRUE.,"open coordinates") 
 
 status = NF90_INQ_DIMID(fidA,"x",dimID_x)
 if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidA,"X",dimID_x) 
@@ -146,9 +146,9 @@ status = NF90_CLOSE(fidA) ; call erreur(status,.TRUE.,"close file")
 ! 1b- Read mask of the entire domain
 !=================================================================================
 
-write(*,*) 'Reading ', TRIM(file_in_mask_REG)
+write(*,*) 'Reading ', TRIM(file_in_mask_CHLD)
 
-status = NF90_OPEN(TRIM(file_in_mask_REG),0,fidJ) ; call erreur(status,.TRUE.,"open coordinates") 
+status = NF90_OPEN(TRIM(file_in_mask_CHLD),0,fidJ) ; call erreur(status,.TRUE.,"open coordinates") 
 
 ALLOCATE(  tmaskutil(mx,my)  )
 ALLOCATE(  umaskutil(mx,my)  )

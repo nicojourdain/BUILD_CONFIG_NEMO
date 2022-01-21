@@ -1,6 +1,5 @@
 program modif                                         
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! N. Jourdain, IGE-CNRS, Nov. 2021
 !
 ! Script to extract the sea ice initial state from the parent grid
 !
@@ -8,10 +7,12 @@ program modif
 ! single category or multi-category-averaged sea ice data).
 !
 ! 1- Read PARENT ("_PAR") mask
-! 2- Read CHILD ("_CHI") mask
+! 2- Read CHILD ("_CHLD") mask
 ! 3- Read PARENT sea ice initial state
 ! 4- Extract CHILD from PARENT
 ! 5- Writing CHILD initial state for sea ice
+!
+! History: - Nov. 2021: initial version (N. Jourdain, CNRS-IGE)
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -28,22 +29,22 @@ CHARACTER(LEN=50)                     :: config
 CHARACTER(LEN=150)                    :: file_in_mask_extract, config_dir, file_in_T, file_in_S, file_in_SI
 REAL(KIND=4)                          :: rn_temp, rn_sal
 
-INTEGER :: fidMSKIN, fidMSKCHI, status, dimID_z, dimID_y, dimID_x, my_PAR, mx_PAR, tmask_PAR_ID, &
-&          mx_CHI, my_CHI, tmask_CHI_ID, fidSAL, fidTEMP, siconc_ID, sithic_ID, snthic_ID,       &
-&          dimID_time_counter, ai, bi, aj, bj, iii, jjj, iPAR, jPAR, iCHI, jCHI, fidTin, fidSin, &
+INTEGER :: fidMSKIN, fidMSKCHLD, status, dimID_z, dimID_y, dimID_x, my_PAR, mx_PAR, tmask_PAR_ID, &
+&          mx_CHLD, my_CHLD, tmask_CHLD_ID, fidSAL, fidTEMP, siconc_ID, sithic_ID, snthic_ID,       &
+&          dimID_time_counter, ai, bi, aj, bj, iii, jjj, iPAR, jPAR, iCHLD, jCHLD, fidTin, fidSin, &
 &          kiter, rs, time_counter_ID, fidCOORD, imin_EXT, jmin_EXT, lon_ID, lat_ID, dij,  &
 &          dep_ID, kPAR, ntest, im1, ip1, jm1, jp1
 
-CHARACTER(LEN=180) :: file_in_mask_CHI, file_in_coord_CHI, file_out_SI, file_out_sal 
+CHARACTER(LEN=180) :: file_in_mask_CHLD, file_in_coord_CHLD, file_out_SI, file_out_sal 
 
-INTEGER*1,ALLOCATABLE,DIMENSION(:,:) :: tmask_PAR, tmask_CHI, missing, tmp_missing
+INTEGER*1,ALLOCATABLE,DIMENSION(:,:) :: tmask_PAR, tmask_CHLD, missing, tmp_missing
 
 REAL(KIND=4),ALLOCATABLE,DIMENSION(:) ::  dep_PAR
 
 REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:) :: lon_PAR, lat_PAR
 
-REAL(KIND=8),ALLOCATABLE,DIMENSION(:,:) :: siconc_PAR, sithic_PAR, siconc_CHI, sithic_CHI, tmp_siconc_CHI, &
-&                                          tmp_sithic_CHI, snthic_PAR, snthic_CHI, tmp_snthic_CHI
+REAL(KIND=8),ALLOCATABLE,DIMENSION(:,:) :: siconc_PAR, sithic_PAR, siconc_CHLD, sithic_CHLD, tmp_siconc_CHLD, &
+&                                          tmp_sithic_CHLD, snthic_PAR, snthic_CHLD, tmp_snthic_CHLD
 
 LOGICAL :: iout
 
@@ -70,11 +71,11 @@ READ (UNIT=1, NML=init)
 CLOSE(1)
 
 !- name of regional mesh_mask (input) :
-write(file_in_mask_CHI,101) TRIM(config_dir), TRIM(config)
+write(file_in_mask_CHLD,101) TRIM(config_dir), TRIM(config)
 101 FORMAT(a,'/mesh_mask_',a,'.nc')
 
 !- name of regional coordinates (input) :
-write(file_in_coord_CHI,102) TRIM(config_dir), TRIM(config)
+write(file_in_coord_CHLD,102) TRIM(config_dir), TRIM(config)
 102 FORMAT(a,'/coordinates_',a,'.nc')
 
 !- output file names :
@@ -115,22 +116,22 @@ status = NF90_CLOSE(fidMSKIN); call erreur(status,.TRUE.,"end read mask_PAR")
 ! 2- Read CHILD mask :
 !=================================================================================
 
-status = NF90_OPEN(TRIM(file_in_mask_CHI),0,fidMSKCHI); call erreur(status,.TRUE.,"read regional mask") 
+status = NF90_OPEN(TRIM(file_in_mask_CHLD),0,fidMSKCHLD); call erreur(status,.TRUE.,"read regional mask") 
 
-status = NF90_INQ_DIMID(fidMSKCHI,"y",dimID_y); call erreur(status,.TRUE.,"inq_dimID_y_CHI")
-status = NF90_INQ_DIMID(fidMSKCHI,"x",dimID_x); call erreur(status,.TRUE.,"inq_dimID_x_CHI")
+status = NF90_INQ_DIMID(fidMSKCHLD,"y",dimID_y); call erreur(status,.TRUE.,"inq_dimID_y_CHLD")
+status = NF90_INQ_DIMID(fidMSKCHLD,"x",dimID_x); call erreur(status,.TRUE.,"inq_dimID_x_CHLD")
 
-status = NF90_INQUIRE_DIMENSION(fidMSKCHI,dimID_y,len=my_CHI); call erreur(status,.TRUE.,"inq_dim_y_CHI")
-status = NF90_INQUIRE_DIMENSION(fidMSKCHI,dimID_x,len=mx_CHI); call erreur(status,.TRUE.,"inq_dim_x_CHI")
+status = NF90_INQUIRE_DIMENSION(fidMSKCHLD,dimID_y,len=my_CHLD); call erreur(status,.TRUE.,"inq_dim_y_CHLD")
+status = NF90_INQUIRE_DIMENSION(fidMSKCHLD,dimID_x,len=mx_CHLD); call erreur(status,.TRUE.,"inq_dim_x_CHLD")
 
-ALLOCATE(  tmask_CHI(mx_CHI,my_CHI)  ) 
+ALLOCATE(  tmask_CHLD(mx_CHLD,my_CHLD)  ) 
 
-status = NF90_INQ_VARID(fidMSKCHI,"tmask",tmask_CHI_ID); call erreur(status,.TRUE.,"inq_tmask_CHI_ID")
+status = NF90_INQ_VARID(fidMSKCHLD,"tmask",tmask_CHLD_ID); call erreur(status,.TRUE.,"inq_tmask_CHLD_ID")
 
-status = NF90_GET_VAR(fidMSKCHI,tmask_CHI_ID,tmask_CHI,start=(/1,1,1/),count=(/mx_CHI,my_CHI,1/))
-call erreur(status,.TRUE.,"getvar_tmask_CHI")
+status = NF90_GET_VAR(fidMSKCHLD,tmask_CHLD_ID,tmask_CHLD,start=(/1,1,1/),count=(/mx_CHLD,my_CHLD,1/))
+call erreur(status,.TRUE.,"getvar_tmask_CHLD")
 
-status = NF90_CLOSE(fidMSKCHI); call erreur(status,.TRUE.,"end read fidMSKCHI")
+status = NF90_CLOSE(fidMSKCHLD); call erreur(status,.TRUE.,"end read fidMSKCHLD")
 
 !=================================================================================
 ! 3- Read PARENT sea ice initial state
@@ -172,14 +173,14 @@ status = NF90_CLOSE(fidTin); call erreur(status,.TRUE.,"Close PARENT sea ice fil
 ! 4- Extract CHILD from PARENT
 !=================================================================================
 
-ALLOCATE( siconc_CHI(mx_CHI,my_CHI) )
-ALLOCATE( sithic_CHI(mx_CHI,my_CHI) )
-ALLOCATE( snthic_CHI(mx_CHI,my_CHI) )
+ALLOCATE( siconc_CHLD(mx_CHLD,my_CHLD) )
+ALLOCATE( sithic_CHLD(mx_CHLD,my_CHLD) )
+ALLOCATE( snthic_CHLD(mx_CHLD,my_CHLD) )
 
 !- Read global attributes of coordinate file to get grid correspondance :
 !       i_EXT = ai * i_PAR + bi
 !       j_EXT = aj * j_PAR + bj
-status = NF90_OPEN(TRIM(file_in_coord_CHI),0,fidCOORD); call erreur(status,.TRUE.,"read coord input")
+status = NF90_OPEN(TRIM(file_in_coord_CHLD),0,fidCOORD); call erreur(status,.TRUE.,"read coord input")
 status = NF90_GET_ATT(fidCOORD, NF90_GLOBAL, "ai", ai); call erreur(status,.TRUE.,"read att1")
 status = NF90_GET_ATT(fidCOORD, NF90_GLOBAL, "bi", bi); call erreur(status,.TRUE.,"read att2")
 status = NF90_GET_ATT(fidCOORD, NF90_GLOBAL, "aj", aj); call erreur(status,.TRUE.,"read att3")
@@ -189,29 +190,29 @@ status = NF90_GET_ATT(fidCOORD, NF90_GLOBAL, "jmin_extraction", jmin_EXT); call 
 status = NF90_CLOSE(fidCOORD)                         ; call erreur(status,.TRUE.,"end read fidCOORD")
 
 ! Just extract where ocean points on both grids :
-ALLOCATE( missing(mx_CHI,my_CHI) )
-ALLOCATE( tmp_missing(mx_CHI,my_CHI) )
-ALLOCATE( tmp_siconc_CHI(mx_CHI,my_CHI) )
-ALLOCATE( tmp_sithic_CHI(mx_CHI,my_CHI) )
-ALLOCATE( tmp_snthic_CHI(mx_CHI,my_CHI) )
+ALLOCATE( missing(mx_CHLD,my_CHLD) )
+ALLOCATE( tmp_missing(mx_CHLD,my_CHLD) )
+ALLOCATE( tmp_siconc_CHLD(mx_CHLD,my_CHLD) )
+ALLOCATE( tmp_sithic_CHLD(mx_CHLD,my_CHLD) )
+ALLOCATE( tmp_snthic_CHLD(mx_CHLD,my_CHLD) )
 missing(:,:)=0
-siconc_CHI(:,:)=0.d0
-sithic_CHI(:,:)=0.d0
-snthic_CHI(:,:)=0.d0
-do iCHI=1,mx_CHI
-do jCHI=1,my_CHI
-   iPAR=NINT(FLOAT(iCHI+imin_EXT-1-bi)/ai)
-   jPAR=NINT(FLOAT(jCHI+jmin_EXT-1-bj)/aj)
+siconc_CHLD(:,:)=0.d0
+sithic_CHLD(:,:)=0.d0
+snthic_CHLD(:,:)=0.d0
+do iCHLD=1,mx_CHLD
+do jCHLD=1,my_CHLD
+   iPAR=NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai)
+   jPAR=NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj)
    if ( iPAR .ge. 1 .and. jPAR .ge. 1 ) then
        if ( tmask_PAR(iPAR,jPAR) .eq. 1 ) then
-         siconc_CHI(iCHI,jCHI) = siconc_PAR(iPAR,jPAR) * tmask_CHI(iCHI,jCHI) 
-         sithic_CHI(iCHI,jCHI) = sithic_PAR(iPAR,jPAR) * tmask_CHI(iCHI,jCHI) 
-         snthic_CHI(iCHI,jCHI) = snthic_PAR(iPAR,jPAR) * tmask_CHI(iCHI,jCHI) 
-       elseif ( tmask_CHI(iCHI,jCHI) .eq. 1 ) then ! unmasked CHI but masked PAR
-         missing(iCHI,jCHI) = 1
+         siconc_CHLD(iCHLD,jCHLD) = siconc_PAR(iPAR,jPAR) * tmask_CHLD(iCHLD,jCHLD) 
+         sithic_CHLD(iCHLD,jCHLD) = sithic_PAR(iPAR,jPAR) * tmask_CHLD(iCHLD,jCHLD) 
+         snthic_CHLD(iCHLD,jCHLD) = snthic_PAR(iPAR,jPAR) * tmask_CHLD(iCHLD,jCHLD) 
+       elseif ( tmask_CHLD(iCHLD,jCHLD) .eq. 1 ) then ! unmasked CHLD but masked PAR
+         missing(iCHLD,jCHLD) = 1
        endif
    else ! part of the regional domain not covered by the global domain
-       if ( tmask_CHI(iCHI,jCHI) .eq. 1 ) missing(iCHI,jCHI) = 1
+       if ( tmask_CHLD(iCHLD,jCHLD) .eq. 1 ) missing(iCHLD,jCHLD) = 1
    endif
 enddo
 enddo
@@ -222,95 +223,95 @@ do kiter=1,nn_iter
   write(*,*) '  kiter = ', kiter
   write(*,*) '     nb of pts with missing value: ', ntest
   if ( ntest .eq. 0 ) exit
-  tmp_siconc_CHI(:,:)=siconc_CHI(:,:)
-  tmp_sithic_CHI(:,:)=sithic_CHI(:,:)
-  tmp_snthic_CHI(:,:)=snthic_CHI(:,:)
+  tmp_siconc_CHLD(:,:)=siconc_CHLD(:,:)
+  tmp_sithic_CHLD(:,:)=sithic_CHLD(:,:)
+  tmp_snthic_CHLD(:,:)=snthic_CHLD(:,:)
   tmp_missing(:,:)=missing(:,:)
-  do iCHI=1,mx_CHI
-  do jCHI=1,my_CHI
-    if ( missing(iCHI,jCHI) .eq. 1 ) then
+  do iCHLD=1,mx_CHLD
+  do jCHLD=1,my_CHLD
+    if ( missing(iCHLD,jCHLD) .eq. 1 ) then
       iout=.FALSE.
       do rs=1,nn_rsmax,1
-          iii=iCHI               ; jjj=jCHI
-          if ( tmask_CHI(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=MIN(iCHI+rs,mx_CHI); jjj=jCHI
-          if ( tmask_CHI(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=MAX(iCHI-rs,1)     ; jjj=jCHI
-          if ( tmask_CHI(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=iCHI               ; jjj=MIN(jCHI+rs,my_CHI)
-          if ( tmask_CHI(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=iCHI               ; jjj=MAX(jCHI-rs,1)
-          if ( tmask_CHI(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=MIN(iCHI+rs,mx_CHI); jjj=MIN(jCHI+rs,my_CHI)
-          if ( tmask_CHI(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=MIN(iCHI+rs,mx_CHI); jjj=MAX(jCHI-rs,1)
-          if ( tmask_CHI(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=MAX(iCHI-rs,1)     ; jjj=MIN(jCHI+rs,my_CHI)
-          if ( tmask_CHI(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=MAX(iCHI-rs,1)     ; jjj=MAX(jCHI-rs,1)
-          if ( tmask_CHI(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then
+          iii=iCHLD               ; jjj=jCHLD
+          if ( tmask_CHLD(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+          iii=MIN(iCHLD+rs,mx_CHLD); jjj=jCHLD
+          if ( tmask_CHLD(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+          iii=MAX(iCHLD-rs,1)     ; jjj=jCHLD
+          if ( tmask_CHLD(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+          iii=iCHLD               ; jjj=MIN(jCHLD+rs,my_CHLD)
+          if ( tmask_CHLD(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+          iii=iCHLD               ; jjj=MAX(jCHLD-rs,1)
+          if ( tmask_CHLD(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+          iii=MIN(iCHLD+rs,mx_CHLD); jjj=MIN(jCHLD+rs,my_CHLD)
+          if ( tmask_CHLD(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+          iii=MIN(iCHLD+rs,mx_CHLD); jjj=MAX(jCHLD-rs,1)
+          if ( tmask_CHLD(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+          iii=MAX(iCHLD-rs,1)     ; jjj=MIN(jCHLD+rs,my_CHLD)
+          if ( tmask_CHLD(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+          iii=MAX(iCHLD-rs,1)     ; jjj=MAX(jCHLD-rs,1)
+          if ( tmask_CHLD(iii,jjj) .eq. 1 .and. missing(iii,jjj) .eq. 0 ) then
             iout=.TRUE.
             exit
           endif
       enddo !- rs
       if (iout) then
-        tmp_missing(iCHI,jCHI) = 0
-        tmp_siconc_CHI(iCHI,jCHI) = siconc_CHI(iii,jjj)
-        tmp_sithic_CHI(iCHI,jCHI) = sithic_CHI(iii,jjj)
-        tmp_snthic_CHI(iCHI,jCHI) = snthic_CHI(iii,jjj)
+        tmp_missing(iCHLD,jCHLD) = 0
+        tmp_siconc_CHLD(iCHLD,jCHLD) = siconc_CHLD(iii,jjj)
+        tmp_sithic_CHLD(iCHLD,jCHLD) = sithic_CHLD(iii,jjj)
+        tmp_snthic_CHLD(iCHLD,jCHLD) = snthic_CHLD(iii,jjj)
         !exit
       elseif ( kiter .eq. nn_iter ) then
-        write(*,953) iCHI, jCHI
+        write(*,953) iCHLD, jCHLD
         953 FORMAT(' >>> WARNING for point (',2I5,') --> filled with zero sea ice concentration and thickness')
-        tmp_missing(iCHI,jCHI) = 0
-        tmp_siconc_CHI(iCHI,jCHI) = 0.0
-        tmp_sithic_CHI(iCHI,jCHI) = 0.0
-        tmp_snthic_CHI(iCHI,jCHI) = 0.0
+        tmp_missing(iCHLD,jCHLD) = 0
+        tmp_siconc_CHLD(iCHLD,jCHLD) = 0.0
+        tmp_sithic_CHLD(iCHLD,jCHLD) = 0.0
+        tmp_snthic_CHLD(iCHLD,jCHLD) = 0.0
         !exit
       endif
-    endif !-if ( missing(iCHI,jCHI) .eq. 1 )
-  enddo !- jCHI
-  enddo !- iCHI
+    endif !-if ( missing(iCHLD,jCHLD) .eq. 1 )
+  enddo !- jCHLD
+  enddo !- iCHLD
   missing(:,:)=tmp_missing(:,:)
-  siconc_CHI(:,:)=tmp_siconc_CHI(:,:)
-  sithic_CHI(:,:)=tmp_sithic_CHI(:,:)
-  snthic_CHI(:,:)=tmp_snthic_CHI(:,:)
+  siconc_CHLD(:,:)=tmp_siconc_CHLD(:,:)
+  sithic_CHLD(:,:)=tmp_sithic_CHLD(:,:)
+  snthic_CHLD(:,:)=tmp_snthic_CHLD(:,:)
 enddo !- kiter
 
 !- Smoothing :
 if ( nn_smooth .gt. 1 ) then
   write(*,*) 'Smoothing window width = ', nn_smooth
   dij=INT(nn_smooth*0.5)
-  tmp_siconc_CHI(:,:)=siconc_CHI(:,:)
-  tmp_sithic_CHI(:,:)=sithic_CHI(:,:)
-  tmp_snthic_CHI(:,:)=snthic_CHI(:,:)
-  do iCHI=1,mx_CHI
-  do jCHI=1,my_CHI
-    im1=MAX(iCHI-dij,1) ; ip1=MIN(iCHI+dij,mx_CHI) 
-    jm1=MAX(jCHI-dij,1) ; jp1=MIN(jCHI+dij,my_CHI)
-    if ( tmask_CHI(iCHI,jCHI) .eq. 1 ) then 
-      tmp_siconc_CHI(iCHI,jCHI) =   SUM( SUM( siconc_CHI(im1:ip1,jm1:jp1) * tmask_CHI(im1:ip1,jm1:jp1), 2), 1) &
-      &                           / SUM( SUM(                        1.0  * tmask_CHI(im1:ip1,jm1:jp1), 2), 1)
-      tmp_sithic_CHI(iCHI,jCHI) =   SUM( SUM( sithic_CHI(im1:ip1,jm1:jp1) * tmask_CHI(im1:ip1,jm1:jp1), 2), 1) &
-      &                           / SUM( SUM(                        1.0  * tmask_CHI(im1:ip1,jm1:jp1), 2), 1)
-      tmp_snthic_CHI(iCHI,jCHI) =   SUM( SUM( snthic_CHI(im1:ip1,jm1:jp1) * tmask_CHI(im1:ip1,jm1:jp1), 2), 1) &
-      &                           / SUM( SUM(                        1.0  * tmask_CHI(im1:ip1,jm1:jp1), 2), 1)
+  tmp_siconc_CHLD(:,:)=siconc_CHLD(:,:)
+  tmp_sithic_CHLD(:,:)=sithic_CHLD(:,:)
+  tmp_snthic_CHLD(:,:)=snthic_CHLD(:,:)
+  do iCHLD=1,mx_CHLD
+  do jCHLD=1,my_CHLD
+    im1=MAX(iCHLD-dij,1) ; ip1=MIN(iCHLD+dij,mx_CHLD) 
+    jm1=MAX(jCHLD-dij,1) ; jp1=MIN(jCHLD+dij,my_CHLD)
+    if ( tmask_CHLD(iCHLD,jCHLD) .eq. 1 ) then 
+      tmp_siconc_CHLD(iCHLD,jCHLD) =   SUM( SUM( siconc_CHLD(im1:ip1,jm1:jp1) * tmask_CHLD(im1:ip1,jm1:jp1), 2), 1) &
+      &                           / SUM( SUM(                        1.0  * tmask_CHLD(im1:ip1,jm1:jp1), 2), 1)
+      tmp_sithic_CHLD(iCHLD,jCHLD) =   SUM( SUM( sithic_CHLD(im1:ip1,jm1:jp1) * tmask_CHLD(im1:ip1,jm1:jp1), 2), 1) &
+      &                           / SUM( SUM(                        1.0  * tmask_CHLD(im1:ip1,jm1:jp1), 2), 1)
+      tmp_snthic_CHLD(iCHLD,jCHLD) =   SUM( SUM( snthic_CHLD(im1:ip1,jm1:jp1) * tmask_CHLD(im1:ip1,jm1:jp1), 2), 1) &
+      &                           / SUM( SUM(                        1.0  * tmask_CHLD(im1:ip1,jm1:jp1), 2), 1)
     else
-      tmp_siconc_CHI(iCHI,jCHI) = 0.d0
-      tmp_sithic_CHI(iCHI,jCHI) = 0.d0
-      tmp_snthic_CHI(iCHI,jCHI) = 0.d0
+      tmp_siconc_CHLD(iCHLD,jCHLD) = 0.d0
+      tmp_sithic_CHLD(iCHLD,jCHLD) = 0.d0
+      tmp_snthic_CHLD(iCHLD,jCHLD) = 0.d0
     endif
   enddo
   enddo
-  siconc_CHI(:,:)=tmp_siconc_CHI(:,:)
-  sithic_CHI(:,:)=tmp_sithic_CHI(:,:)
-  snthic_CHI(:,:)=tmp_snthic_CHI(:,:)
+  siconc_CHLD(:,:)=tmp_siconc_CHLD(:,:)
+  sithic_CHLD(:,:)=tmp_sithic_CHLD(:,:)
+  snthic_CHLD(:,:)=tmp_snthic_CHLD(:,:)
 else
   write(*,*) 'No Smoothing'
 endif
 
 !--  
-DEALLOCATE( tmp_siconc_CHI, tmp_sithic_CHI, missing )
+DEALLOCATE( tmp_siconc_CHLD, tmp_sithic_CHLD, missing )
 
 !=================================================================================
 ! 5- Writing initial state for sea ice
@@ -321,8 +322,8 @@ write(*,*) 'Writing ', TRIM(file_out_SI)
 status = NF90_CREATE(TRIM(file_out_SI),NF90_NOCLOBBER,fidTEMP) ; call erreur(status,.TRUE.,'create output temp')
 
 status = NF90_DEF_DIM(fidTEMP,"time_counter",NF90_UNLIMITED,dimID_time_counter) ; call erreur(status,.TRUE.,"def_dimID_time_counter")
-status = NF90_DEF_DIM(fidTEMP,"x",mx_CHI,dimID_x)                               ; call erreur(status,.TRUE.,"def_dimID_x")
-status = NF90_DEF_DIM(fidTEMP,"y",my_CHI,dimID_y)                               ; call erreur(status,.TRUE.,"def_dimID_y")
+status = NF90_DEF_DIM(fidTEMP,"x",mx_CHLD,dimID_x)                               ; call erreur(status,.TRUE.,"def_dimID_x")
+status = NF90_DEF_DIM(fidTEMP,"y",my_CHLD,dimID_y)                               ; call erreur(status,.TRUE.,"def_dimID_y")
 
 status = NF90_DEF_VAR(fidTEMP,"time_counter",NF90_DOUBLE,(/dimID_time_counter/),time_counter_ID)
 call erreur(status,.TRUE.,"def_var_time_counter_ID")
@@ -363,9 +364,9 @@ call erreur(status,.TRUE.,"put_att_GLOBAL")
 status = NF90_ENDDEF(fidTEMP) ; call erreur(status,.TRUE.,"end_definition") 
 
 status = NF90_PUT_VAR(fidTEMP,time_counter_ID,1.0)   ; call erreur(status,.TRUE.,"var_time_counter_ID")
-status = NF90_PUT_VAR(fidTEMP,siconc_ID,siconc_CHI)  ; call erreur(status,.TRUE.,"var_siconc_ID")
-status = NF90_PUT_VAR(fidTEMP,sithic_ID,sithic_CHI)  ; call erreur(status,.TRUE.,"var_sithic_ID")
-status = NF90_PUT_VAR(fidTEMP,snthic_ID,snthic_CHI)  ; call erreur(status,.TRUE.,"var_snthic_ID")
+status = NF90_PUT_VAR(fidTEMP,siconc_ID,siconc_CHLD)  ; call erreur(status,.TRUE.,"var_siconc_ID")
+status = NF90_PUT_VAR(fidTEMP,sithic_ID,sithic_CHLD)  ; call erreur(status,.TRUE.,"var_sithic_ID")
+status = NF90_PUT_VAR(fidTEMP,snthic_ID,snthic_CHLD)  ; call erreur(status,.TRUE.,"var_snthic_ID")
 
 status = NF90_CLOSE(fidTEMP) ; call erreur(status,.TRUE.,"final")         
 

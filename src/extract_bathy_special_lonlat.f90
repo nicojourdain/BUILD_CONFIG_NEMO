@@ -1,7 +1,6 @@
 program modif                                         
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! N. Jourdain, IGE-CNRS, Jan. 2017
 !
 ! Script to extract the bathymetry of the child domain (CHLD) from a lon/lat dataset (e.g. RTOPO2).
 !
@@ -11,9 +10,12 @@ program modif
 ! 0- Initializations 
 ! 1- Read RTopo bathymetry and ice shelf draft
 ! 2- Read grid correspondance with EXT (i.e. extraction coordinates)
-! 3- Read coarse bathymetry ("PAR") used for consistent bathymetry along boundaries
+! 3- Read parent bathymetry ("PAR") used for consistent bathymetry along boundaries
 ! 4- Calculate bathy/isf draft on the CHLD grid
 ! 5- Writing new CHLD bathymetry file
+!
+! History: - Jan. 2017: Initial version (N. Jourdain, CNRS-IGE)
+!          - Jan. 2022: cleaning and new naming conventions (EXT/PAR/CHLD)
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -45,7 +47,7 @@ REAL*4,ALLOCATABLE,DIMENSION(:,:) :: bathy_RTOPO, isf_draft_RTOPO
 !-- local variables :
 INTEGER :: fidEXT, fidPAR, fidM, status, dimID_y, dimID_x, nav_lat_ID, nav_lon_ID, isf_draft_ID, Bathymetry_isf_ID, Bathymetry_ID, &
 &          my_EXT, mx_EXT,  my_PAR, mx_PAR,  my_CHLD, mx_CHLD, imin_EXT, imax_EXT, jmin_EXT, jmax_EXT, npts, jtmp, Nbox,             &
-&          fidCOORDreg, fidCOORDpar, minlon, maxlon, minlat, maxlat, imin_RTOPO, imax_RTOPO, jmin_RTOPO, jmax_RTOPO, iCHLD, jCHLD,   &
+&          fidCOORDchld, fidCOORDpar, minlon, maxlon, minlat, maxlat, imin_RTOPO, imax_RTOPO, jmin_RTOPO, jmax_RTOPO, iCHLD, jCHLD,   &
 &          iRTOPO, jRTOPO, iCHLDm1, iCHLDp1, jCHLDm1, jCHLDp1, kk, mx_tmp, my_tmp, i0, j0, rs, ai, aj, bi, bj
 
 CHARACTER(LEN=150) :: file_bathy_out, file_in_coord_CHLD
@@ -75,11 +77,11 @@ READ (UNIT=1, NML=griddata)
 READ (UNIT=1, NML=bathy_special)
 CLOSE(1)
 
-! name of regional bathymetry file (output file) :
+! name of child bathymetry file (output file) :
 write(file_bathy_out,101) TRIM(config_dir), TRIM(config)
 101 FORMAT(a,'/bathy_meter_',a,'.nc')
 
-! name of regional coordinates file (output file) :
+! name of child coordinates file (output file) :
 write(file_in_coord_CHLD,102) TRIM(config_dir), TRIM(config)
 102 FORMAT(a,'/coordinates_',a,'.nc')
 
@@ -153,38 +155,38 @@ endif
 
 write(*,*) 'Reading lon,lat of child domain in ', TRIM(file_in_coord_CHLD)
 
-status = NF90_OPEN(TRIM(file_in_coord_CHLD),0,fidCOORDreg); call erreur(status,.TRUE.,"read coord input")
+status = NF90_OPEN(TRIM(file_in_coord_CHLD),0,fidCOORDchld); call erreur(status,.TRUE.,"read coord input")
 
-status = NF90_INQ_DIMID(fidCOORDreg,"x",dimID_x)
-if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidCOORDreg,"X",dimID_x)
+status = NF90_INQ_DIMID(fidCOORDchld,"x",dimID_x)
+if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidCOORDchld,"X",dimID_x)
 call erreur(status,.TRUE.,"inq_dimID_x")
-status = NF90_INQ_DIMID(fidCOORDreg,"y",dimID_y)
-if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidCOORDreg,"Y",dimID_y)
+status = NF90_INQ_DIMID(fidCOORDchld,"y",dimID_y)
+if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidCOORDchld,"Y",dimID_y)
 call erreur(status,.TRUE.,"inq_dimID_y")
                                                      
-status = NF90_INQUIRE_DIMENSION(fidCOORDreg,dimID_y,len=my_CHLD); call erreur(status,.TRUE.,"inq_dim_y_CHLD")
-status = NF90_INQUIRE_DIMENSION(fidCOORDreg,dimID_x,len=mx_CHLD); call erreur(status,.TRUE.,"inq_dim_x_CHLD")
+status = NF90_INQUIRE_DIMENSION(fidCOORDchld,dimID_y,len=my_CHLD); call erreur(status,.TRUE.,"inq_dim_y_CHLD")
+status = NF90_INQUIRE_DIMENSION(fidCOORDchld,dimID_x,len=mx_CHLD); call erreur(status,.TRUE.,"inq_dim_x_CHLD")
 
 ALLOCATE(  gphit_CHLD (mx_CHLD,my_CHLD)  )
 ALLOCATE(  glamt_CHLD (mx_CHLD,my_CHLD)  )
 ALLOCATE( zglamt_CHLD (mx_CHLD,my_CHLD)  )
 
-status = NF90_INQ_VARID(fidCOORDreg,"gphit",nav_lat_ID); call erreur(status,.TRUE.,"inq_gphit_CHLD_ID")
-status = NF90_INQ_VARID(fidCOORDreg,"glamt",nav_lon_ID); call erreur(status,.TRUE.,"inq_glamt_CHLD_ID")
+status = NF90_INQ_VARID(fidCOORDchld,"gphit",nav_lat_ID); call erreur(status,.TRUE.,"inq_gphit_CHLD_ID")
+status = NF90_INQ_VARID(fidCOORDchld,"glamt",nav_lon_ID); call erreur(status,.TRUE.,"inq_glamt_CHLD_ID")
 
-status = NF90_GET_VAR(fidCOORDreg,nav_lat_ID,gphit_CHLD); call erreur(status,.TRUE.,"getvar_gphit_CHLD")
-status = NF90_GET_VAR(fidCOORDreg,nav_lon_ID,glamt_CHLD); call erreur(status,.TRUE.,"getvar_glamt_CHLD")
+status = NF90_GET_VAR(fidCOORDchld,nav_lat_ID,gphit_CHLD); call erreur(status,.TRUE.,"getvar_gphit_CHLD")
+status = NF90_GET_VAR(fidCOORDchld,nav_lon_ID,glamt_CHLD); call erreur(status,.TRUE.,"getvar_glamt_CHLD")
 
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "ai", ai); call erreur(status,.TRUE.,"read att1")
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "bi", bi); call erreur(status,.TRUE.,"read att2")
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "aj", aj); call erreur(status,.TRUE.,"read att3")
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "bj", bj); call erreur(status,.TRUE.,"read att4")
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "imin_extraction", imin_EXT); call erreur(status,.TRUE.,"read att5")
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "jmin_extraction", jmin_EXT); call erreur(status,.TRUE.,"read att6")
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "imax_extraction", imax_EXT); call erreur(status,.TRUE.,"read att7")
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "jmax_extraction", jmax_EXT); call erreur(status,.TRUE.,"read att8")
+status = NF90_GET_ATT(fidCOORDchld, NF90_GLOBAL, "ai", ai); call erreur(status,.TRUE.,"read att1")
+status = NF90_GET_ATT(fidCOORDchld, NF90_GLOBAL, "bi", bi); call erreur(status,.TRUE.,"read att2")
+status = NF90_GET_ATT(fidCOORDchld, NF90_GLOBAL, "aj", aj); call erreur(status,.TRUE.,"read att3")
+status = NF90_GET_ATT(fidCOORDchld, NF90_GLOBAL, "bj", bj); call erreur(status,.TRUE.,"read att4")
+status = NF90_GET_ATT(fidCOORDchld, NF90_GLOBAL, "imin_extraction", imin_EXT); call erreur(status,.TRUE.,"read att5")
+status = NF90_GET_ATT(fidCOORDchld, NF90_GLOBAL, "jmin_extraction", jmin_EXT); call erreur(status,.TRUE.,"read att6")
+status = NF90_GET_ATT(fidCOORDchld, NF90_GLOBAL, "imax_extraction", imax_EXT); call erreur(status,.TRUE.,"read att7")
+status = NF90_GET_ATT(fidCOORDchld, NF90_GLOBAL, "jmax_extraction", jmax_EXT); call erreur(status,.TRUE.,"read att8")
 
-status = NF90_CLOSE(fidCOORDreg)                       ; call erreur(status,.TRUE.,"end read fidCOORDreg")
+status = NF90_CLOSE(fidCOORDchld)                       ; call erreur(status,.TRUE.,"end read fidCOORDchld")
 
 zglamt_CHLD(:,:)=glamt_CHLD(:,:)
 if ( ln_dateline ) then
@@ -223,12 +225,12 @@ write(*,527) imin_RTOPO, imax_RTOPO, jmin_RTOPO, jmax_RTOPO
 527 FORMAT('Restricting search on RTOPO to i=',i5,':',i5,' and j=',i5,':',i5)
 
 !=================================================================================
-! 3- Read coarse bathymetry used for consistent bathymetry along boundaries
+! 3- Read parent bathymetry used for consistent bathymetry along boundaries
 !=================================================================================
 
-write(*,*) 'Reading coarse bathymetry for consistent boundaries: ', TRIM(file_in_bathy_bdy)
+write(*,*) 'Reading parent bathymetry for consistent boundaries: ', TRIM(file_in_bathy_bdy)
 
-status = NF90_OPEN(TRIM(file_in_bathy_bdy),0,fidPAR); call erreur(status,.TRUE.,"read_coarse_bathymetry") 
+status = NF90_OPEN(TRIM(file_in_bathy_bdy),0,fidPAR); call erreur(status,.TRUE.,"read_parent_bathymetry") 
 
 status = NF90_INQ_DIMID(fidPAR,"y",dimID_y); call erreur(status,.TRUE.,"inq_dimID_y_PAR")
 status = NF90_INQ_DIMID(fidPAR,"x",dimID_x); call erreur(status,.TRUE.,"inq_dimID_x_PAR")
@@ -280,11 +282,11 @@ if ( ln_isfcav ) then
     isf_draft_PAR(:,:) = 0.e0
      write(*,*) 'WARNING: no ice shelf draft found. Allowed names are :'
      write(*,*) '         "isf_draft", "isfdraft", "draft", "ice_shelf_draft", "Ice_shelf_draft", "ice_shelf_base"'
-     write(*,*) '         >>>>> ASSUMING ice_draft = 0 for the COARSE data'
+     write(*,*) '         >>>>> ASSUMING ice_draft = 0 for the PARENT data'
   endif
 endif
 
-status = NF90_CLOSE(fidPAR); call erreur(status,.TRUE.,"close_coarse_bathy_file")
+status = NF90_CLOSE(fidPAR); call erreur(status,.TRUE.,"close_parent_bathy_file")
 
 !===================================================================
 ! put parent grid in a npts-pts halo (+ transition in another halo)
@@ -513,9 +515,9 @@ if ( ln_coarse_bdy ) then
     !---------------------------------------
     ! Adjust bathy along the edges of the CHLD grid :
     
-    write(*,*) 'Halo with bathy from coarse resolution...'
+    write(*,*) 'Halo with bathy from parent grid...'
     
-    !=== put exactly the coarse data (PAR) over a npts-point halo :
+    !=== put exactly the parent data (PAR) over a npts-point halo :
     do jCHLD=1,my_CHLD
       jtmp = NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj)
       if ( jtmp .gt. 0 ) then !! we do not try to change the bathy southward of the grid
@@ -724,7 +726,7 @@ if ( TRIM(config) == 'WED12' ) then
     write(*,*) '  jj_bdy_north(2) = ', my_CHLD-1
     write(*,*) '                    '
 
-    !----- put coarse data (PAR) along modified North-Western corner :
+    !----- put parent data (PAR) along modified North-Western corner :
     !- bdy_west(1) :
     do jCHLD=jmin(8),my_CHLD
       do iCHLD=imax(8)+1,imax(8)+npts

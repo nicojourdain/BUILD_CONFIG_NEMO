@@ -1,7 +1,6 @@
 program modif                                         
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! N. Jourdain, IGE-CNRS, Jan. 2017
 !
 ! Script to extract the bathymetry of the child domain (CHLD) from a stereographic dataset
 ! (e.g. BEDMAP, BedMachine).
@@ -15,6 +14,9 @@ program modif
 ! 3- Read coarse bathymetry ("PAR") used for consistent bathymetry along boundaries
 ! 4- Calculate bathy/isf draft on the CHLD grid
 ! 5- Writing new CHLD bathymetry file
+!
+! History: - Jan. 2017: Initial version (N. Jourdain, CNRS-IGE)
+!          - Jan. 2022: cleaning and new naming conventions (EXT/PAR/CHLD)
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -48,7 +50,7 @@ REAL*4,ALLOCATABLE,DIMENSION(:,:) :: bathy_STEREO, isf_draft_STEREO, surface_STE
 !-- local variables :
 INTEGER :: fidEXT, fidPAR, fidM, status, dimID_y, dimID_x, nav_lat_ID, nav_lon_ID, isf_draft_ID, Bathymetry_isf_ID, Bathymetry_ID,    &
 &          my_EXT, mx_EXT,  my_PAR, mx_PAR,  my_CHLD, mx_CHLD, imin_EXT, imax_EXT, jmin_EXT, jmax_EXT, npts, jtmp, ai, aj, bi, bj,      &
-&          fidCOORDreg, fidCOORDpar, minlon, maxlon, minlat, maxlat, imin_STEREO, imax_STEREO, jmin_STEREO, jmax_STEREO, iCHLD, jCHLD,  &
+&          fidCOORDchld, fidCOORDpar, minlon, maxlon, minlat, maxlat, imin_STEREO, imax_STEREO, jmin_STEREO, jmax_STEREO, iCHLD, jCHLD,  &
 &          iSTEREO, jSTEREO, iCHLDm1, iCHLDp1, jCHLDm1, jCHLDp1, kk, mx_tmp, my_tmp, i0, j0, rs, imin_STEREO2, imax_STEREO2, Nbox,        &
 &          jmin_STEREO2, jmax_STEREO2
 
@@ -79,11 +81,11 @@ READ (UNIT=1, NML=griddata)
 READ (UNIT=1, NML=bathy_special)
 CLOSE(1)
 
-! name of regional bathymetry file (output file) :
+! name of child bathymetry file (output file) :
 write(file_bathy_out,101) TRIM(config_dir), TRIM(config)
 101 FORMAT(a,'/bathy_meter_',a,'.nc')
 
-! name of regional coordinates file (output file) :
+! name of child coordinates file (output file) :
 write(file_in_coord_CHLD,102) TRIM(config_dir), TRIM(config)
 102 FORMAT(a,'/coordinates_',a,'.nc')
 
@@ -250,38 +252,38 @@ status = NF90_CLOSE(fidSTEREO2); call erreur(status,.TRUE.,"End read isf_draft S
 
 write(*,*) 'Reading CHLDIONAL lon,lat in ', TRIM(file_in_coord_CHLD)
 
-status = NF90_OPEN(TRIM(file_in_coord_CHLD),0,fidCOORDreg); call erreur(status,.TRUE.,"read coord input")
+status = NF90_OPEN(TRIM(file_in_coord_CHLD),0,fidCOORDchld); call erreur(status,.TRUE.,"read coord input")
 
-status = NF90_INQ_DIMID(fidCOORDreg,"x",dimID_x)
-if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidCOORDreg,"X",dimID_x)
+status = NF90_INQ_DIMID(fidCOORDchld,"x",dimID_x)
+if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidCOORDchld,"X",dimID_x)
 call erreur(status,.TRUE.,"inq_dimID_x")
-status = NF90_INQ_DIMID(fidCOORDreg,"y",dimID_y)
-if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidCOORDreg,"Y",dimID_y)
+status = NF90_INQ_DIMID(fidCOORDchld,"y",dimID_y)
+if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidCOORDchld,"Y",dimID_y)
 call erreur(status,.TRUE.,"inq_dimID_y")
                                                      
-status = NF90_INQUIRE_DIMENSION(fidCOORDreg,dimID_y,len=my_CHLD); call erreur(status,.TRUE.,"inq_dim_y_CHLD")
-status = NF90_INQUIRE_DIMENSION(fidCOORDreg,dimID_x,len=mx_CHLD); call erreur(status,.TRUE.,"inq_dim_x_CHLD")
+status = NF90_INQUIRE_DIMENSION(fidCOORDchld,dimID_y,len=my_CHLD); call erreur(status,.TRUE.,"inq_dim_y_CHLD")
+status = NF90_INQUIRE_DIMENSION(fidCOORDchld,dimID_x,len=mx_CHLD); call erreur(status,.TRUE.,"inq_dim_x_CHLD")
 
 ALLOCATE(  gphit_CHLD (mx_CHLD,my_CHLD)  )
 ALLOCATE(  glamt_CHLD (mx_CHLD,my_CHLD)  )
 ALLOCATE( zglamt_CHLD (mx_CHLD,my_CHLD)  )
 
-status = NF90_INQ_VARID(fidCOORDreg,"gphit",nav_lat_ID); call erreur(status,.TRUE.,"inq_gphit_CHLD_ID")
-status = NF90_INQ_VARID(fidCOORDreg,"glamt",nav_lon_ID); call erreur(status,.TRUE.,"inq_glamt_CHLD_ID")
+status = NF90_INQ_VARID(fidCOORDchld,"gphit",nav_lat_ID); call erreur(status,.TRUE.,"inq_gphit_CHLD_ID")
+status = NF90_INQ_VARID(fidCOORDchld,"glamt",nav_lon_ID); call erreur(status,.TRUE.,"inq_glamt_CHLD_ID")
 
-status = NF90_GET_VAR(fidCOORDreg,nav_lat_ID,gphit_CHLD); call erreur(status,.TRUE.,"getvar_gphit_CHLD")
-status = NF90_GET_VAR(fidCOORDreg,nav_lon_ID,glamt_CHLD); call erreur(status,.TRUE.,"getvar_glamt_CHLD")
+status = NF90_GET_VAR(fidCOORDchld,nav_lat_ID,gphit_CHLD); call erreur(status,.TRUE.,"getvar_gphit_CHLD")
+status = NF90_GET_VAR(fidCOORDchld,nav_lon_ID,glamt_CHLD); call erreur(status,.TRUE.,"getvar_glamt_CHLD")
 
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "ai", ai); call erreur(status,.TRUE.,"read att1")
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "bi", bi); call erreur(status,.TRUE.,"read att2")
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "aj", aj); call erreur(status,.TRUE.,"read att3")
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "bj", bj); call erreur(status,.TRUE.,"read att4")
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "imin_extraction", imin_EXT); call erreur(status,.TRUE.,"read att5")
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "jmin_extraction", jmin_EXT); call erreur(status,.TRUE.,"read att6")
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "imax_extraction", imax_EXT); call erreur(status,.TRUE.,"read att7")
-status = NF90_GET_ATT(fidCOORDreg, NF90_GLOBAL, "jmax_extraction", jmax_EXT); call erreur(status,.TRUE.,"read att8")
+status = NF90_GET_ATT(fidCOORDchld, NF90_GLOBAL, "ai", ai); call erreur(status,.TRUE.,"read att1")
+status = NF90_GET_ATT(fidCOORDchld, NF90_GLOBAL, "bi", bi); call erreur(status,.TRUE.,"read att2")
+status = NF90_GET_ATT(fidCOORDchld, NF90_GLOBAL, "aj", aj); call erreur(status,.TRUE.,"read att3")
+status = NF90_GET_ATT(fidCOORDchld, NF90_GLOBAL, "bj", bj); call erreur(status,.TRUE.,"read att4")
+status = NF90_GET_ATT(fidCOORDchld, NF90_GLOBAL, "imin_extraction", imin_EXT); call erreur(status,.TRUE.,"read att5")
+status = NF90_GET_ATT(fidCOORDchld, NF90_GLOBAL, "jmin_extraction", jmin_EXT); call erreur(status,.TRUE.,"read att6")
+status = NF90_GET_ATT(fidCOORDchld, NF90_GLOBAL, "imax_extraction", imax_EXT); call erreur(status,.TRUE.,"read att7")
+status = NF90_GET_ATT(fidCOORDchld, NF90_GLOBAL, "jmax_extraction", jmax_EXT); call erreur(status,.TRUE.,"read att8")
 
-status = NF90_CLOSE(fidCOORDreg); call erreur(status,.TRUE.,"end read fidCOORDreg")
+status = NF90_CLOSE(fidCOORDchld); call erreur(status,.TRUE.,"end read fidCOORDchld")
 
 zglamt_CHLD(:,:)=glamt_CHLD(:,:)
 if ( ln_dateline ) then
@@ -368,7 +370,7 @@ write(*,*) 'put COARSE grid bathymetry in a npts-pts halo, with npts = ', npts
 ! 4- Calculate bathy/isf draft on the CHLD grid :
 !=================================================================================
 
-write(*,*) 'Calculating bathymetry on the regional grid...'
+write(*,*) 'Calculating bathymetry on the child grid...'
     
 ALLOCATE(  nn                 (mx_CHLD,my_CHLD)  )
 ALLOCATE(  isf_draft_CHLD      (mx_CHLD,my_CHLD)  )
@@ -388,7 +390,7 @@ res_STEREO = ABS( y_STEREO(2) - y_STEREO(1) )
 rq = MIN( mx_STEREO , MIN( my_STEREO, 20 * CEILING( res_CHLD / res_STEREO ) ) )
 write(*,*) ' '
 write(*,*) 'Once a correspondance (iSTEREO,jSTEREO) on the stereographic grid is found for (iCHLD,jCHLD),'
-write(*,*) ' the next stereographic point of the regional grid is searched in a square of'
+write(*,*) ' the next stereographic point of the child grid is searched in a square of'
 write(*,*) ' radius ', rq, ' around (iSTEREO,jSTEREO).'
 write(*,*) ' '
 
@@ -623,7 +625,7 @@ if ( ln_coarse_bdy ) then
     !---------------------------------------
     ! Adjust bathy along the edges of the CHLD grid :
     
-    write(*,*) 'Halo with bathy from coarse resolution...'
+    write(*,*) 'Halo with bathy from parent grid...'
     
     !=== put exactly PAR data over a npts-point halo :
     do jCHLD=1,my_CHLD

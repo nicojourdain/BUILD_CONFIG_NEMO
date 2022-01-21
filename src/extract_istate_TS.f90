@@ -1,21 +1,20 @@
 program modif                                         
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! N. Jourdain, IGE-CNRS, Jan. 2017
 !
 ! Script to extract the temperature and salinity initial state from the parent grid
 !
 ! 1- Read PARENT ("_PAR") mask
-! 2- Read CHILD ("_CHI") mask
+! 2- Read CHILD ("_CHLD") mask
 ! 3- Read PARENT temperature initial state
 ! 4- Read PARENT salinity initial state
 ! 5- Extract CHILD from PARENT
 ! 6- Writing CHILD initial state for temperature and salinity
 !
-! History:
-!   - Nov. 2021 : + clarify PARENT/CHILD naming
-!                 + write both T & S in single file 
-!                 + remove nn_init option            (N. Jourdain)
-!   - Jan. 2022: new convention for variable names (PAR/CHLD/REG)
+! History: - Jan. 2017: initial version (N. Jourdain, CNRS-IGE)
+!          - Nov. 2021 : + clarify PARENT/CHILD naming
+!                        + write both T & S in single file 
+!                        + remove nn_init option            (N. Jourdain)
+!          - Jan. 2022: new convention for variable names (PAR/CHLD/EXT)
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -38,22 +37,22 @@ CHARACTER(LEN=50)                     :: config
 CHARACTER(LEN=150)                    :: file_in_mask_extract, config_dir, file_in_T, file_in_S, file_in_SI
 REAL(KIND=4)                          :: rn_temp, rn_sal
 
-INTEGER :: fidMSKIN, fidMSKCHI, status, dimID_z, dimID_y, dimID_x, mz_PAR, my_PAR, mx_PAR, tmask_PAR_ID, &
-&          mx_CHI, my_CHI, mz_CHI, tmask_CHI_ID, fidSAL, fidTS, votemper_ID, vosaline_ID,                &
-&          dimID_time_counter, ai, bi, aj, bj, iii, jjj, kkk, kk, iPAR, jPAR, iCHI, jCHI, fidTin, fidSin,&
+INTEGER :: fidMSKIN, fidMSKCHLD, status, dimID_z, dimID_y, dimID_x, mz_PAR, my_PAR, mx_PAR, tmask_PAR_ID, &
+&          mx_CHLD, my_CHLD, mz_CHLD, tmask_CHLD_ID, fidSAL, fidTS, votemper_ID, vosaline_ID,                &
+&          dimID_time_counter, ai, bi, aj, bj, iii, jjj, kkk, kk, iPAR, jPAR, iCHLD, jCHLD, fidTin, fidSin,&
 &          kiter, rs, rz, sg, time_counter_ID, fidCOORD, imin_EXT, jmin_EXT, lon_ID, lat_ID, dij,  &
 &          dep_ID, kPAR, ntest, im1, ip1, jm1, jp1
 
-CHARACTER(LEN=180) :: file_in_mask_CHI, file_in_coord_CHI, file_out_TS
+CHARACTER(LEN=180) :: file_in_mask_CHLD, file_in_coord_CHLD, file_out_TS
 
-INTEGER*1,ALLOCATABLE,DIMENSION(:,:,:) :: tmask_PAR, tmask_CHI, missing, tmp_missing
+INTEGER*1,ALLOCATABLE,DIMENSION(:,:,:) :: tmask_PAR, tmask_CHLD, missing, tmp_missing
 
 REAL(KIND=4),ALLOCATABLE,DIMENSION(:) ::  dep_PAR
 
 REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:) :: lon_PAR, lat_PAR
 
-REAL(KIND=8),ALLOCATABLE,DIMENSION(:,:,:) :: votemper_PAR, vosaline_PAR, votemper_CHI, vosaline_CHI, &
-&                                            tmp_votemper_CHI, tmp_vosaline_CHI
+REAL(KIND=8),ALLOCATABLE,DIMENSION(:,:,:) :: votemper_PAR, vosaline_PAR, votemper_CHLD, vosaline_CHLD, &
+&                                            tmp_votemper_CHLD, tmp_vosaline_CHLD
 
 LOGICAL :: iout
 
@@ -78,12 +77,12 @@ READ (UNIT=1, NML=general)
 READ (UNIT=1, NML=init)
 CLOSE(1)
 
-!- name of regional mesh_mask (input) :
-write(file_in_mask_CHI,101) TRIM(config_dir), TRIM(config)
+!- name of child mesh_mask (input) :
+write(file_in_mask_CHLD,101) TRIM(config_dir), TRIM(config)
 101 FORMAT(a,'/mesh_mask_',a,'.nc')
 
-!- name of regional coordinates (input) :
-write(file_in_coord_CHI,102) TRIM(config_dir), TRIM(config)
+!- name of child coordinates (input) :
+write(file_in_coord_CHLD,102) TRIM(config_dir), TRIM(config)
 102 FORMAT(a,'/coordinates_',a,'.nc')
 
 !- output file names :
@@ -127,25 +126,25 @@ status = NF90_CLOSE(fidMSKIN); call erreur(status,.TRUE.,"end read mask_PAR")
 ! 2- Read CHILD mask :
 !=================================================================================
 
-status = NF90_OPEN(TRIM(file_in_mask_CHI),0,fidMSKCHI); call erreur(status,.TRUE.,"read regional mask") 
+status = NF90_OPEN(TRIM(file_in_mask_CHLD),0,fidMSKCHLD); call erreur(status,.TRUE.,"read child mask") 
 
-status = NF90_INQ_DIMID(fidMSKCHI,"z",dimID_z)
-if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidMSKCHI,"nav_lev",dimID_z)
-call erreur(status,.TRUE.,"inq_dimID_z_CHI")
-status = NF90_INQ_DIMID(fidMSKCHI,"y",dimID_y); call erreur(status,.TRUE.,"inq_dimID_y_CHI")
-status = NF90_INQ_DIMID(fidMSKCHI,"x",dimID_x); call erreur(status,.TRUE.,"inq_dimID_x_CHI")
+status = NF90_INQ_DIMID(fidMSKCHLD,"z",dimID_z)
+if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidMSKCHLD,"nav_lev",dimID_z)
+call erreur(status,.TRUE.,"inq_dimID_z_CHLD")
+status = NF90_INQ_DIMID(fidMSKCHLD,"y",dimID_y); call erreur(status,.TRUE.,"inq_dimID_y_CHLD")
+status = NF90_INQ_DIMID(fidMSKCHLD,"x",dimID_x); call erreur(status,.TRUE.,"inq_dimID_x_CHLD")
 
-status = NF90_INQUIRE_DIMENSION(fidMSKCHI,dimID_z,len=mz_CHI); call erreur(status,.TRUE.,"inq_dim_z_CHI")
-status = NF90_INQUIRE_DIMENSION(fidMSKCHI,dimID_y,len=my_CHI); call erreur(status,.TRUE.,"inq_dim_y_CHI")
-status = NF90_INQUIRE_DIMENSION(fidMSKCHI,dimID_x,len=mx_CHI); call erreur(status,.TRUE.,"inq_dim_x_CHI")
+status = NF90_INQUIRE_DIMENSION(fidMSKCHLD,dimID_z,len=mz_CHLD); call erreur(status,.TRUE.,"inq_dim_z_CHLD")
+status = NF90_INQUIRE_DIMENSION(fidMSKCHLD,dimID_y,len=my_CHLD); call erreur(status,.TRUE.,"inq_dim_y_CHLD")
+status = NF90_INQUIRE_DIMENSION(fidMSKCHLD,dimID_x,len=mx_CHLD); call erreur(status,.TRUE.,"inq_dim_x_CHLD")
 
-ALLOCATE(  tmask_CHI(mx_CHI,my_CHI,mz_CHI)  ) 
+ALLOCATE(  tmask_CHLD(mx_CHLD,my_CHLD,mz_CHLD)  ) 
 
-status = NF90_INQ_VARID(fidMSKCHI,"tmask",tmask_CHI_ID); call erreur(status,.TRUE.,"inq_tmask_CHI_ID")
+status = NF90_INQ_VARID(fidMSKCHLD,"tmask",tmask_CHLD_ID); call erreur(status,.TRUE.,"inq_tmask_CHLD_ID")
 
-status = NF90_GET_VAR(fidMSKCHI,tmask_CHI_ID,tmask_CHI); call erreur(status,.TRUE.,"getvar_tmask_CHI")
+status = NF90_GET_VAR(fidMSKCHLD,tmask_CHLD_ID,tmask_CHLD); call erreur(status,.TRUE.,"getvar_tmask_CHLD")
 
-status = NF90_CLOSE(fidMSKCHI); call erreur(status,.TRUE.,"end read fidMSKCHI")
+status = NF90_CLOSE(fidMSKCHLD); call erreur(status,.TRUE.,"end read fidMSKCHLD")
 
 !=================================================================================
 ! 3- Read PARENT temperature initial state
@@ -198,10 +197,10 @@ endif
 ! 5- Extract CHILD from PARENT
 !=================================================================================
 
-ALLOCATE( votemper_CHI(mx_CHI,my_CHI,mz_CHI) )
-ALLOCATE( vosaline_CHI(mx_CHI,my_CHI,mz_CHI) )
+ALLOCATE( votemper_CHLD(mx_CHLD,my_CHLD,mz_CHLD) )
+ALLOCATE( vosaline_CHLD(mx_CHLD,my_CHLD,mz_CHLD) )
 
-if ( mz_CHI .ne. mz_PAR ) then
+if ( mz_CHLD .ne. mz_PAR ) then
   write(*,*) '~!@#$%^ Adapt script for different number of vertical levels >>>> Stop!!'
   stop
 endif
@@ -209,7 +208,7 @@ endif
 !- Read global attributes of coordinate file to get grid correspondance :
 !       i_EXT = ai * i_PAR + bi
 !       j_EXT = aj * j_PAR + bj
-status = NF90_OPEN(TRIM(file_in_coord_CHI),0,fidCOORD); call erreur(status,.TRUE.,"read coord input")
+status = NF90_OPEN(TRIM(file_in_coord_CHLD),0,fidCOORD); call erreur(status,.TRUE.,"read coord input")
 status = NF90_GET_ATT(fidCOORD, NF90_GLOBAL, "ai", ai); call erreur(status,.TRUE.,"read att1")
 status = NF90_GET_ATT(fidCOORD, NF90_GLOBAL, "bi", bi); call erreur(status,.TRUE.,"read att2")
 status = NF90_GET_ATT(fidCOORD, NF90_GLOBAL, "aj", aj); call erreur(status,.TRUE.,"read att3")
@@ -219,29 +218,29 @@ status = NF90_GET_ATT(fidCOORD, NF90_GLOBAL, "jmin_extraction", jmin_EXT); call 
 status = NF90_CLOSE(fidCOORD)                         ; call erreur(status,.TRUE.,"end read fidCOORD")
 
 ! Just extract where ocean points on both grids :
-ALLOCATE( missing(mx_CHI,my_CHI,mz_CHI) )
-ALLOCATE( tmp_missing(mx_CHI,my_CHI,mz_CHI) )
-ALLOCATE( tmp_votemper_CHI(mx_CHI,my_CHI,mz_CHI) )
-ALLOCATE( tmp_vosaline_CHI(mx_CHI,my_CHI,mz_CHI) )
+ALLOCATE( missing(mx_CHLD,my_CHLD,mz_CHLD) )
+ALLOCATE( tmp_missing(mx_CHLD,my_CHLD,mz_CHLD) )
+ALLOCATE( tmp_votemper_CHLD(mx_CHLD,my_CHLD,mz_CHLD) )
+ALLOCATE( tmp_vosaline_CHLD(mx_CHLD,my_CHLD,mz_CHLD) )
 missing(:,:,:)=0
-votemper_CHI(:,:,:)=0.d0
-vosaline_CHI(:,:,:)=0.d0
-do iCHI=1,mx_CHI
-do jCHI=1,my_CHI
-   iPAR=NINT(FLOAT(iCHI+imin_EXT-1-bi)/ai)
-   jPAR=NINT(FLOAT(jCHI+jmin_EXT-1-bj)/aj)
+votemper_CHLD(:,:,:)=0.d0
+vosaline_CHLD(:,:,:)=0.d0
+do iCHLD=1,mx_CHLD
+do jCHLD=1,my_CHLD
+   iPAR=NINT(FLOAT(iCHLD+imin_EXT-1-bi)/ai)
+   jPAR=NINT(FLOAT(jCHLD+jmin_EXT-1-bj)/aj)
    if ( iPAR .ge. 1 .and. jPAR .ge. 1 ) then
-     do kk=1,mz_CHI
+     do kk=1,mz_CHLD
        if ( tmask_PAR(iPAR,jPAR,kk) .eq. 1 ) then
-         votemper_CHI(iCHI,jCHI,kk) = votemper_PAR(iPAR,jPAR,kk) * tmask_CHI(iCHI,jCHI,kk) 
-         vosaline_CHI(iCHI,jCHI,kk) = vosaline_PAR(iPAR,jPAR,kk) * tmask_CHI(iCHI,jCHI,kk) 
-       elseif ( tmask_CHI(iCHI,jCHI,kk) .eq. 1 ) then ! unmasked CHI but masked PAR
-         missing(iCHI,jCHI,kk) = 1
+         votemper_CHLD(iCHLD,jCHLD,kk) = votemper_PAR(iPAR,jPAR,kk) * tmask_CHLD(iCHLD,jCHLD,kk) 
+         vosaline_CHLD(iCHLD,jCHLD,kk) = vosaline_PAR(iPAR,jPAR,kk) * tmask_CHLD(iCHLD,jCHLD,kk) 
+       elseif ( tmask_CHLD(iCHLD,jCHLD,kk) .eq. 1 ) then ! unmasked CHLD but masked PAR
+         missing(iCHLD,jCHLD,kk) = 1
        endif
      enddo
-   else ! part of the regional domain not covered by the global domain
-     do kk=1,mz_CHI
-       if ( tmask_CHI(iCHI,jCHI,kk) .eq. 1 ) missing(iCHI,jCHI,kk) = 1
+   else ! part of the child domain not covered by the global domain
+     do kk=1,mz_CHLD
+       if ( tmask_CHLD(iCHLD,jCHLD,kk) .eq. 1 ) missing(iCHLD,jCHLD,kk) = 1
      enddo
    endif
 enddo
@@ -253,35 +252,35 @@ do kiter=1,nn_iter
   write(*,*) '  kiter = ', kiter
   write(*,*) '     nb of pts with missing value: ', ntest
   if ( ntest .eq. 0 ) exit
-  tmp_votemper_CHI(:,:,:)=votemper_CHI(:,:,:)
-  tmp_vosaline_CHI(:,:,:)=vosaline_CHI(:,:,:)
+  tmp_votemper_CHLD(:,:,:)=votemper_CHLD(:,:,:)
+  tmp_vosaline_CHLD(:,:,:)=vosaline_CHLD(:,:,:)
   tmp_missing(:,:,:)=missing(:,:,:)
-  do iCHI=1,mx_CHI
-  do jCHI=1,my_CHI
-  do kk=1,mz_CHI
-    if ( missing(iCHI,jCHI,kk) .eq. 1 ) then
+  do iCHLD=1,mx_CHLD
+  do jCHLD=1,my_CHLD
+  do kk=1,mz_CHLD
+    if ( missing(iCHLD,jCHLD,kk) .eq. 1 ) then
       iout=.FALSE.
       do rz=0,nn_rzmax,1
       do sg=-1,1,2 ! to look above first, then below
         do rs=1,nn_rsmax,1
-          iii=iCHI               ; jjj=jCHI               ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHI) ! to look right above/below
-          if ( tmask_CHI(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=MIN(iCHI+rs,mx_CHI); jjj=jCHI               ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHI)
-          if ( tmask_CHI(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=MAX(iCHI-rs,1)     ; jjj=jCHI               ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHI)
-          if ( tmask_CHI(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=iCHI               ; jjj=MIN(jCHI+rs,my_CHI); kkk= MIN(MAX(kk+rz*sg,1),mz_CHI)
-          if ( tmask_CHI(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=iCHI               ; jjj=MAX(jCHI-rs,1)     ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHI)
-          if ( tmask_CHI(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=MIN(iCHI+rs,mx_CHI); jjj=MIN(jCHI+rs,my_CHI); kkk= MIN(MAX(kk+rz*sg,1),mz_CHI)
-          if ( tmask_CHI(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=MIN(iCHI+rs,mx_CHI); jjj=MAX(jCHI-rs,1)     ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHI)
-          if ( tmask_CHI(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=MAX(iCHI-rs,1)     ; jjj=MIN(jCHI+rs,my_CHI); kkk= MIN(MAX(kk+rz*sg,1),mz_CHI) 
-          if ( tmask_CHI(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=MAX(iCHI-rs,1)     ; jjj=MAX(jCHI-rs,1)     ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHI) 
-          if ( tmask_CHI(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then
+          iii=iCHLD               ; jjj=jCHLD               ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHLD) ! to look right above/below
+          if ( tmask_CHLD(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+          iii=MIN(iCHLD+rs,mx_CHLD); jjj=jCHLD               ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHLD)
+          if ( tmask_CHLD(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+          iii=MAX(iCHLD-rs,1)     ; jjj=jCHLD               ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHLD)
+          if ( tmask_CHLD(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+          iii=iCHLD               ; jjj=MIN(jCHLD+rs,my_CHLD); kkk= MIN(MAX(kk+rz*sg,1),mz_CHLD)
+          if ( tmask_CHLD(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+          iii=iCHLD               ; jjj=MAX(jCHLD-rs,1)     ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHLD)
+          if ( tmask_CHLD(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+          iii=MIN(iCHLD+rs,mx_CHLD); jjj=MIN(jCHLD+rs,my_CHLD); kkk= MIN(MAX(kk+rz*sg,1),mz_CHLD)
+          if ( tmask_CHLD(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+          iii=MIN(iCHLD+rs,mx_CHLD); jjj=MAX(jCHLD-rs,1)     ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHLD)
+          if ( tmask_CHLD(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+          iii=MAX(iCHLD-rs,1)     ; jjj=MIN(jCHLD+rs,my_CHLD); kkk= MIN(MAX(kk+rz*sg,1),mz_CHLD) 
+          if ( tmask_CHLD(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
+          iii=MAX(iCHLD-rs,1)     ; jjj=MAX(jCHLD-rs,1)     ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHLD) 
+          if ( tmask_CHLD(iii,jjj,kkk) .eq. 1 .and. missing(iii,jjj,kkk) .eq. 0 ) then
             iout=.TRUE.
             exit
           endif
@@ -289,53 +288,53 @@ do kiter=1,nn_iter
         if (iout) exit
       enddo !-sg
       if (iout) then
-        tmp_missing(iCHI,jCHI,kk) = 0
-        tmp_votemper_CHI(iCHI,jCHI,kk) = votemper_CHI(iii,jjj,kkk)
-        tmp_vosaline_CHI(iCHI,jCHI,kk) = vosaline_CHI(iii,jjj,kkk)
+        tmp_missing(iCHLD,jCHLD,kk) = 0
+        tmp_votemper_CHLD(iCHLD,jCHLD,kk) = votemper_CHLD(iii,jjj,kkk)
+        tmp_vosaline_CHLD(iCHLD,jCHLD,kk) = vosaline_CHLD(iii,jjj,kkk)
         exit
       elseif ( rz .eq. nn_rzmax .and. kiter .eq. nn_iter ) then
-        write(*,953) iCHI, jCHI, kk
+        write(*,953) iCHLD, jCHLD, kk
         953 FORMAT(' >>> WARNING for point (',3I5,') --> filled with rn_temp and rn_sal (to avoid this, increase nn_rsmax and/or nn_rzmax and/or nn_iter)')
-        tmp_missing(iCHI,jCHI,kk) = 0
-        tmp_votemper_CHI(iCHI,jCHI,kk) = rn_temp
-        tmp_vosaline_CHI(iCHI,jCHI,kk) = rn_sal
+        tmp_missing(iCHLD,jCHLD,kk) = 0
+        tmp_votemper_CHLD(iCHLD,jCHLD,kk) = rn_temp
+        tmp_vosaline_CHLD(iCHLD,jCHLD,kk) = rn_sal
         exit
       endif
       enddo !-rz
-    endif !-if ( missing(iCHI,jCHI,kk) .eq. 1 )
+    endif !-if ( missing(iCHLD,jCHLD,kk) .eq. 1 )
   enddo !- kk
-  enddo !- jCHI
-  enddo !- iCHI
+  enddo !- jCHLD
+  enddo !- iCHLD
   missing(:,:,:)=tmp_missing(:,:,:)
-  votemper_CHI(:,:,:)=tmp_votemper_CHI(:,:,:)
-  vosaline_CHI(:,:,:)=tmp_vosaline_CHI(:,:,:)
+  votemper_CHLD(:,:,:)=tmp_votemper_CHLD(:,:,:)
+  vosaline_CHLD(:,:,:)=tmp_vosaline_CHLD(:,:,:)
 enddo !- kiter
 
 !- Smoothing :
 if ( nn_smooth .gt. 1 ) then
   write(*,*) 'Smoothing window width = ', nn_smooth
   dij=INT(nn_smooth*0.5)
-  tmp_votemper_CHI(:,:,:)=votemper_CHI(:,:,:)
-  tmp_vosaline_CHI(:,:,:)=vosaline_CHI(:,:,:)
-  do iCHI=1,mx_CHI
-  do jCHI=1,my_CHI
-  do kk=1,mz_CHI
-    im1=MAX(iCHI-dij,1) ; ip1=MIN(iCHI+dij,mx_CHI) 
-    jm1=MAX(jCHI-dij,1) ; jp1=MIN(jCHI+dij,my_CHI)
-    if ( tmask_CHI(iCHI,jCHI,kk) .eq. 1 ) then 
-      tmp_votemper_CHI(iCHI,jCHI,kk) =   SUM( SUM( votemper_CHI(im1:ip1,jm1:jp1,kk) * tmask_CHI(im1:ip1,jm1:jp1,kk), 2), 1) &
-      &                                / SUM( SUM(                             1.0  * tmask_CHI(im1:ip1,jm1:jp1,kk), 2), 1)
-      tmp_vosaline_CHI(iCHI,jCHI,kk) =   SUM( SUM( vosaline_CHI(im1:ip1,jm1:jp1,kk) * tmask_CHI(im1:ip1,jm1:jp1,kk), 2), 1) &
-      &                                / SUM( SUM(                             1.0  * tmask_CHI(im1:ip1,jm1:jp1,kk), 2), 1)
+  tmp_votemper_CHLD(:,:,:)=votemper_CHLD(:,:,:)
+  tmp_vosaline_CHLD(:,:,:)=vosaline_CHLD(:,:,:)
+  do iCHLD=1,mx_CHLD
+  do jCHLD=1,my_CHLD
+  do kk=1,mz_CHLD
+    im1=MAX(iCHLD-dij,1) ; ip1=MIN(iCHLD+dij,mx_CHLD) 
+    jm1=MAX(jCHLD-dij,1) ; jp1=MIN(jCHLD+dij,my_CHLD)
+    if ( tmask_CHLD(iCHLD,jCHLD,kk) .eq. 1 ) then 
+      tmp_votemper_CHLD(iCHLD,jCHLD,kk) =   SUM( SUM( votemper_CHLD(im1:ip1,jm1:jp1,kk) * tmask_CHLD(im1:ip1,jm1:jp1,kk), 2), 1) &
+      &                                / SUM( SUM(                             1.0  * tmask_CHLD(im1:ip1,jm1:jp1,kk), 2), 1)
+      tmp_vosaline_CHLD(iCHLD,jCHLD,kk) =   SUM( SUM( vosaline_CHLD(im1:ip1,jm1:jp1,kk) * tmask_CHLD(im1:ip1,jm1:jp1,kk), 2), 1) &
+      &                                / SUM( SUM(                             1.0  * tmask_CHLD(im1:ip1,jm1:jp1,kk), 2), 1)
     else
-      tmp_votemper_CHI(iCHI,jCHI,kk) = 0.d0
-      tmp_vosaline_CHI(iCHI,jCHI,kk) = 0.d0
+      tmp_votemper_CHLD(iCHLD,jCHLD,kk) = 0.d0
+      tmp_vosaline_CHLD(iCHLD,jCHLD,kk) = 0.d0
     endif
   enddo
   enddo
   enddo
-  votemper_CHI(:,:,:)=tmp_votemper_CHI(:,:,:)
-  vosaline_CHI(:,:,:)=tmp_vosaline_CHI(:,:,:)
+  votemper_CHLD(:,:,:)=tmp_votemper_CHLD(:,:,:)
+  vosaline_CHLD(:,:,:)=tmp_vosaline_CHLD(:,:,:)
 else
   write(*,*) 'No Smoothing'
 endif
@@ -343,68 +342,68 @@ endif
 !- "Drowning", i.e. put closest value everywhere on the mask file to avoid issue if namdom is slightly changed :
 !  We just repeat the previous methodology, but for masked points
 write(*,*) 'Drowning, i.e. fill all masked points with closest neighbour'
-missing(:,:,:)=NINT(1-FLOAT(tmask_CHI(:,:,:)))
+missing(:,:,:)=NINT(1-FLOAT(tmask_CHLD(:,:,:)))
 ! Look for closest neighbours where we have missing values:
 do kiter=1,nn_iter
   ntest = NINT(sum(sum(sum(FLOAT(missing),3),2),1))
   write(*,*) '  kiter = ', kiter
   write(*,*) '     remaining nb of masked points to fill: ', ntest
   if ( ntest .eq. 0 ) exit
-  tmp_votemper_CHI(:,:,:)=votemper_CHI(:,:,:)
-  tmp_vosaline_CHI(:,:,:)=vosaline_CHI(:,:,:)
+  tmp_votemper_CHLD(:,:,:)=votemper_CHLD(:,:,:)
+  tmp_vosaline_CHLD(:,:,:)=vosaline_CHLD(:,:,:)
   tmp_missing(:,:,:)=missing(:,:,:)
-  do iCHI=1,mx_CHI
-  do jCHI=1,my_CHI
-  do kk=1,mz_CHI
-    if ( missing(iCHI,jCHI,kk) .eq. 1 ) then
+  do iCHLD=1,mx_CHLD
+  do jCHLD=1,my_CHLD
+  do kk=1,mz_CHLD
+    if ( missing(iCHLD,jCHLD,kk) .eq. 1 ) then
       iout=.FALSE.
       do rz=0,nn_rzmax,1
       do sg=-1,1,2 ! to look above first, then below
         do rs=1,nn_rsmax,1
-          iii=iCHI               ; jjj=jCHI               ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHI) ! to look right above/below
+          iii=iCHLD               ; jjj=jCHLD               ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHLD) ! to look right above/below
           if ( missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=MIN(iCHI+rs,mx_CHI); jjj=jCHI               ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHI)
+          iii=MIN(iCHLD+rs,mx_CHLD); jjj=jCHLD               ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHLD)
           if ( missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=MAX(iCHI-rs,1)     ; jjj=jCHI               ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHI)
+          iii=MAX(iCHLD-rs,1)     ; jjj=jCHLD               ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHLD)
           if ( missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=iCHI               ; jjj=MIN(jCHI+rs,my_CHI); kkk= MIN(MAX(kk+rz*sg,1),mz_CHI)
+          iii=iCHLD               ; jjj=MIN(jCHLD+rs,my_CHLD); kkk= MIN(MAX(kk+rz*sg,1),mz_CHLD)
           if ( missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=iCHI               ; jjj=MAX(jCHI-rs,1)     ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHI)
+          iii=iCHLD               ; jjj=MAX(jCHLD-rs,1)     ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHLD)
           if ( missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=MIN(iCHI+rs,mx_CHI); jjj=MIN(jCHI+rs,my_CHI); kkk= MIN(MAX(kk+rz*sg,1),mz_CHI)
+          iii=MIN(iCHLD+rs,mx_CHLD); jjj=MIN(jCHLD+rs,my_CHLD); kkk= MIN(MAX(kk+rz*sg,1),mz_CHLD)
           if ( missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=MIN(iCHI+rs,mx_CHI); jjj=MAX(jCHI-rs,1)     ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHI)
+          iii=MIN(iCHLD+rs,mx_CHLD); jjj=MAX(jCHLD-rs,1)     ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHLD)
           if ( missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=MAX(iCHI-rs,1)     ; jjj=MIN(jCHI+rs,my_CHI); kkk= MIN(MAX(kk+rz*sg,1),mz_CHI) 
+          iii=MAX(iCHLD-rs,1)     ; jjj=MIN(jCHLD+rs,my_CHLD); kkk= MIN(MAX(kk+rz*sg,1),mz_CHLD) 
           if ( missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
-          iii=MAX(iCHI-rs,1)     ; jjj=MAX(jCHI-rs,1)     ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHI) 
+          iii=MAX(iCHLD-rs,1)     ; jjj=MAX(jCHLD-rs,1)     ; kkk= MIN(MAX(kk+rz*sg,1),mz_CHLD) 
           if ( missing(iii,jjj,kkk) .eq. 0 ) then ; iout=.TRUE. ; exit ; endif
         enddo !- rs
         if (iout) exit
       enddo !-sg
       if (iout) then
-        tmp_missing(iCHI,jCHI,kk) = 0
-        tmp_votemper_CHI(iCHI,jCHI,kk) = votemper_CHI(iii,jjj,kkk)
-        tmp_vosaline_CHI(iCHI,jCHI,kk) = vosaline_CHI(iii,jjj,kkk)
+        tmp_missing(iCHLD,jCHLD,kk) = 0
+        tmp_votemper_CHLD(iCHLD,jCHLD,kk) = votemper_CHLD(iii,jjj,kkk)
+        tmp_vosaline_CHLD(iCHLD,jCHLD,kk) = vosaline_CHLD(iii,jjj,kkk)
         exit
       elseif ( rz .eq. nn_rzmax .and. kiter .eq. nn_iter ) then
-        tmp_missing(iCHI,jCHI,kk) = 0
-        tmp_votemper_CHI(iCHI,jCHI,kk) = rn_temp
-        tmp_vosaline_CHI(iCHI,jCHI,kk) = rn_sal
+        tmp_missing(iCHLD,jCHLD,kk) = 0
+        tmp_votemper_CHLD(iCHLD,jCHLD,kk) = rn_temp
+        tmp_vosaline_CHLD(iCHLD,jCHLD,kk) = rn_sal
         exit
       endif
       enddo !-rz
-    endif !-if ( missing(iCHI,jCHI,kk) .eq. 1 )
+    endif !-if ( missing(iCHLD,jCHLD,kk) .eq. 1 )
   enddo !- kk
-  enddo !- jCHI
-  enddo !- iCHI
+  enddo !- jCHLD
+  enddo !- iCHLD
   missing(:,:,:)=tmp_missing(:,:,:)
-  votemper_CHI(:,:,:)=tmp_votemper_CHI(:,:,:)
-  vosaline_CHI(:,:,:)=tmp_vosaline_CHI(:,:,:)
+  votemper_CHLD(:,:,:)=tmp_votemper_CHLD(:,:,:)
+  vosaline_CHLD(:,:,:)=tmp_vosaline_CHLD(:,:,:)
 enddo !- kiter
 
 !--  
-DEALLOCATE( tmp_votemper_CHI, tmp_vosaline_CHI, missing )
+DEALLOCATE( tmp_votemper_CHLD, tmp_vosaline_CHLD, missing )
 
 !=================================================================================
 ! 6- Writing CHILD initial state for temperature and salinity 
@@ -415,9 +414,9 @@ write(*,*) 'Writing ', TRIM(file_out_TS)
 status = NF90_CREATE(TRIM(file_out_TS),NF90_NOCLOBBER,fidTS) ; call erreur(status,.TRUE.,'create output temp')
 
 status = NF90_DEF_DIM(fidTS,"time_counter",NF90_UNLIMITED,dimID_time_counter) ; call erreur(status,.TRUE.,"def_dimID_time_counter")
-status = NF90_DEF_DIM(fidTS,"x",mx_CHI,dimID_x)                               ; call erreur(status,.TRUE.,"def_dimID_x")
-status = NF90_DEF_DIM(fidTS,"y",my_CHI,dimID_y)                               ; call erreur(status,.TRUE.,"def_dimID_y")
-status = NF90_DEF_DIM(fidTS,"z",mz_CHI,dimID_z)                               ; call erreur(status,.TRUE.,"def_dimID_deptht")
+status = NF90_DEF_DIM(fidTS,"x",mx_CHLD,dimID_x)                               ; call erreur(status,.TRUE.,"def_dimID_x")
+status = NF90_DEF_DIM(fidTS,"y",my_CHLD,dimID_y)                               ; call erreur(status,.TRUE.,"def_dimID_y")
+status = NF90_DEF_DIM(fidTS,"z",mz_CHLD,dimID_z)                               ; call erreur(status,.TRUE.,"def_dimID_deptht")
 
 status = NF90_DEF_VAR(fidTS,"time_counter",NF90_DOUBLE,(/dimID_time_counter/),time_counter_ID)
 call erreur(status,.TRUE.,"def_var_time_counter_ID")
@@ -453,8 +452,8 @@ call erreur(status,.TRUE.,"put_att_GLOBAL")
 status = NF90_ENDDEF(fidTS) ; call erreur(status,.TRUE.,"end_definition") 
 
 status = NF90_PUT_VAR(fidTS,time_counter_ID,1.0)       ; call erreur(status,.TRUE.,"var_time_counter_ID")
-status = NF90_PUT_VAR(fidTS,votemper_ID,votemper_CHI)  ; call erreur(status,.TRUE.,"var_votemper_ID")
-status = NF90_PUT_VAR(fidTS,vosaline_ID,vosaline_CHI)  ; call erreur(status,.TRUE.,"var_vosaline_ID")
+status = NF90_PUT_VAR(fidTS,votemper_ID,votemper_CHLD)  ; call erreur(status,.TRUE.,"var_votemper_ID")
+status = NF90_PUT_VAR(fidTS,vosaline_ID,vosaline_CHLD)  ; call erreur(status,.TRUE.,"var_vosaline_ID")
 
 status = NF90_CLOSE(fidTS) ; call erreur(status,.TRUE.,"final")         
 

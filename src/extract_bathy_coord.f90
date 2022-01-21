@@ -1,21 +1,24 @@
 program modif                                         
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! N. Jourdain, IGE-CNRS, Jan. 2017
 !
-! To extract the bathymetry from a global/large ("EXT") grid (e.g. eORCA12) onto a child/regional ("CHLD") grid.
+! To extract the bathymetry from a global/large grid ("EXT", e.g. eORCA12) onto a child/regional ("CHLD") grid.
 !
-! If ln_coarse_bdy=.true. the bathymetry is coarser ("PAR") (e.g. from ORCA025) along the boundaries.
+! If ln_coarse_bdy=.true. the bathymetry is coarser (which is refered to as the parent grid, i.e. "PAR", 
+! e.g. from ORCA025) along the boundaries.
 !
 ! 0- Initializations
 ! 1- Read bathymetry in which to extract (e.g. eORCA12)
-! 2- Read coarse bathymetry used for consistent bathymetry along boundaries  [if ln_coarse_bdy]
+! 2- Read parent bathymetry used for consistent bathymetry along boundaries  [if ln_coarse_bdy]
 ! 3- Find relationship between the two grids (at least where they overlap)   [if ln_coarse_bdy]
 ! 4- Extract variables on the CHILD grid
 ! 5- Manual corrections for WED12      [ if congig == WED12 ]
 ! 6- Writing new regional bathymetry file
 ! 7- Reading coordinates on global domain
 ! 8- Writing coordinates file for the regional domain
+!
+! History: - Jan. 2017: initial version (N. Jourdain, CNRS-IGE)
+!          -
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -89,7 +92,7 @@ jmax_EXT = nn_jmax_extract
 eps = 1.e-5
 
 !=================================================================================
-! 1- Read bathymetry in which to extract (e.g. eORCA12)
+! 1- Read bathymetry in which to extract (EXT)
 !=================================================================================
 
 write(*,*) 'Extracting regional bathymetry from : ', TRIM(file_in_bathy_extract)
@@ -149,8 +152,7 @@ status = NF90_CLOSE(fidEXT); call erreur(status,.TRUE.,"close_grid_to_extract")
 if ( ln_coarse_bdy ) then
 
     !=================================================================================
-    ! 2- Read coarse bathymetry used for consistent bathymetry along boundaries
-    !    (e.g. eORCA025)
+    ! 2- Read parent bathymetry used for consistent bathymetry along boundaries (e.g. eORCA025)
     !=================================================================================
     
     write(*,*) 'Reading coarse bathymetry for consistent boundaries: ', TRIM(file_in_bathy_bdy)
