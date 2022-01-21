@@ -226,14 +226,14 @@ DO kday=1,31
 
 ENDDO
 
-!- Read vmask and e3v in large-scale/global file:
+!- Read vmask and e3v in parent grid file:
 status = NF90_OPEN(TRIM(file_data_mask),0,fidMSKIN);    call erreur(status,.TRUE.,"read mask input") 
 ALLOCATE(  vmask_PAR(mlon,mlat,mdepthv)  ) 
 status = NF90_INQ_VARID(fidMSKIN,"vmask",vmask_PAR_ID); call erreur(status,.TRUE.,"inq_vmask_PAR_ID")
 status = NF90_GET_VAR(fidMSKIN,vmask_PAR_ID,vmask_PAR); call erreur(status,.TRUE.,"getvar_vmask_PAR")
 status = NF90_CLOSE(fidMSKIN);                          call erreur(status,.TRUE.,"end read mask_PAR")
 
-!- Read e1v and e3v in large-scale/global file:
+!- Read e1v and e3v in parent grid file:
 status = NF90_OPEN(TRIM(file_data_zgr),0,fidZGRIN);     call erreur(status,.TRUE.,"read mask input")
 ALLOCATE(  e3v_PAR(mlon,mlat,mdepthv)  )
 status = NF90_INQ_VARID(fidZGRIN,"e3v",e3v_PAR_ID) 
@@ -262,7 +262,7 @@ enddo
 !--
 
 write(command_str,888) TRIM(config_dir)
-888 FORMAT('mkdir ',a,'/BDY')
+888 FORMAT('mkdir -pv ',a,'/BDY')
 CALL system(TRIM(command_str))
 
 !=================================================================================

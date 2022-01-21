@@ -218,7 +218,7 @@ enddo
 !--
 
 write(command_str,888) TRIM(config_dir)
-888 FORMAT('mkdir ',a,'/BDY')
+888 FORMAT('mkdir -pv ',a,'/BDY')
 CALL system(TRIM(command_str))
 
 !=================================================================================
@@ -316,7 +316,7 @@ DO kyear=nn_yeari,nn_yearf
         !---------------------------------------
         ! Fill values on bdyT :
       
-        write(*,*) 'Take values from large-scale grid'
+        write(*,*) 'Take values from parent grid'
         ALLOCATE( ileadfra_bdy(mxbt,1,mtime)  )
         ALLOCATE( iicethic_bdy(mxbt,1,mtime)  )
         ALLOCATE( isnowthi_bdy(mxbt,1,mtime)  )

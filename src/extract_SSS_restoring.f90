@@ -223,7 +223,7 @@ DO kday=1,31
 
 ENDDO
 
-!- Read tmask in large-scale/global file:
+!- Read tmask in parent grid file:
 status = NF90_OPEN(TRIM(file_sss_mask),0,fidMSKIN);     call erreur(status,.TRUE.,"read mask_PAR") 
 status = NF90_INQ_DIMID(fidMSKIN,"z",dimID_z)
 if ( status .ne. 0 ) status = NF90_INQ_DIMID(fidMSKIN,"depth",dimID_z)
@@ -239,7 +239,7 @@ status = NF90_CLOSE(fidMSKIN);                          call erreur(status,.TRUE
 
 !- create SSS directory :
 write(command_str,888) TRIM(config_dir)
-888 FORMAT('mkdir ',a,'/SSS')
+888 FORMAT('mkdir -pv ',a,'/SSS')
 CALL system(TRIM(command_str))
 
 !=================================================================================

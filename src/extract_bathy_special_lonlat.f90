@@ -151,7 +151,7 @@ endif
 ! 2- Read grid correspondance with EXT (i.e. extraction coordinates)
 !=================================================================================
 
-write(*,*) 'Reading CHLDIONAL lon,lat in ', TRIM(file_in_coord_CHLD)
+write(*,*) 'Reading lon,lat of child domain in ', TRIM(file_in_coord_CHLD)
 
 status = NF90_OPEN(TRIM(file_in_coord_CHLD),0,fidCOORDreg); call erreur(status,.TRUE.,"read coord input")
 
@@ -287,16 +287,16 @@ endif
 status = NF90_CLOSE(fidPAR); call erreur(status,.TRUE.,"close_coarse_bathy_file")
 
 !===================================================================
-! put COARSE grid in a npts-pts halo (+ transition in another halo)
+! put parent grid in a npts-pts halo (+ transition in another halo)
 
 npts=CEILING(ai*1.5)
-write(*,*) 'put COARSE grid bathymetry in a npts-pts halo, with npts = ', npts
+write(*,*) 'put parent grid bathymetry in a npts-pts halo, with npts = ', npts
 
 !=================================================================================
 ! 4- Calculate bathy/isf draft on the CHLD grid :
 !=================================================================================
 
-write(*,*) 'Calculating bathymetry on the regional grid...'
+write(*,*) 'Calculating bathymetry on the child grid...'
     
 ALLOCATE(  nn                 (mx_CHLD,my_CHLD)  )
 ALLOCATE(  isf_draft_CHLD      (mx_CHLD,my_CHLD)  )

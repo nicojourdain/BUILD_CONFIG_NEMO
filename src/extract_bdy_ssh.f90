@@ -218,7 +218,7 @@ enddo
 !--
 
 write(command_str,888) TRIM(config_dir)
-888 FORMAT('mkdir ',a,'/BDY')
+888 FORMAT('mkdir -pv ',a,'/BDY')
 CALL system(TRIM(command_str))
 
 !=================================================================================
