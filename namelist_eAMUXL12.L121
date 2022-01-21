@@ -127,12 +127,12 @@ data_suffix_U         = '.5d_gridU' ! suffix for zonal velocity
 data_suffix_V         = '.5d_gridV' ! suffix for meridional velocity
 data_suffix_ssh       = '.5d_gridT' ! suffix for SSH
 data_suffix_ice       = '.5d_icemod'! suffix for sea ice variables
-file_data_mask        = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_mask.nc'   ! Mask for global/large-scale file
+file_data_mask        = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_mask.nc'   ! Mask file of parent grid (PAR)
                                                                                           ! (contains umask, vmask)
-file_data_zgr         = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_mask.nc'   ! Vertical mesh sizes (for btp vel.)
+file_data_zgr         = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_mask.nc'   ! PAR vertical mesh sizes (for btp vel.)
                                                                                           ! (contains e3u_0 or e3u and e3v_0 or e3v)
-file_data_hgr         = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_mask.nc'   ! Horizontal mesh sizes (for btp vel.)
-nn_yeari              =  1979   ! initial year for BDYs
+file_data_hgr         = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_mask.nc'   ! PAR horizontal mesh sizes (for btp vel.)
+nn_yeari              =  2012   ! initial year for BDYs
 nn_yearf              =  2018   ! final year for BDYs
 nn_bdy_eosmatch       =   1     ! match between model equ. of state and BDY equ. of state :
                                 !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
@@ -172,18 +172,18 @@ harm(18)              = 'M4  '
 ! or:    <sss_dir>/<sss_prefix>YYYY<sss_sep1>MM<sss_suffix>.nc
 ! or:    <sss_dir>/<sss_prefix>.nc        [ for climatology ]
 !
-sss_dir              = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_GNJ002/links'
-sss_prefix           = 'ORCA025.L75-GNJ002_5d_'
-sss_sep1             = ''
-sss_sep2             = ''
-sss_suffix           = '_gridT'
-nn_sss_yeari         = 1972    ! First year to proceed
-nn_sss_yearf         = 1973    ! Last year to proceed
-nn_sss_eosmatch      = 0       ! match between model equ. of state and SSS restoring file :
+sss_dir              = '/scratch/cnt0021/egi6035/SHARED/NEMO/OUTPUT/eORCA025.L121-OPM026/5d'
+sss_prefix           = 'eORCA025.L121-OPM026_y'
+sss_sep1             = 'm'
+sss_sep2             = 'd'
+sss_suffix           = '.5d_gridT' ! suffix for temperature
+nn_sss_yeari         = 2012    ! First year to proceed
+nn_sss_yearf         = 2018    ! Last year to proceed
+nn_sss_eosmatch      = 1       ! match between model equ. of state and SSS restoring file :
                                !    = 0, regional config in TEOS-10 but SSS file in EOS-80
                                !    = 1, same equation of state everywhere
-file_sss_mask        = '/scratch/shared/egige60/njourd/input/nemo_ORCA025.L75/mask_ORCA025.L75_GNJ001.nc'   ! Mask for global/large-scale file
-                                                                                                     ! (contains tmask)
+file_sss_mask        = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_mask.nc'   ! Mask file of parent grid (PAR)
+                                                                                         ! (contains tmask)
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &runoff
@@ -196,20 +196,25 @@ file_sss_mask        = '/scratch/shared/egige60/njourd/input/nemo_ORCA025.L75/ma
 ! or:    <rrr_dir>/<rrr_prefix>YYYY<rrr_sep1>MM<rrr_suffix>.nc
 ! or:    <rrr_dir>/<rrr_prefix>.nc        [ for climatology ]
 !
-rrr_dir              = '/scratch/shared/egige60/njourd/output/nemo_ORCA025.L75_GNJ002/links'
-rrr_prefix           = 'ORCA025.L75-GNJ002_5d_'
-rrr_sep1             = ''
-rrr_sep2             = ''
-rrr_suffix           = '_icb'
-nn_rrr_yeari         = 1972    ! First year to proceed
+rrr_dir              = '/scratch/cnt0021/egi6035/SHARED/NEMO/OUTPUT/eORCA025.L121-OPM026/5d'
+rrr_prefix           = 'eORCA025.L121-OPM026_y'
+rrr_sep1             = 'm'
+rrr_sep2             = 'd'
+rrr_suffix           = '.5d_flxT'
+nn_rrr_yeari         = 1979    ! First year to proceed
 nn_rrr_yearf         = 2018    ! Last year to proceed
 nn_band              = 50   ! Thickness of the band along the coast where we don't do SSS restoring (in nb of grid pts)
-file_mask_runoff     = '/scratch/shared/egige60/njourd/input/nemo_ORCA025.L75/mask_ORCA025.L75_GNJ001.nc'    ! mask for global/large-scale file
+file_mask_runoff     = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_mask.nc'    ! mask file of parent grid (contains tmask)
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &chloro
-file_chloro_in       = '/store/njourd/ORCA025/chlaseawifs_c1m-99-05_smooth_ORCA_R025.nc'  ! runoff for global/large-scale file
-rn_chla              = 0.30   ! default CHLA (to fill places in the regional domain uncovered in the global file)
+file_chloro_in       = '/store/njourd/eORCA025.L121/chlorophyl_v0.0.nc'  ! chlorophyll on parent grid (if used with extract_chloro)
+                                                                         ! or on lon-lat grid (if used with extract_chloro_from_lonlat) 
+rn_chla              = 0.30   ! default CHLA (to fill places in the child domain uncovered in the parent or lon-lat file)
+!- The two following variables are only used for extract_chloro_from_lonlat :
+ln_datelinex        = .false.    ! .true. if the domain includes the dateline (not tested),
+                                 ! .false if the domain includes the Greenwich Meridian
+nn_periox           = 1          ! = 1 if the lon-lat dataset is periodic in longitude, =0 otherwise.
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &zdfiwm

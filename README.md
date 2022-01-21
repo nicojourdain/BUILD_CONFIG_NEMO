@@ -174,7 +174,7 @@ To extract runoff (incl. iceberg melt) data from the PARENT simulation to the CH
 ## if only liquid runoff:
 ./submit.sh extract_runoff 03
 ## if both liquid and solid/iceberg ruonff:
-./submit.sh extract_runoff_iceberg 03
+./submit.sh extract_runoff_icb 03
 ##
 ls -lrt $WORKDIR/input/nemo_${CONFIG}/RNF ## to check progress
 ./concatenate_yearly_runoff.sh
