@@ -160,7 +160,7 @@ To generate lateral forcing for barotropic tides, fill the ```&bdy_tide``` secti
 ./submit.sh extract_bdy_tides 01
 ```
 
-##### 7- Preparation of other input files (SSS for restoring, runoff, chlorophyll)
+##### 7- Preparation of other input files (SSS for restoring, runoff, chlorophyll, zdfiwm)
 
 If you need to do sea surface salinity (SSS) restoring in the CHILD domain, it can be extracted from the PARENT simulation as follows:
 ```bash
@@ -172,9 +172,9 @@ ls -lrt $WORKDIR/input/nemo_${CONFIG}/SSS ## to check progress
 To extract runoff (incl. iceberg melt) data from the PARENT simulation to the CHILD grid:
 ```bash
 ## if only liquid runoff:
-./submit.sh extract_runoff 03
+./submit.sh extract_runoff 03 8
 ## if both liquid and solid/iceberg ruonff:
-./submit.sh extract_runoff_icb 03
+./submit.sh extract_runoff_icb 03 8
 ##
 ls -lrt $WORKDIR/input/nemo_${CONFIG}/RNF ## to check progress
 ./concatenate_yearly_runoff.sh
@@ -182,9 +182,19 @@ ls -lrt $WORKDIR/input/nemo_${CONFIG}/RNF ## to check progress
 
 To extract Chlorophyll-A data:
 ```bash
-./submit.sh extract_chloro 01
+# to extract chlorophyll from the parent grid:
+./submit.sh extract_chloro 01 8
+# or, to extract from a regular lon-lat grid:
+./submit.sh extract_chloro_from_lonlat 01 8
 ls -lrt $WORKDIR/input/nemo_${CONFIG}/chlorophyll_${CONFIG}.nc
 ```
+
+If you use the internal wave mixing parameterisation (De Lavergne et al.), you can extract it from the parent grid as follows:
+```bash
+vi namelist_pre # fill &zdfiwm
+ls ../nemo_${CONFIG}/zdfiwm_${CONFIG}.nc
+```
+
 
 ##### 8- Weights for the interpolation of Surface Boundary Conditions from atmospheric reanalyses
 

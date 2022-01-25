@@ -2,10 +2,10 @@
 
 module load  nco/4.7.9-gcc-4.8.5-hdf5-1.8.18-openmpi-2.0.4
 
-CONFIG="AMUXL025.L75"
+CONFIG="eAMUXL12.L121"
 SSS_DIR="$SHAREDELMER/input/nemo_${CONFIG}/SSS"
-YEARi=1972
-YEARf=1973
+YEARi=1979
+YEARf=2018
 
 #----------------------------------------------------------------------------
 

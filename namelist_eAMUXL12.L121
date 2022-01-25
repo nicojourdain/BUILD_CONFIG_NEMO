@@ -218,5 +218,5 @@ nn_periox           = 1          ! = 1 if the lon-lat dataset is periodic in lon
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &zdfiwm
-file_zdfiwm_in       = '/store/njourd/INPUT_NEWTMX/ORCA025/zdfiwm_ORCA025.nc'
+file_zdfiwm_in       = '/store/njourd/eORCA025.L121/eORCA025_iwm_b0.2_v0.0.nc'
 /
