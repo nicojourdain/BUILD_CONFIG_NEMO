@@ -185,10 +185,10 @@ ALLOCATE(  mixing_bot_CHLD(mx_CHLD,my_CHLD)  )
 
 status = NF90_INQ_VARID(fidMSH,"tmask",tmask_ID)     ; call erreur(status,.TRUE.,"inq_tmask_ID")
 status = NF90_INQ_VARID(fidMSH,"nav_lon",nav_lon_ID)
-if ( status .ne 0 ) status = NF90_INQ_VARID(fidMSH,"glamt",nav_lon_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidMSH,"glamt",nav_lon_ID)
 call erreur(status,.TRUE.,"inq_nav_lon_ID")
 status = NF90_INQ_VARID(fidMSH,"nav_lat",nav_lat_ID)
-if ( status .ne 0 ) status = NF90_INQ_VARID(fidMSH,"gphit",nav_lat_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidMSH,"gphit",nav_lat_ID)
 call erreur(status,.TRUE.,"inq_nav_lat_ID")
 
 status = NF90_GET_VAR(fidMSH,tmask_ID,tmask)         ; call erreur(status,.TRUE.,"getvar_tmask")
