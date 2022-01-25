@@ -111,9 +111,13 @@ ALLOCATE(  mixing_pyc(mx,my)  )
 ALLOCATE(  mixing_bot(mx,my)  )
 
 status = NF90_INQ_VARID(fidA,"nav_lon",nav_lon_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"glamt",nav_lon_ID) 
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"lon",nav_lon_ID) 
 if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"XAXIS",nav_lon_ID) 
 call erreur(status,.TRUE.,"inq_nav_lon_ID")
 status = NF90_INQ_VARID(fidA,"nav_lat",nav_lat_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"gphit",nav_lat_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"lat",nav_lat_ID)
 if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"YAXIS",nav_lat_ID)
 call erreur(status,.TRUE.,"inq_nav_lat_ID")
 !-
