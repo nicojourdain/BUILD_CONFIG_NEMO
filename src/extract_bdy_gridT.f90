@@ -364,6 +364,20 @@ DO kyear=nn_yeari,nn_yearf
           enddo
         enddo
 
+        !-----------------------------------------------
+        ! Extrapolate downward where salinity = 0
+
+        do kbdy=1,mxbt
+        do kt=1,mtime
+          do kz=2,mdeptht
+            if ( vosaline_bdy(kbdy,1,kz,kt) .lt. 1.e-3 ) then
+              vosaline_bdy(kbdy,1,kz,kt) = vosaline_bdy(kbdy,1,kz-1,kt)
+              votemper_bdy(kbdy,1,kz,kt) = votemper_bdy(kbdy,1,kz-1,kt)
+            endif
+          enddo
+        enddo
+        enddo
+
         !------------------------------------------------
         ! Convert to conservative temperature if needed :
 
