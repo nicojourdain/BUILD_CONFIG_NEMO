@@ -292,7 +292,7 @@ do kiter=1,nn_iter
         tmp_votemper_CHLD(iCHLD,jCHLD,kk) = votemper_CHLD(iii,jjj,kkk)
         tmp_vosaline_CHLD(iCHLD,jCHLD,kk) = vosaline_CHLD(iii,jjj,kkk)
         exit
-      elseif ( ( rz .eq. nn_rzmax .and. kiter .eq. nn_iter ) .or. ( nn_rzmax .le. 0 .and. nn_iter .le. 0 ) ) then
+      elseif ( ( rz .eq. nn_rzmax .and. kiter .eq. nn_iter ) .or. nn_rzmax .eq. 0 ) then
         write(*,953) iCHLD, jCHLD, kk
         953 FORMAT(' >>> WARNING for point (',3I5,') --> filled with rn_temp and rn_sal (to avoid this, increase nn_rsmax and/or nn_rzmax and/or nn_iter)')
         tmp_missing(iCHLD,jCHLD,kk) = 0
