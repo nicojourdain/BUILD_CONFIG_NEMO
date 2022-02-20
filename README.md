@@ -192,6 +192,7 @@ ls -lrt $WORKDIR/input/nemo_${CONFIG}/chlorophyll_${CONFIG}.nc
 If you use the internal wave mixing parameterisation (De Lavergne et al.), you can extract it from the parent grid as follows:
 ```bash
 vi namelist_pre # fill &zdfiwm
+./submit.sh extract_zdfiwm 01 8 
 ls ../nemo_${CONFIG}/zdfiwm_${CONFIG}.nc
 ```
 
