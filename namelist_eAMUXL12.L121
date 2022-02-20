@@ -30,7 +30,8 @@ file_in_bathy_bdy     = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_m
                                                                                         ! boundary conditions (e.g. eORCA025.L121).
 ln_isfcav             = .true.          ! true if the domain includes ice shelves.
 ! Choose the domain bounds on global grid that is extracted (e.g. eORCA12; WARNING: will be rounded to closest point of the coarse grid if ln_coarse_bdy = true) :
-nn_imin_extract       =  1739 
+!nn_imin_extract       =  1739 
+nn_imin_extract       =  1779 
 nn_imax_extract       =  2426
 nn_jmin_extract       =   564
 nn_jmax_extract       =  1155
@@ -68,12 +69,13 @@ file_in_SI            = '/scratch/cnt0021/egi6035/SHARED/NEMO/OUTPUT/eORCA025.L1
 nn_eosmatch           =   1    ! match between model equ. of state and istate equ. of state :
                                !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
                                !    = 1, same equation of state everywhere
-nn_iter               =   80   ! [optional] nb of iteration for closest neighbour (default=5)
-nn_rsmax              =    5   ! [optional] nb of points to look for horizontally closest neighbour (in one iteration) 
-nn_rzmax              =    1   ! [optional] nb of points to look for vertically closest neighbour (in one iteration, after horizontal search)
+nn_smooth             =    3   ! size of the box for running mean (=1 for no smoothing, 3,5,7,... for more smoothing)
+!-- Parameters for extrapolation (where no values available from PARENT initial state) :
+nn_iter               =   80   ! [optional, default=100] nb of iterations for extrapolation to closest neighbour (=1 to use rn_temp and rn_sal instead of extrapolating)
+nn_rsmax              =    5   ! [optional, default=5] nb of points to which to extrapolate horizontally in one iteration (=0 to use rn_temp and rn_sal instead of extrapolating)
+nn_rzmax              =    2   ! [optional, default=1] nb of points to which to extrapolate vertically in one iteration if no horizontal neighbour (=0 to use rn_temp and rn_sal instead of extrapolating) 
 rn_temp               = -1.0   ! default temperature (if no close neighbour after nn_iter iterations)
-rn_sal                = 34.5   ! default salinity    (if no close neighbour after nn_iter iterations)
-nn_smooth             =    1   ! size of the box for running mean (=1 for no smoothing, 3,5,7,... for more smoothing)
+rn_sal                = 34.0   ! default salinity    (if no close neighbour after nn_iter iterations)
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &bdy
@@ -132,7 +134,7 @@ file_data_mask        = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_m
 file_data_zgr         = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_mask.nc'   ! PAR vertical mesh sizes (for btp vel.)
                                                                                           ! (contains e3u_0 or e3u and e3v_0 or e3v)
 file_data_hgr         = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_mask.nc'   ! PAR horizontal mesh sizes (for btp vel.)
-nn_yeari              =  2012   ! initial year for BDYs
+nn_yeari              =  2013   ! initial year for BDYs
 nn_yearf              =  2018   ! final year for BDYs
 nn_bdy_eosmatch       =   1     ! match between model equ. of state and BDY equ. of state :
                                 !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80

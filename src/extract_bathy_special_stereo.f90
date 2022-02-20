@@ -892,7 +892,7 @@ elseif ( TRIM(config) == 'AMUXL12' ) then
     ! Note that you DO NOT have to change the following in you change the domain size
     ! through modifications of nn_imin_extract, nn_imax_extract, ... in the namelist 
 
-    ! To keep the boxes at the same position:
+    ! To keep the boxes at the same position if we slightly change the domain:
     i0 = 1771 - imin_EXT
     j0 =   30 - jmin_EXT
     write(*,*) '   i0 = ', i0
@@ -967,8 +967,14 @@ elseif ( TRIM(config) == 'eAMUXL12.L121' ) then
 
     write(*,*) 'Special correction for config ', TRIM(config)
 
+    ! To keep the boxes at the same position if we slightly change the domain:
+    i0 = 1737 - imin_EXT
+    j0 =  562 - jmin_EXT
+    write(*,*) '   i0 = ', i0
+    write(*,*) '   j0 = ', j0
+
     ! to avoid hole in an ice shelf:
-    isf_draft_CHLD(557,199:200) = Bathymetry_isf_CHLD(557,199:200)
+    isf_draft_CHLD(557+i0,199+j0:200+j0) = Bathymetry_isf_CHLD(557+i0,199+j0:200+j0)
 
     ! no isf over a safety zone (2*npts wide halo) from the eastern and western BDY :
     isf_draft_CHLD     (1:2*npts,:) = 0.0
