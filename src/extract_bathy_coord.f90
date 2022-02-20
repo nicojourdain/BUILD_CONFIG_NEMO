@@ -284,7 +284,7 @@ write(*,*) ' '
 write(*,*) '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
 write(*,*) ' Note for later (overwritten namelist parameters):'
 write(*,113) imin_EXT, imax_EXT, jmin_EXT, jmax_EXT
-113 FORMAT('To crop the global files, use:   ncks -F -d x,',i4,',',i4,' -d y,',i4,',',i4,' file_eEXT.nc file_CHLD.nc')
+113 FORMAT('To crop the global files, use:   ncks -F -d x,',i4,',',i4,' -d y,',i4,',',i4,' file_EXT.nc file_CHLD.nc')
 write(*,*) '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
 write(*,*) ' Do not forget to adapt NEMO s namelist with:'
 write(*,*) '    jpidta  =  ', mx_CHLD
