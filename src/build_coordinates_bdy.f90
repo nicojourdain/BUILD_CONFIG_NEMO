@@ -40,7 +40,7 @@ INTEGER                              :: fidA, status, dimID_xbv, dimID_xbu, dimI
 &                                       glamu_ID, e2t_ID, e1t_ID, gphit_ID, glamt_ID, nbrv_ID, nbjv_ID, nbiv_ID,&
 &                                       nbru_ID, nbju_ID, nbiu_ID, nbrt_ID, nbjt_ID, nbit_ID, fidM, dimID_x,    &
 &                                       dimID_y, k, kt, ku, kv, kt0, ku0, kv0, mx, my, kkbdy, k1, k2, ndouble,  &
-&                                       fidJ, vmaskutil_ID, umaskutil_ID, tmaskutil_ID
+&                                       fidJ, vmaskutil_ID, umaskutil_ID, tmaskutil_ID, nn_perio
 CHARACTER(LEN=150)                   :: file_in_coord_CHLD, file_in_mask_CHLD, file_out                     
 INTEGER*1,ALLOCATABLE,DIMENSION(:,:) :: vmaskutil, umaskutil, tmaskutil
 INTEGER*4,ALLOCATABLE,DIMENSION(:,:) :: nbrv, nbjv, nbiv, nbru, nbju, nbiu, nbrt, nbjt, nbit    
@@ -168,6 +168,12 @@ status = NF90_CLOSE(fidJ) ; call erreur(status,.TRUE.,"close file")
 ! 2- Calculate BDY dimensions
 !=================================================================================
 
+! Check if grid is east-west periodic :
+nn_perio = 0
+if (nn_bdy_north .gt. 0 .and. i1_bdy_north(1) .eq. 1 .and. i2_bdy_north(1) .eq. mx ) nn_perio = 1
+if (nn_bdy_south .gt. 0 .and. i1_bdy_south(1) .eq. 1 .and. i2_bdy_south(1) .eq. mx ) nn_perio = 1
+if ( nn_perio .eq. 1 ) write(*,*) 'NB: ASSUMING EAST-WEST PERIODIC DOMAIN !!'
+
 mxbt=0
 mxbu=0
 mxbv=0
@@ -188,14 +194,14 @@ enddo
 
 do kkbdy=1,nn_bdy_north
   mxbt=mxbt+i2_bdy_north(kkbdy)-i1_bdy_north(kkbdy)+1
-  mxbu=mxbu+i2_bdy_north(kkbdy)-i1_bdy_north(kkbdy)
+  mxbu=mxbu+i2_bdy_north(kkbdy)-i1_bdy_north(kkbdy)+nn_perio
   !WED12: mxbu=mxbu+i2_bdy_north(kkbdy)-i1_bdy_north(kkbdy)+MIN(2,i1_bdy_north(kkbdy))
   mxbv=mxbv+i2_bdy_north(kkbdy)-i1_bdy_north(kkbdy)+1
 enddo
 
 do kkbdy=1,nn_bdy_south
   mxbt=mxbt+i2_bdy_south(kkbdy)-i1_bdy_south(kkbdy)+1
-  mxbu=mxbu+i2_bdy_south(kkbdy)-i1_bdy_south(kkbdy)
+  mxbu=mxbu+i2_bdy_south(kkbdy)-i1_bdy_south(kkbdy)+nn_perio
   !WED12: mxbu=mxbu+i2_bdy_south(kkbdy)-i1_bdy_south(kkbdy)+MIN(2,i1_bdy_south(kkbdy))
   mxbv=mxbv+i2_bdy_south(kkbdy)-i1_bdy_south(kkbdy)+1
 enddo
@@ -301,7 +307,7 @@ do kkbdy=1,nn_bdy_north
       nbjt_tmp(kt,1)=999999
     endif
   enddo
-  do k=i1_bdy_north(kkbdy),i2_bdy_north(kkbdy)-1
+  do k=i1_bdy_north(kkbdy),i2_bdy_north(kkbdy)-1+nn_perio
   !WED12: do k=MAX(1,i1_bdy_north(kkbdy)-1),i2_bdy_north(kkbdy)
     ku=ku+1
     if ( SUM(umaskutil(MAX(k-1,1):MIN(k+1,mx),jj_bdy_north(kkbdy))).ne.0 ) then
@@ -335,7 +341,7 @@ do kkbdy=1,nn_bdy_south
       nbjt_tmp(kt,1)=999999
     endif
   enddo
-  do k=i1_bdy_south(kkbdy),i2_bdy_south(kkbdy)-1
+  do k=i1_bdy_south(kkbdy),i2_bdy_south(kkbdy)-1+nn_perio
   !WED12: do k=MAX(1,i1_bdy_south(kkbdy)-1),i2_bdy_south(kkbdy)
     ku=ku+1
     if ( SUM(umaskutil(MAX(k-1,1):MIN(k+1,mx),jj_bdy_south(kkbdy))).ne.0 ) then

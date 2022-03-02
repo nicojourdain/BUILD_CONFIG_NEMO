@@ -58,22 +58,22 @@ file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/BedMachineAntarctica-2
 file_in_mask_extract  = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_mask.nc'
 !-
 ! PARENT temperature file (same grid as file_in_mask_extract):
-file_in_T             = '/scratch/cnt0021/egi6035/SHARED/NEMO/OUTPUT/eORCA025.L121-OPM026/5d/2005/eORCA025.L121-OPM026_y2005m03d01.5d_gridT.nc'
+file_in_T             = '/scratch/cnt0021/egi6035/SHARED/NEMO/OUTPUT/eORCA025.L121-OPM026/5d/1979/eORCA025.L121-OPM026_y1979m03d01.5d_gridT.nc'
 !-
 ! PARENT salinity file (same grid as file_in_mask_extract) :
-file_in_S             = '/scratch/cnt0021/egi6035/SHARED/NEMO/OUTPUT/eORCA025.L121-OPM026/5d/2005/eORCA025.L121-OPM026_y2005m03d01.5d_gridT.nc'
+file_in_S             = '/scratch/cnt0021/egi6035/SHARED/NEMO/OUTPUT/eORCA025.L121-OPM026/5d/1979/eORCA025.L121-OPM026_y1979m03d01.5d_gridT.nc'
 !-
 ! PARENT sea ice file (only used by extract_istate_sea_ice.f90, put e.g. 'NOT USED' if no sea ice) :
-file_in_SI            = '/scratch/cnt0021/egi6035/SHARED/NEMO/OUTPUT/eORCA025.L121-OPM026/5d/2005/eORCA025.L121-OPM026_y2005m03d01.5d_icemod.nc'
+file_in_SI            = '/scratch/cnt0021/egi6035/SHARED/NEMO/OUTPUT/eORCA025.L121-OPM026/5d/1979/eORCA025.L121-OPM026_y1979m03d01.5d_icemod.nc'
 !-
 nn_eosmatch           =   1    ! match between model equ. of state and istate equ. of state :
                                !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
                                !    = 1, same equation of state everywhere
-nn_smooth             =    3   ! size of the box for running mean (=1 for no smoothing, 3,5,7,... for more smoothing)
+nn_smooth             =    5   ! size of the box for running mean (=1 for no smoothing, 3,5,7,... for more smoothing)
 !-- Parameters for extrapolation (where no values available from PARENT initial state) :
-nn_iter               =   80   ! [optional, default=100] nb of iterations for extrapolation to closest neighbour (=1 to use rn_temp and rn_sal instead of extrapolating)
+nn_iter               =  200   ! [optional, default=100] nb of iterations for extrapolation to closest neighbour (=1 to use rn_temp and rn_sal instead of extrapolating)
 nn_rsmax              =    5   ! [optional, default=5] nb of points to which to extrapolate horizontally in one iteration (=0 to use rn_temp and rn_sal instead of extrapolating)
-nn_rzmax              =    2   ! [optional, default=1] nb of points to which to extrapolate vertically in one iteration if no horizontal neighbour (=0 to use rn_temp and rn_sal instead of extrapolating) 
+nn_rzmax              =    1   ! [optional, default=1] nb of points to which to extrapolate vertically in one iteration if no horizontal neighbour (=0 to use rn_temp and rn_sal instead of extrapolating) 
 rn_temp               = -1.0   ! default temperature (if no close neighbour after nn_iter iterations)
 rn_sal                = 34.0   ! default salinity    (if no close neighbour after nn_iter iterations)
 /
@@ -105,8 +105,8 @@ jj_bdy_north(1)       =  596    ! j-index for northern boundary (ocean T-pt, sta
 /
 !-------------------------------------------------------------------------------------------------------------------------------
 &bdy_south
-i1_bdy_south(1)       =    0    ! lowest  i-index for southern boundary (ocean T-pt, standard = 2, or = 3 if full bdy_west)
-i2_bdy_south(1)       =    0    ! highest i-index for southern boundary (ocean T-pt, standard = mx-1, or = mx-2 if full bdy_east)
+i1_bdy_south(1)       =    0    ! lowest  i-index for southern boundary (ocean T-pt, standard = 2, or = 3 if full bdy_west, or = 1 if periodic)
+i2_bdy_south(1)       =    0    ! highest i-index for southern boundary (ocean T-pt, standard = mx-1, or = mx-2 if full bdy_east, or = mx if periodic)
 jj_bdy_south(1)       =    0    ! j-index for southern boundary (ocean T-pt, standard = 2)
 /
 !-------------------------------------------------------------------------------------------------------------------------------
@@ -134,8 +134,8 @@ file_data_mask        = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_m
 file_data_zgr         = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_mask.nc'   ! PAR vertical mesh sizes (for btp vel.)
                                                                                           ! (contains e3u_0 or e3u and e3v_0 or e3v)
 file_data_hgr         = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_mask.nc'   ! PAR horizontal mesh sizes (for btp vel.)
-nn_yeari              =  2005   ! initial year for BDYs
-nn_yearf              =  2018   ! final year for BDYs
+nn_yeari              =  2003   ! initial year for BDYs
+nn_yearf              =  2004   ! final year for BDYs
 nn_bdy_eosmatch       =   1     ! match between model equ. of state and BDY equ. of state :
                                 !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
                                 !    = 1, same equation of state everywhere
@@ -203,8 +203,8 @@ rrr_prefix           = 'eORCA025.L121-OPM026_y'
 rrr_sep1             = 'm'
 rrr_sep2             = 'd'
 rrr_suffix           = '.5d_flxT'
-nn_rrr_yeari         = 2005    ! First year to proceed
-nn_rrr_yearf         = 2018    ! Last year to proceed
+nn_rrr_yeari         = 1979    ! First year to proceed
+nn_rrr_yearf         = 2004    ! Last year to proceed
 nn_band              = 50   ! Thickness of the band along the coast where we don't do SSS restoring (in nb of grid pts)
 file_mask_runoff     = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_mask.nc'    ! mask file of parent grid (contains tmask)
 /
