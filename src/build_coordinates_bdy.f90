@@ -550,7 +550,7 @@ status = NF90_PUT_ATT(fidM,gphit_ID,"units","degrees_north") ; call erreur(statu
 status = NF90_PUT_ATT(fidM,glamt_ID,"units","degrees_east")  ; call erreur(status,.TRUE.,"put_att_glamt_ID")
 
 status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"history","Created using build_coordinates_bdy.f90")
-status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"tools","https://github.com/nicojourdain/BUILD_CONFIG_NEMO_2")
+status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"tools","https://github.com/nicojourdain/BUILD_CONFIG_NEMO")
 call erreur(status,.TRUE.,"put_att_GLOBAL_ID")
 
 status = NF90_ENDDEF(fidM) ; call erreur(status,.TRUE.,"fin_definition") 

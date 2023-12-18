@@ -9,9 +9,8 @@ LDFLAGS :=
 ## NETCDF_LIBS := -lnetcdf -lnetcdff
 
 # occigen :
-#NETCDF_INCDIR := /opt/software/occigen/libraries/netcdf/4.4.0_fortran-4.4.2/hdf5/1.8.17/intel/17.0/openmpi/intel/2.0.1/include
-NETCDF_INCDIR := /opt/software/occigen/spack/linux-rhel7-x86_64/intel-19.0.4/netcdf-4.6.3-ilty/include
-NETCDF_LIBDIR :=
+#NETCDF_INCDIR := $(NETCDFFORTRAN_INCDIR)
+#NETCDF_LIBDIR := $(NETCDFFORTRAN_LIBDIR)
 NETCDF_LIBS := -lnetcdf -lnetcdff
 
 SCRIPTS_DIR ?= ../scripts
@@ -47,14 +46,15 @@ MODULES_OBJS := $(MODULES_SRCS:.f90=.o)
 MODULES_MODS := $(MODULES_SRCS:.f90=.mod)
 
 ifdef NETCDF_LIBDIR
-	LDFLAGS += -L$(NETCDF_LIBDIR) -Wl,-rpath,$(NETCDF_LIBDIR)
+	#LDFLAGS += -L$(NETCDF_LIBDIR) -L$(NETCDFFORTRAN_LIBDIR) -Wl,-rpath,$(NETCDF_LIBDIR),$(NETCDFFORTRAN_LIBDIR)
+	LDFLAGS += -L$(NETCDF_LIBDIR) -L$(NETCDFFORTRAN_LIBDIR)
 endif
 
 %.o : %.f90
 	$(FC) -I$(MODULES_DIR) $(FFLAGS) -c $< -o $@
 
 %.mod : %.f90
-	cd $(MODULES_DIR); $(FC) -I$(NETCDF_INCDIR) $(FFLAGS) -c $(<F)
+	cd $(MODULES_DIR); $(FC) -I$(NETCDFFORTRAN_INCDIR) -I$(NETCDF_INCDIR) $(FFLAGS) -c $(<F)
 	touch $@
 
 .PHONY:	all

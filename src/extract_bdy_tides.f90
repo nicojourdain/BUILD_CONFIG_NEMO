@@ -705,7 +705,7 @@ DO kharm=1,nn_harm
    status = NF90_PUT_ATT(fidoutT,nbit_ID,"units","unitless")                  ; call erreur(status,.TRUE.,"put_att_nbit_ID")
    
    status = NF90_PUT_ATT(fidoutT,NF90_GLOBAL,"history","Created using extract_bdy_tides.f90")
-   status = NF90_PUT_ATT(fidoutT,NF90_GLOBAL,"tools","https://github.com/nicojourdain/BUILD_CONFIG_NEMO_2")
+   status = NF90_PUT_ATT(fidoutT,NF90_GLOBAL,"tools","https://github.com/nicojourdain/BUILD_CONFIG_NEMO")
    call erreur(status,.TRUE.,"put_att_GLOBAL")
    
    status = NF90_ENDDEF(fidoutT) ; call erreur(status,.TRUE.,"fin_definition") 

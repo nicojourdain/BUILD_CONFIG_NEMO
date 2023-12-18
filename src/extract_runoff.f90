@@ -422,7 +422,7 @@ DO kyear=nn_rrr_yeari,nn_rrr_yearf
         status = NF90_PUT_ATT(fidM,time_ID,"axis","T")                          ; call erreur(status,.TRUE.,"put_att_time_ID")
         
         status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"history","Created using extract_runoff.f90")
-        status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"tools","https://github.com/nicojourdain/BUILD_CONFIG_NEMO_2")
+        status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"tools","https://github.com/nicojourdain/BUILD_CONFIG_NEMO")
         call erreur(status,.TRUE.,"put_att_GLOBAL")
         
         status = NF90_ENDDEF(fidM) ; call erreur(status,.TRUE.,"fin_definition") 
