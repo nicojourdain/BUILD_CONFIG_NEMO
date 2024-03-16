@@ -115,7 +115,7 @@ rm -f $WORKDIR/input/nemo_${CONFIG}/bathy_meter_${CONFIG}.nc
 
 ##### 4- Extract mesh\_mask.nc
 
-This step makes use of NEMO directly and an exemple is provided [here](https://nicojourdain.github.io/coding_dir/coding_nemo4_occigen). Basically, you need to generate the domain_cfg.nc file before running NEMO, but the present tools make use of mesh\_mask.nc, so you need to specify ```nn_msh = 1``` in the ```&namdom```section of NEMO's namelist to also obtain a mesh\_mask.nc file. Then, for the next steps, place and rename this file to get:
+This step makes use of NEMO directly and an exemple is provided [here](https://nicojourdain.github.io/coding_dir/coding_nemo4.2_tgcc/). Basically, you need to generate the domain_cfg.nc file before running NEMO, but the present tools make use of mesh\_mask.nc, so you need to specify ```nn_msh = 1``` in the ```&namdom```section of NEMO's namelist to also obtain a mesh\_mask.nc file. Then, for the next steps, place and rename this file to get:
 ```bash
 ls -al $WORKDIR/input/nemo_${CONFIG}/mesh_mask_${CONFIG}.nc
 ```

@@ -116,6 +116,8 @@ if [ `hostname | cut -d"." -f2` == "occigen" ]; then
   sbatch ./tmptxp_${RAND}.sh
 elif [ `hostname | cut -c 1-3` == "ada" ]; then
   llsubmit ./tmptxp_${RAND}.sh
+elif [ `hostname | cut -c 1-5` == "irene" ]; then
+   ccc_msub ./tmptxp_${RAND}.sh
 else
   ./tmptxp_${RAND}.sh
 fi

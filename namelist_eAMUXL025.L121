@@ -54,23 +54,23 @@ file_spe_isf_draft  = '/store/njourd/DATA/DATA_BATHYMETRY/BedMachineAntarctica-2
 &init
 !-
 ! PARENT mask file, according to nn_init (contains tmask, nav_lat, nav_lon, nav_lev) :
-file_in_mask_extract  = '/store/njourd/eORCA025.L121/eORCA025.L121-OPM026_mesh_mask.nc'
+file_in_mask_extract  = '/ccc/work/cont003/gen6035/gen6035/MODEL_INPUTS/NEMO/eORCA025.L121/eORCA025.L121_mesh_mask_b0.6_INIT003_c3.0_d1.0.nc'
 !-
 ! PARENT temperature file (same grid as file_in_mask_extract):
-file_in_T             = '/scratch/cnt0021/egi6035/SHARED/NEMO/OUTPUT/eORCA025.L121-OPM026/5d/1979/eORCA025.L121-OPM026_y1979m03d01.5d_gridT.nc'
+file_in_T             = '/ccc/work/cont003/gen6035/gen6035/MODEL_OUTPUTS/NEMO/eORCA025.L121-OPM026/5d/1979/eORCA025.L121-OPM026_y1979m01d05.5d_gridT.nc'
 !-
 ! PARENT salinity file (same grid as file_in_mask_extract) :
-file_in_S             = '/scratch/cnt0021/egi6035/SHARED/NEMO/OUTPUT/eORCA025.L121-OPM026/5d/1979/eORCA025.L121-OPM026_y1979m03d01.5d_gridT.nc'
+file_in_S             = '/ccc/work/cont003/gen6035/gen6035/MODEL_OUTPUTS/NEMO/eORCA025.L121-OPM026/5d/1979/eORCA025.L121-OPM026_y1979m01d05.5d_gridT.nc'
 !-
 ! PARENT sea ice file (only used by extract_istate_sea_ice.f90, put e.g. 'NOT USED' if no sea ice) :
-file_in_SI            = '/scratch/cnt0021/egi6035/SHARED/NEMO/OUTPUT/eORCA025.L121-OPM026/5d/1979/eORCA025.L121-OPM026_y1979m03d01.5d_icemod.nc'
+file_in_SI            = '/ccc/work/cont003/gen6035/gen6035/MODEL_OUTPUTS/NEMO/eORCA025.L121-OPM026/5d/1979/eORCA025.L121-OPM026_y1979m01d05.5d_icemod.nc'
 !-
 nn_eosmatch           =   1    ! match between model equ. of state and istate equ. of state :
                                !    = 0, regional config in TEOS-10 but file_in_T and file_in_S in EOS-80
                                !    = 1, same equation of state everywhere
-nn_smooth             =    5   ! size of the box for running mean (=1 for no smoothing, 3,5,7,... for more smoothing)
+nn_smooth             =    1   ! size of the box for running mean (=1 for no smoothing, 3,5,7,... for more smoothing)
 !-- Parameters for extrapolation (where no values available from PARENT initial state) :
-nn_iter               =  200   ! [optional, default=100] nb of iterations for extrapolation to closest neighbour (=1 to use rn_temp and rn_sal instead of extrapolating)
+nn_iter               =  100   ! [optional, default=100] nb of iterations for extrapolation to closest neighbour (=1 to use rn_temp and rn_sal instead of extrapolating)
 nn_rsmax              =    5   ! [optional, default=5] nb of points to which to extrapolate horizontally in one iteration (=0 to use rn_temp and rn_sal instead of extrapolating)
 nn_rzmax              =    1   ! [optional, default=1] nb of points to which to extrapolate vertically in one iteration if no horizontal neighbour (=0 to use rn_temp and rn_sal instead of extrapolating) 
 rn_temp               = -1.0   ! default temperature (if no close neighbour after nn_iter iterations)
