@@ -75,6 +75,26 @@ cat > tmptxp_${RAND}.sh << EOF
 # @ queue
 EOF
 
+elif [ `hostname | cut -c 1-5` == "irene" ]; then
+
+# Walltime in seconds:
+walltime_sec=`expr $2 * 3600`
+# 1.8GB per core:
+ncore_mem=`echo "$mem / 1.8" | bc`
+
+cat > tmptxp_${RAND}.sh << EOF
+#!/bin/bash
+#MSUB -r submit_${1}
+#MSUB -o submit_${1}.o%j
+#MSUB -e submit_${1}.e%j
+#MSUB -n ${ncore_mem}
+#MSUB -x
+#MSUB -T ${walltime_sec} 
+#MSUB -A gen6035
+#MSUB -q rome
+#MSUB -m store,work,workflash,scratch
+EOF
+
 else
 
 echo "default host"

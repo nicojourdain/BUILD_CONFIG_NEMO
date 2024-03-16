@@ -8,7 +8,11 @@ Designed for NEMO versions from 3.6 to 4.2.
 
 Main contributor: Nicolas Jourdain (IGE-CNRS).
 
-Thanks for useful feedbacks from: Chris Bull (U. Northumbria), Tony Payne (U. Bristol), Ute Hausmann (LOCEAN).
+Thanks for useful feedbacks from: 
+* Chris Bull (U. Northumbria)
+* Tony Payne (U. Bristol)
+* Ute Hausmann (LOCEAN)
+* Christoph Kittel (IGE/U. Liège)
 
 This package makes use of the former Gibbs Sea Water (GSW) Toolbox, which is no longer supported in fortran and therefore provided here. See the [Licence for the use of the Gibbs SeaWater (GSW) Oceanographic Toolbox](http://www.teos-10.org/pubs/gsw/html/gsw_licence.html). The other sources provided here are protected by a [GNU General Public License](http://github.com/nicojourdain/BUILD_CONFIG_NEMO/blob/master/LICENSE).
 

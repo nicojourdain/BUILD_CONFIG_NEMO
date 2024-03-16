@@ -20,9 +20,9 @@ FC='ifort'
 ## ada :
 ## export NC_INC=" "  ## empty on adapp with modules 1) hdf5/seq/1.8.9(default); 2) netcdf/seq/4.1.3(default); 3) intel/2013.1
 ## export NC_LIB=" "  ## empty on adapp with modules 1) hdf5/seq/1.8.9(default); 2) netcdf/seq/4.1.3(default); 3) intel/2013.1
-# occigen :
-export NC_INC="-I`nc-config --includedir`"
-export NC_LIB="`nc-config --libs` -lnetcdff"
+# other machines :
+export NC_INC="-I`nc-config --includedir` `nc-config --fflags`"
+export NC_LIB="`nc-config --flibs`"
 
 export GSW_DIR="./GSW-Fortran"
 
