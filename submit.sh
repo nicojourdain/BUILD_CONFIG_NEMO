@@ -78,8 +78,8 @@ EOF
 elif [ `hostname | cut -c 1-5` == "irene" ]; then
 
 # Walltime in seconds:
-walltime_sec=`expr $2 * 3600`
-# 1.8GB per core:
+walltime_sec=`echo "$2 * 3600" |bc`
+# memory: 1.8GB per core:
 ncore_mem=`echo "$mem / 1.8" | bc`
 
 cat > tmptxp_${RAND}.sh << EOF

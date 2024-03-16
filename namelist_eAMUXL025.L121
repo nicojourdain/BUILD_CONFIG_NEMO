@@ -25,12 +25,11 @@ config_dir = '/ccc/work/cont003/gen6035/jourdain/input/nemo_eAMUXL025.L121' ! di
 &griddata
 file_in_bathy_extract = '/ccc/work/cont003/gen6035/gen6035/MODEL_INPUTS/NEMO/eORCA025.L121/eORCA025_bathymetry_b0.5.nc' ! Bathy on the EXT grid from which we extract the regional domain (e.g. ORCA12).
 file_in_coord_extract = '/ccc/work/cont003/gen6035/gen6035/MODEL_INPUTS/NEMO/eORCA025.L121/eORCA025_coord_c3.0.nc' ! Coordinates of EXT grid from which we extract regional domain (e.g. ORCA12).
-ln_coarse_bdy         = .false.          ! true to have the PARENT (coarser) bathymetry along lateral boundaries (then fill file_in_bathy_bdy) 
+ln_coarse_bdy         = .true.          ! true to have the PARENT (coarser) bathymetry along lateral boundaries (then fill file_in_bathy_bdy) 
 file_in_bathy_bdy     = '/ccc/work/cont003/gen6035/gen6035/MODEL_INPUTS/NEMO/eORCA025.L121/eORCA025.L121_mesh_mask_b0.6_INIT003_c3.0_d1.0.nc' ! Bathy on the PARENT grid, i.e. corresponding to the lateral 
                                                                                         ! boundary conditions (e.g. eORCA025.L121).
 ln_isfcav             = .true.          ! true if the domain includes ice shelves.
 ! Choose the domain bounds on global grid that is extracted (e.g. eORCA12; WARNING: will be rounded to closest point of the coarse grid if ln_coarse_bdy = true) :
-593 812 188 385
 nn_imin_extract       =  593
 nn_imax_extract       =  812
 nn_jmin_extract       =  188
