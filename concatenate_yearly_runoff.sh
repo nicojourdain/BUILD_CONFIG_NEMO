@@ -1,9 +1,10 @@
 #!/bin/bash
 
-module load  nco/4.7.9-gcc-4.8.5-hdf5-1.8.18-openmpi-2.0.4
+#module load  nco/4.7.9-gcc-4.8.5-hdf5-1.8.18-openmpi-2.0.4
+module load  nco
 
-CONFIG="eAMUXL12.L121"
-RNF_DIR="$SHAREDELMER/input/nemo_${CONFIG}/RNF"
+CONFIG="eAMUXL025.L121"
+RNF_DIR="../nemo_${CONFIG}/RNF"
 YEARi=1979
 YEARf=2018
 
