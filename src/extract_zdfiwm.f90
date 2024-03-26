@@ -131,14 +131,17 @@ call erreur(status,.TRUE.,"inq_scale_cri_ID")
 !-
 status = NF90_INQ_VARID(fidA,"mixing_cri",mixing_cri_ID)
 if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"mixing_power_cri",mixing_cri_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"power_cri",mixing_cri_ID)
 call erreur(status,.TRUE.,"inq_mixing_cri_ID")
 !-
 status = NF90_INQ_VARID(fidA,"mixing_pyc",mixing_pyc_ID)
 if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"mixing_power_pyc",mixing_pyc_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"power_pyc",mixing_pyc_ID)
 call erreur(status,.TRUE.,"inq_mixing_pyc_ID")
 !-
 status = NF90_INQ_VARID(fidA,"mixing_bot",mixing_bot_ID)
 if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"mixing_power_bot",mixing_bot_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"power_bot",mixing_bot_ID)
 call erreur(status,.TRUE.,"inq_mixing_bot_ID")
 
 status = NF90_GET_VAR(fidA,scale_bot_ID,scale_bot)  ; call erreur(status,.TRUE.,"getvar_scale_bot")
