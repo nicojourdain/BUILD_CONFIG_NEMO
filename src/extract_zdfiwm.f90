@@ -25,16 +25,16 @@ CHARACTER(LEN=50)                        :: config
 CHARACTER(LEN=150)                       :: file_zdfiwm_in, config_dir
 
 INTEGER                                  :: fidA, status, dimID_x, dimID_y, dimID_time_counter, dimID_z, dimID_t, mx, my, mtime_counter, &
-&                                           mzreg, mtreg, time_counter_ID, nav_lon_ID, nav_lat_ID, fidM, fidglo, jmin_EXT,            &
+&                                           mzreg, mtreg, time_counter_ID, nav_lon_ID, nav_lat_ID, fidM, fidglo, jmin_EXT,               &
 &                                           i, j, iPAR, jPAR, kk, rr, rs, mxglo, myglo, mzglo, mtglo, fidMSH, l, tmask_ID, mb, kki, kkj, &
-&                                           fidC, ai, aj, bi, bj, iCHLD, jCHLD, mx_CHLD, my_CHLD, imin_EXT, dij, im1, ip1,                &
-&                                           jm1, jp1, scale_bot_ID, scale_cri_ID, mixing_cri_ID, mixing_pyc_ID, mixing_bot_ID
+&                                           fidC, ai, aj, bi, bj, iCHLD, jCHLD, mx_CHLD, my_CHLD, imin_EXT, dij, im1, ip1,               &
+&                                           jm1, jp1, scale_bot_ID, scale_cri_ID, mixing_cri_ID, mixing_pyc_ID, mixing_bot_ID, mixing_sho_ID
 CHARACTER(LEN=150)                       :: file_zdfiwm_out, file_in_mask_CHLD, file_in_coord_CHLD
 REAL*4,ALLOCATABLE,DIMENSION(:)          :: time_counter           
 REAL*4,ALLOCATABLE,DIMENSION(:,:)        :: nav_lon, nav_lat, lonreg, latreg
-REAL*4,ALLOCATABLE,DIMENSION(:,:)        :: scale_bot, scale_cri, mixing_cri, mixing_pyc, mixing_bot
-REAL*4,ALLOCATABLE,DIMENSION(:,:)        :: scale_bot_CHLD, scale_cri_CHLD, mixing_cri_CHLD, mixing_pyc_CHLD, mixing_bot_CHLD
-REAL*4,ALLOCATABLE,DIMENSION(:,:)        :: tmp_scale_bot_CHLD, tmp_scale_cri_CHLD, tmp_mixing_cri_CHLD, tmp_mixing_pyc_CHLD, tmp_mixing_bot_CHLD
+REAL*4,ALLOCATABLE,DIMENSION(:,:)        :: scale_bot, scale_cri, mixing_cri, mixing_pyc, mixing_bot, mixing_sho
+REAL*4,ALLOCATABLE,DIMENSION(:,:)        :: scale_bot_CHLD, scale_cri_CHLD, mixing_cri_CHLD, mixing_pyc_CHLD, mixing_bot_CHLD, mixing_sho_CHLD
+REAL*4,ALLOCATABLE,DIMENSION(:,:)        :: tmp_scale_bot_CHLD, tmp_scale_cri_CHLD, tmp_mixing_cri_CHLD, tmp_mixing_pyc_CHLD, tmp_mixing_bot_CHLD, tmp_mixing_sho_CHLD
 INTEGER*1,ALLOCATABLE,DIMENSION(:,:)     :: tmask_CHLD
 INTEGER*1,ALLOCATABLE,DIMENSION(:,:,:,:) :: tmask
 
@@ -136,19 +136,24 @@ call erreur(status,.TRUE.,"inq_mixing_cri_ID")
 !-
 status = NF90_INQ_VARID(fidA,"mixing_pyc",mixing_pyc_ID)
 if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"mixing_power_pyc",mixing_pyc_ID)
-if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"power_pyc",mixing_pyc_ID)
+if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"power_nsq",mixing_pyc_ID)
 call erreur(status,.TRUE.,"inq_mixing_pyc_ID")
 !-
 status = NF90_INQ_VARID(fidA,"mixing_bot",mixing_bot_ID)
 if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"mixing_power_bot",mixing_bot_ID)
 if ( status .ne. 0 ) status = NF90_INQ_VARID(fidA,"power_bot",mixing_bot_ID)
 call erreur(status,.TRUE.,"inq_mixing_bot_ID")
+!-
+status = NF90_INQ_VARID(fidA,"power_sho",mixing_sho_ID)
+call erreur(status,.TRUE.,"inq_mixing_sho_ID")
+
 
 status = NF90_GET_VAR(fidA,scale_bot_ID,scale_bot)  ; call erreur(status,.TRUE.,"getvar_scale_bot")
 status = NF90_GET_VAR(fidA,scale_cri_ID,scale_cri)  ; call erreur(status,.TRUE.,"getvar_scale_cri")
 status = NF90_GET_VAR(fidA,mixing_cri_ID,mixing_cri); call erreur(status,.TRUE.,"getvar_mixing_cri")
 status = NF90_GET_VAR(fidA,mixing_pyc_ID,mixing_pyc); call erreur(status,.TRUE.,"getvar_mixing_pyc")
 status = NF90_GET_VAR(fidA,mixing_bot_ID,mixing_bot); call erreur(status,.TRUE.,"getvar_mixing_bot")
+status = NF90_GET_VAR(fidA,mixing_sho_ID,mixing_sho); call erreur(status,.TRUE.,"getvar_mixing_sho")
 status = NF90_GET_VAR(fidA,nav_lon_ID,nav_lon)      ; call erreur(status,.TRUE.,"getvar_nav_lon")
 status = NF90_GET_VAR(fidA,nav_lat_ID,nav_lat)      ; call erreur(status,.TRUE.,"getvar_nav_lat")
 
@@ -185,6 +190,7 @@ ALLOCATE(  scale_cri_CHLD(mx_CHLD,my_CHLD)  )
 ALLOCATE(  mixing_cri_CHLD(mx_CHLD,my_CHLD)  )
 ALLOCATE(  mixing_pyc_CHLD(mx_CHLD,my_CHLD)  )
 ALLOCATE(  mixing_bot_CHLD(mx_CHLD,my_CHLD)  )
+ALLOCATE(  mixing_sho_CHLD(mx_CHLD,my_CHLD)  )
 
 status = NF90_INQ_VARID(fidMSH,"tmask",tmask_ID)     ; call erreur(status,.TRUE.,"inq_tmask_ID")
 status = NF90_INQ_VARID(fidMSH,"nav_lon",nav_lon_ID)
@@ -217,6 +223,7 @@ do jCHLD=1,my_CHLD
     mixing_cri_CHLD(iCHLD,jCHLD) = mixing_cri(iPAR,jPAR) * tmask_CHLD(iCHLD,jCHLD)
     mixing_pyc_CHLD(iCHLD,jCHLD) = mixing_pyc(iPAR,jPAR) * tmask_CHLD(iCHLD,jCHLD)
     mixing_bot_CHLD(iCHLD,jCHLD) = mixing_bot(iPAR,jPAR) * tmask_CHLD(iCHLD,jCHLD)
+    mixing_sho_CHLD(iCHLD,jCHLD) = mixing_sho(iPAR,jPAR) * tmask_CHLD(iCHLD,jCHLD)
   endif
 enddo
 enddo
@@ -239,11 +246,13 @@ if ( dij .gt. 0 ) then
   ALLOCATE(  tmp_mixing_cri_CHLD(mx_CHLD,my_CHLD)  )
   ALLOCATE(  tmp_mixing_pyc_CHLD(mx_CHLD,my_CHLD)  )
   ALLOCATE(  tmp_mixing_bot_CHLD(mx_CHLD,my_CHLD)  )
+  ALLOCATE(  tmp_mixing_sho_CHLD(mx_CHLD,my_CHLD)  )
   tmp_scale_bot_CHLD (:,:)=scale_bot_CHLD (:,:)
   tmp_scale_cri_CHLD (:,:)=scale_cri_CHLD (:,:)
   tmp_mixing_cri_CHLD(:,:)=mixing_cri_CHLD(:,:)
   tmp_mixing_pyc_CHLD(:,:)=mixing_pyc_CHLD(:,:)
   tmp_mixing_bot_CHLD(:,:)=mixing_bot_CHLD(:,:)
+  tmp_mixing_sho_CHLD(:,:)=mixing_sho_CHLD(:,:)
   do iCHLD=1,mx_CHLD
   do jCHLD=1,my_CHLD
       im1=MAX(iCHLD-dij,1) ; ip1=MIN(iCHLD+dij,mx_CHLD) 
@@ -259,12 +268,15 @@ if ( dij .gt. 0 ) then
           &                                  / SUM( SUM(                            1.0  * tmask_CHLD(im1:ip1,jm1:jp1), 2), 1)
           tmp_mixing_bot_CHLD(iCHLD,jCHLD) =   SUM( SUM( mixing_bot_CHLD(im1:ip1,jm1:jp1) * tmask_CHLD(im1:ip1,jm1:jp1), 2), 1) &
           &                                  / SUM( SUM(                            1.0  * tmask_CHLD(im1:ip1,jm1:jp1), 2), 1)
+          tmp_mixing_sho_CHLD(iCHLD,jCHLD) =   SUM( SUM( mixing_sho_CHLD(im1:ip1,jm1:jp1) * tmask_CHLD(im1:ip1,jm1:jp1), 2), 1) &
+          &                                  / SUM( SUM(                            1.0  * tmask_CHLD(im1:ip1,jm1:jp1), 2), 1)
       else
         tmp_scale_bot_CHLD (iCHLD,jCHLD) = 0.e0
         tmp_scale_cri_CHLD (iCHLD,jCHLD) = 0.e0
         tmp_mixing_cri_CHLD(iCHLD,jCHLD) = 0.e0
         tmp_mixing_pyc_CHLD(iCHLD,jCHLD) = 0.e0
         tmp_mixing_bot_CHLD(iCHLD,jCHLD) = 0.e0
+        tmp_mixing_sho_CHLD(iCHLD,jCHLD) = 0.e0
       endif
   enddo
   enddo
@@ -273,6 +285,7 @@ if ( dij .gt. 0 ) then
   mixing_cri_CHLD(:,:)=tmp_mixing_cri_CHLD(:,:)
   mixing_pyc_CHLD(:,:)=tmp_mixing_pyc_CHLD(:,:)
   mixing_bot_CHLD(:,:)=tmp_mixing_bot_CHLD(:,:)
+  mixing_sho_CHLD(:,:)=tmp_mixing_sho_CHLD(:,:)
 endif
 
 !=================================================================================
@@ -286,11 +299,12 @@ status = NF90_DEF_DIM(fidM,"y",my_CHLD,dimID_y)                  ; call erreur(s
                                       
 status = NF90_DEF_VAR(fidM,"nav_lon",NF90_FLOAT,(/dimID_x,dimID_y/),nav_lon_ID)      ; call erreur(status,.TRUE.,"def_var_nav_lon_ID")
 status = NF90_DEF_VAR(fidM,"nav_lat",NF90_FLOAT,(/dimID_x,dimID_y/),nav_lat_ID)      ; call erreur(status,.TRUE.,"def_var_nav_lat_ID")
-status = NF90_DEF_VAR(fidM,"decay_scale_bot",NF90_FLOAT,(/dimID_x,dimID_y/),scale_bot_ID)  ; call erreur(status,.TRUE.,"def_var_scale_bot_ID")
-status = NF90_DEF_VAR(fidM,"decay_scale_cri",NF90_FLOAT,(/dimID_x,dimID_y/),scale_cri_ID)  ; call erreur(status,.TRUE.,"def_var_scale_cri_ID")
-status = NF90_DEF_VAR(fidM,"mixing_power_cri",NF90_FLOAT,(/dimID_x,dimID_y/),mixing_cri_ID); call erreur(status,.TRUE.,"def_var_mixing_cri_ID")
-status = NF90_DEF_VAR(fidM,"mixing_power_pyc",NF90_FLOAT,(/dimID_x,dimID_y/),mixing_pyc_ID); call erreur(status,.TRUE.,"def_var_mixing_pyc_ID")
-status = NF90_DEF_VAR(fidM,"mixing_power_bot",NF90_FLOAT,(/dimID_x,dimID_y/),mixing_bot_ID); call erreur(status,.TRUE.,"def_var_mixing_bot_ID")
+status = NF90_DEF_VAR(fidM,"scale_bot",NF90_FLOAT,(/dimID_x,dimID_y/),scale_bot_ID)  ; call erreur(status,.TRUE.,"def_var_scale_bot_ID")
+status = NF90_DEF_VAR(fidM,"scale_cri",NF90_FLOAT,(/dimID_x,dimID_y/),scale_cri_ID)  ; call erreur(status,.TRUE.,"def_var_scale_cri_ID")
+status = NF90_DEF_VAR(fidM,"power_cri",NF90_FLOAT,(/dimID_x,dimID_y/),mixing_cri_ID); call erreur(status,.TRUE.,"def_var_mixing_cri_ID")
+status = NF90_DEF_VAR(fidM,"power_nsq",NF90_FLOAT,(/dimID_x,dimID_y/),mixing_pyc_ID); call erreur(status,.TRUE.,"def_var_mixing_pyc_ID")
+status = NF90_DEF_VAR(fidM,"power_bot",NF90_FLOAT,(/dimID_x,dimID_y/),mixing_bot_ID); call erreur(status,.TRUE.,"def_var_mixing_bot_ID")
+status = NF90_DEF_VAR(fidM,"power_sho",NF90_FLOAT,(/dimID_x,dimID_y/),mixing_sho_ID); call erreur(status,.TRUE.,"def_var_mixing_sho_ID")
            
 status = NF90_PUT_ATT(fidM,nav_lon_ID,"nav_model","Default grid") ; call erreur(status,.TRUE.,"put_att_nav_lon_ID")
 status = NF90_PUT_ATT(fidM,nav_lon_ID,"long_name","Longitude")    ; call erreur(status,.TRUE.,"put_att_nav_lon_ID")
@@ -312,6 +326,8 @@ status = NF90_PUT_ATT(fidM,mixing_pyc_ID,"valid_max",1.)          ; call erreur(
 status = NF90_PUT_ATT(fidM,mixing_pyc_ID,"valid_min",1.e-10)      ; call erreur(status,.TRUE.,"put_att_mixing_pyc_ID")
 status = NF90_PUT_ATT(fidM,mixing_bot_ID,"valid_max",1.)          ; call erreur(status,.TRUE.,"put_att_mixing_bot_ID")
 status = NF90_PUT_ATT(fidM,mixing_bot_ID,"valid_min",1.e-10)      ; call erreur(status,.TRUE.,"put_att_mixing_bot_ID")
+status = NF90_PUT_ATT(fidM,mixing_sho_ID,"valid_max",1.)          ; call erreur(status,.TRUE.,"put_att_mixing_sho_ID")
+status = NF90_PUT_ATT(fidM,mixing_sho_ID,"valid_min",1.e-10)      ; call erreur(status,.TRUE.,"put_att_mixing_sho_ID")
 
 status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"history","Created using extract_zdfiwm.f90")
 status = NF90_PUT_ATT(fidM,NF90_GLOBAL,"tools","https://github.com/nicojourdain/BUILD_CONFIG_NEMO")
@@ -326,6 +342,7 @@ status = NF90_PUT_VAR(fidM,scale_cri_ID,scale_cri_CHLD)   ; call erreur(status,.
 status = NF90_PUT_VAR(fidM,mixing_cri_ID,mixing_cri_CHLD) ; call erreur(status,.TRUE.,"var_mixing_cri_ID")
 status = NF90_PUT_VAR(fidM,mixing_pyc_ID,mixing_pyc_CHLD) ; call erreur(status,.TRUE.,"var_mixing_pyc_ID")
 status = NF90_PUT_VAR(fidM,mixing_bot_ID,mixing_bot_CHLD) ; call erreur(status,.TRUE.,"var_mixing_bot_ID")
+status = NF90_PUT_VAR(fidM,mixing_sho_ID,mixing_sho_CHLD) ; call erreur(status,.TRUE.,"var_mixing_sho_ID")
                               
 status = NF90_CLOSE(fidM) ;call erreur(status,.TRUE.,"final")         
 
