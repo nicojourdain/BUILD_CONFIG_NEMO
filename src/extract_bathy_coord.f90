@@ -706,7 +706,13 @@ call erreur(status,.TRUE.,"final")
 
 DEALLOCATE( nav_lat_EXT, nav_lon_EXT, isf_draft_EXT, Bathymetry_isf_EXT, Bathymetry_EXT)
 DEALLOCATE( nav_lat_PAR, nav_lon_PAR, Bathymetry_PAR)
-DEALLOCATE( nav_lat_CHLD, nav_lon_CHLD, isf_draft_CHLD, Bathymetry_isf_CHLD, Bathymetry_CHLD)
+
+if (ln_isfcav) then
+        DEALLOCATE(nav_lat_CHLD, nav_lon_CHLD, isf_draft_CHLD, Bathymetry_isf_CHLD, Bathymetry_CHLD)
+else
+        DEALLOCATE(nav_lat_CHLD, nav_lon_CHLD, Bathymetry_CHLD)
+endif
+
 
 !=================================================================================
 ! 7- Reading coordinates on global domain
